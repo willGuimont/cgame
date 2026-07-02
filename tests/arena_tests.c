@@ -3,8 +3,8 @@
 
 #include <string.h>
 
-static constexpr u64 RESERVE = MiB(1);
-static constexpr u64 COMMIT = KiB(64);
+static constexpr u64 RESERVE = MIB(1);
+static constexpr u64 COMMIT = KIB(64);
 
 // --- Arena_Create ---
 
@@ -12,7 +12,7 @@ static int test_arena_create_sets_fields(void) {
     Arena *arena = Arena_Create(RESERVE, COMMIT);
     ASSERT(arena != nullptr);
 
-    const u32 pagesize = Plat_GetPagesize();
+    const u32 pagesize = Platform_GetPageSize();
     ASSERT(arena->reserve_size == ALIGN_UP_POW2(RESERVE, pagesize));
     ASSERT(arena->commit_size == ALIGN_UP_POW2(COMMIT, pagesize));
     ASSERT(arena->pos == ARENA_BASE_POS);
@@ -158,7 +158,7 @@ static int test_arena_pop_by_more_than_used_clamps_to_base_pos(void) {
     ASSERT(arena != nullptr);
 
     Arena_Push(arena, 16, false);
-    Arena_Pop(arena, 1024 * 1024);
+    Arena_Pop(arena, (u64) (1024 * 1024));
     ASSERT(arena->pos == ARENA_BASE_POS);
 
     Arena_Destroy(arena);

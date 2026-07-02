@@ -7,11 +7,6 @@
 #include <emscripten/emscripten.h>
 #endif
 
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include "box3d/box3d.h"
 
 //----------------------------------------------------------------------------------
@@ -27,13 +22,13 @@
 //----------------------------------------------------------------------------------
 // Global Variables
 //----------------------------------------------------------------------------------
-static constexpr int screenWidth = 1600;
-static constexpr int screenHeight = screenWidth * 9 / 16;
+static constexpr int SCREEN_WIDTH = 1600;
+static constexpr int SCREEN_HEIGHT = SCREEN_WIDTH * 9 / 16;
 
 static RenderTexture2D target = {0};
 
-static constexpr f64 TICK_HZ = 60.0;
-static constexpr f64 TICK_DT = 1.0 / TICK_HZ;
+static constexpr f32 TICK_HZ = 60.0f;
+static constexpr f32 TICK_DT = 1.0f / TICK_HZ;
 
 static Entity entity = {0};
 static double accumulator = 0.0;
@@ -53,7 +48,7 @@ static b3BodyId cube_body = {0};
 //----------------------------------------------------------------------------------
 // Module Functions Declaration
 //----------------------------------------------------------------------------------
-static void UpdateDrawFrame(void);
+static void App_UpdateDrawFrame(void);
 
 //----------------------------------------------------------------------------------
 // Main Loop
@@ -64,10 +59,10 @@ int App_Run(void) {
 #endif
 
     // Initialization
-    InitWindow(screenWidth, screenHeight, "cgame");
+    InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "cgame");
 
     // Render texture for screen scaling
-    target = LoadRenderTexture(screenWidth, screenHeight);
+    target = LoadRenderTexture(SCREEN_WIDTH, SCREEN_HEIGHT);
     SetTextureFilter(target.texture, TEXTURE_FILTER_BILINEAR);
 
     // Initialize game state
@@ -104,13 +99,13 @@ int App_Run(void) {
     b3Body_ApplyMassFromShapes(cube_body);
 
 #if defined(PLATFORM_WEB)
-    emscripten_set_main_loop(UpdateDrawFrame, 60, 1);
+    emscripten_set_main_loop(App_UpdateDrawFrame, 60, 1);
 #else
     SetTargetFPS(60);
 
     // Main game loop
     while (!WindowShouldClose()) {
-        UpdateDrawFrame();
+        App_UpdateDrawFrame();
     }
 #endif
 
@@ -125,7 +120,7 @@ int App_Run(void) {
 //----------------------------------------------------------------------------------
 // Update and Draw Frame
 //----------------------------------------------------------------------------------
-static void UpdateDrawFrame(void) {
+static void App_UpdateDrawFrame(void) {
     // Update
     float frameDt = GetFrameTime();
     if (frameDt > 0.1f) {
@@ -136,14 +131,14 @@ static void UpdateDrawFrame(void) {
     // Fixed-timestep updates
     while (accumulator >= TICK_DT) {
         // Step physics simulation
-        b3World_Step(physics_world, (float) TICK_DT, 4);
+        b3World_Step(physics_world, TICK_DT, 4);
 
         // TODO: Update game logic here
         accumulator -= TICK_DT;
     }
 
     // Get cube position from physics
-    b3Transform cube_transform = b3Body_GetTransform(cube_body);
+    const b3Transform cube_transform = b3Body_GetTransform(cube_body);
     cube_pos = (Vector3) {cube_transform.p.x, cube_transform.p.y, cube_transform.p.z};
 
     // Draw
@@ -161,7 +156,7 @@ static void UpdateDrawFrame(void) {
     DrawGrid(10, 1);
     EndMode3D();
 
-    DrawRectangleLinesEx((Rectangle) {0, 0, screenWidth, screenHeight}, 4, BLACK);
+    DrawRectangleLinesEx((Rectangle) {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT}, 4, BLACK);
 
     EndTextureMode();
 

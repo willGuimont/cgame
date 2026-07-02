@@ -1,0 +1,81 @@
+# cgame naming convention:
+#   Types:        PascalCase
+#   Functions:    Module_PascalCase for module APIs, snake_case for local helpers/tests
+#   Variables:    snake_case
+#   Constants:    UPPER_CASE
+#   Macros:       UPPER_CASE
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  cert-*,
+  clang-analyzer-*,
+  modernize-*,
+  -modernize-use-auto,
+  -modernize-use-trailing-return-type,
+  performance-*,
+  readability-*,
+  -readability-braces-around-statements,
+  -readability-implicit-bool-conversion,
+  -readability-magic-numbers,
+  -readability-identifier-length,
+  -readability-uppercase-literal-suffix,
+  -readability-function-cognitive-complexity,
+  cppcoreguidelines-*,
+  -cppcoreguidelines-pro-bounds-*,
+  -cppcoreguidelines-pro-type-*,
+  -cppcoreguidelines-avoid-magic-numbers,
+  -cppcoreguidelines-init-variables
+
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*'
+
+CheckOptions:
+  # Types: PascalCase
+  - key:             readability-identifier-naming.ClassCase
+    value:           CamelCase
+  - key:             readability-identifier-naming.StructCase
+    value:           CamelCase
+  - key:             readability-identifier-naming.TypedefCase
+    value:           CamelCase
+  - key:             readability-identifier-naming.TypedefIgnoredRegexp
+    value:           '^(i8|i16|i32|i64|u8|u16|u32|u64|f32|f64|b8|b32)$'
+  
+  # Functions: snake_case unless they use the project module prefix form,
+  # e.g. Entity_New, World_SetEntityPosition, StringView_Create.
+  - key:             readability-identifier-naming.FunctionCase
+    value:           lower_case
+  - key:             readability-identifier-naming.FunctionIgnoredRegexp
+    value:           '^[A-Z][A-Za-z0-9]*(_[A-Z][A-Za-z0-9]*)+$'
+  
+  # Variable, Member, Parameter, and Namespace naming: lower_case
+  - key:             readability-identifier-naming.VariableCase
+    value:           lower_case
+  - key:             readability-identifier-naming.MemberCase
+    value:           lower_case
+  - key:             readability-identifier-naming.ParameterCase
+    value:           lower_case
+  - key:             readability-identifier-naming.NamespaceCase
+    value:           lower_case
+  
+  # Local constants, const parameters, const members: lower_case
+  - key:             readability-identifier-naming.ConstantCase
+    value:           lower_case
+  - key:             readability-identifier-naming.ConstParameterCase
+    value:           lower_case
+  - key:             readability-identifier-naming.ConstMemberCase
+    value:           lower_case
+  
+  # Enum constants and macros: UPPER_CASE
+  - key:             readability-identifier-naming.EnumConstantCase
+    value:           UPPER_CASE
+  - key:             readability-identifier-naming.MacroDefinitionCase
+    value:           UPPER_CASE
+  
+  # Global, static, and constexpr constants: UPPER_CASE
+  - key:             readability-identifier-naming.GlobalConstantCase
+    value:           UPPER_CASE
+  - key:             readability-identifier-naming.StaticConstantCase
+    value:           UPPER_CASE
+  - key:             readability-identifier-naming.ConstexprVariableCase
+    value:           UPPER_CASE

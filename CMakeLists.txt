@@ -56,6 +56,7 @@ target_compile_options(cgame
         -Wconversion
         -Wshadow
         -Werror
+        -Wno-unused-function
 )
 
 # cgame app executable
@@ -83,6 +84,7 @@ target_compile_options(cgame_app
         -Wconversion
         -Wshadow
         -Werror
+        -Wno-unused-function
         -O2
         $<$<AND:$<CONFIG:Debug>,$<COMPILE_LANG_AND_ID:C,Clang,GNU>>:-fsanitize=address>
 )

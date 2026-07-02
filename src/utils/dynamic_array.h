@@ -1,25 +1,20 @@
-#ifndef CGAME_DYNAMIC_ARRAY_H
-#define CGAME_DYNAMIC_ARRAY_H
+#pragma once
 
 typedef struct {
     int *items;
     size_t count;
     size_t capacity;
-} DA_Int;
+} DynamicArrayInt;
 
 #define DA_APPEND(xs, x)                                                                                               \
     do {                                                                                                               \
         if ((xs).count >= (xs).capacity) {                                                                             \
-            if ((xs).capacity == 0)                                                                                    \
-                (xs).capacity = 256;                                                                                   \
-            else                                                                                                       \
-                (xs).capacity *= 2;                                                                                    \
-            void *_da_tmp = realloc((xs).items, (xs).capacity * sizeof(*(xs).items));                                  \
+            size_t _da_new_capacity = (xs).capacity == 0 ? 256 : (xs).capacity * 2;                                    \
+            void *_da_tmp = realloc((xs).items, _da_new_capacity * sizeof(*(xs).items));                               \
             if (_da_tmp == nullptr)                                                                                    \
                 break;                                                                                                 \
             (xs).items = (int *) _da_tmp;                                                                              \
+            (xs).capacity = _da_new_capacity;                                                                          \
         }                                                                                                              \
         (xs).items[(xs).count++] = x;                                                                                  \
     } while (0)
-
-#endif // CGAME_DYNAMIC_ARRAY_H

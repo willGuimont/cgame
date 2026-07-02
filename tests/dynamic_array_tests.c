@@ -3,7 +3,7 @@
 
 #include <stdlib.h>
 
-static void da_free(DA_Int *array) {
+static void da_free(DynamicArrayInt *array) {
     free(array->items);
     array->items = nullptr;
     array->count = 0;
@@ -11,7 +11,7 @@ static void da_free(DA_Int *array) {
 }
 
 static int test_da_first_append_allocates_initial_capacity_and_stores_value(void) {
-    DA_Int array = {0};
+    DynamicArrayInt array = {0};
 
     DA_APPEND(array, 42);
 
@@ -25,7 +25,7 @@ static int test_da_first_append_allocates_initial_capacity_and_stores_value(void
 }
 
 static int test_da_fill_initial_capacity_keeps_capacity_stable(void) {
-    DA_Int array = {0};
+    DynamicArrayInt array = {0};
 
     for (int i = 0; i < 256; ++i) {
         DA_APPEND(array, i);
@@ -42,7 +42,7 @@ static int test_da_fill_initial_capacity_keeps_capacity_stable(void) {
 }
 
 static int test_da_append_beyond_initial_capacity_doubles_capacity_and_preserves_data(void) {
-    DA_Int array = {0};
+    DynamicArrayInt array = {0};
 
     for (int i = 0; i < 257; ++i) {
         DA_APPEND(array, i);
@@ -60,7 +60,7 @@ static int test_da_append_beyond_initial_capacity_doubles_capacity_and_preserves
 }
 
 static int test_da_repeated_growth_maintains_order_and_expected_capacity(void) {
-    DA_Int array = {0};
+    DynamicArrayInt array = {0};
 
     for (int i = 0; i < 600; ++i) {
         DA_APPEND(array, i * 3);

@@ -7,6 +7,7 @@ set(TEST_COMPILE_OPTIONS
         -Wconversion
         -Wshadow
         -Werror
+        -Wno-unused-function
 )
 
 set(TEST_TARGETS)

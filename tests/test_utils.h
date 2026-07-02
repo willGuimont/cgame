@@ -1,5 +1,4 @@
-#ifndef TEST_UTILS_H
-#define TEST_UTILS_H
+#pragma once
 
 #include <float.h>
 #include <math.h>
@@ -26,5 +25,3 @@
 #define APPROX_EQ(real, expected) ASSERT(fabsf((expected) - (real)) < FLT_EPSILON)
 
 #define APPROX_EQ_DBL(real, expected) ASSERT(fabs((expected) - (real)) < FLT_EPSILON)
-
-#endif // TEST_UTILS_H

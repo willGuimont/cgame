@@ -1,18 +1,17 @@
-#ifndef CGAME_ENTITY_H
-#define CGAME_ENTITY_H
+#pragma once
 
 #include "utils/vectori.h"
 
 constexpr i32 MAX_ENTITIES = 1024;
 
-typedef struct Entity_Id {
+typedef struct EntityId {
     u32 index;
     u32 generation;
-} Entity_Id;
+} EntityId;
 
 typedef struct {
     // Entity SoA
-    Entity_Id id[MAX_ENTITIES];
+    EntityId id[MAX_ENTITIES];
     Vector3i position[MAX_ENTITIES];
     Vector3i orientation[MAX_ENTITIES];
     Vector3i momentum[MAX_ENTITIES];
@@ -26,12 +25,12 @@ typedef struct {
 
 void Entity_Init(Entity *entity);
 
-Entity_Id Entity_New(Entity *entity);
+EntityId Entity_New(Entity *entity);
 
-bool Entity_Delete(Entity *entity, Entity_Id id);
+bool Entity_Delete(Entity *entity, EntityId id);
 
-static inline bool Entity_Id_Equal(const Entity_Id a, const Entity_Id b) {
+static bool EntityId_IsValid(const EntityId id) { return id.generation != 0 && id.index < (u32) MAX_ENTITIES; }
+
+static bool EntityId_Equal(const EntityId a, const EntityId b) {
     return a.index == b.index && a.generation == b.generation;
 }
-
-#endif // CGAME_ENTITY_H

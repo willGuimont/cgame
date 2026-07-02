@@ -1,7 +1,7 @@
 #include "test_utils.h"
 #include "world.h"
 
-static Arena *make_arena(void) { return Arena_Create(MiB(1), KiB(64)); }
+static Arena *make_arena(void) { return Arena_Create(MIB(1), KIB(64)); }
 
 static void make_world(World *world, Arena *arena) { World_Init(world, arena); }
 
@@ -45,10 +45,10 @@ static int test_set_and_get_entity_position(void) {
 
     Entity entity;
     Entity_Init(&entity);
-    const Entity_Id id = Entity_New(&entity);
+    const EntityId id = Entity_New(&entity);
     const Vector3i pos = {1, 2, 3};
 
-    World_SetEntityPosition(&world, id, pos);
+    ASSERT(World_SetEntityPosition(&world, id, pos));
 
     Vector3i out;
     ASSERT(World_GetEntityPosition(&world, id, &out));
@@ -66,7 +66,7 @@ static int test_get_position_unknown_entity_returns_false(void) {
 
     Entity entity;
     Entity_Init(&entity);
-    const Entity_Id id = Entity_New(&entity);
+    const EntityId id = Entity_New(&entity);
 
     ASSERT(!World_GetEntityPosition(&world, id, nullptr));
 
@@ -82,12 +82,12 @@ static int test_set_position_updates_on_move(void) {
 
     Entity entity;
     Entity_Init(&entity);
-    const Entity_Id id = Entity_New(&entity);
+    const EntityId id = Entity_New(&entity);
     const Vector3i pos_a = {0, 0, 0};
     const Vector3i pos_b = {1, 1, 1};
 
-    World_SetEntityPosition(&world, id, pos_a);
-    World_SetEntityPosition(&world, id, pos_b);
+    ASSERT(World_SetEntityPosition(&world, id, pos_a));
+    ASSERT(World_SetEntityPosition(&world, id, pos_b));
 
     Vector3i out;
     ASSERT(World_GetEntityPosition(&world, id, &out));
@@ -107,10 +107,10 @@ static int test_set_position_populates_grid(void) {
 
     Entity entity;
     Entity_Init(&entity);
-    const Entity_Id id = Entity_New(&entity);
+    const EntityId id = Entity_New(&entity);
     const Vector3i pos = {2, 1, 3};
 
-    World_SetEntityPosition(&world, id, pos);
+    ASSERT(World_SetEntityPosition(&world, id, pos));
 
     const GridCell *cell = &world.grid[pos.x][pos.y][pos.z];
     ASSERT(cell->entity_id.index == id.index && cell->entity_id.generation == id.generation);
@@ -127,12 +127,12 @@ static int test_move_clears_old_grid_cell(void) {
 
     Entity entity;
     Entity_Init(&entity);
-    const Entity_Id id = Entity_New(&entity);
+    const EntityId id = Entity_New(&entity);
     const Vector3i pos_a = {0, 0, 0};
     const Vector3i pos_b = {1, 0, 0};
 
-    World_SetEntityPosition(&world, id, pos_a);
-    World_SetEntityPosition(&world, id, pos_b);
+    ASSERT(World_SetEntityPosition(&world, id, pos_a));
+    ASSERT(World_SetEntityPosition(&world, id, pos_b));
 
     ASSERT(world.grid[pos_a.x][pos_a.y][pos_a.z].entity_id.generation == 0);
     ASSERT(world.grid[pos_b.x][pos_b.y][pos_b.z].entity_id.index == id.index);
@@ -149,12 +149,12 @@ static int test_multiple_entities_same_cell(void) {
 
     Entity entity;
     Entity_Init(&entity);
-    const Entity_Id id_a = Entity_New(&entity);
-    const Entity_Id id_b = Entity_New(&entity);
+    const EntityId id_a = Entity_New(&entity);
+    const EntityId id_b = Entity_New(&entity);
     const Vector3i pos = {0, 0, 0};
 
-    World_SetEntityPosition(&world, id_a, pos);
-    World_SetEntityPosition(&world, id_b, pos);
+    ASSERT(World_SetEntityPosition(&world, id_a, pos));
+    ASSERT(World_SetEntityPosition(&world, id_b, pos));
 
     // Both should be in the cell (head + linked next)
     const GridCell *head = &world.grid[pos.x][pos.y][pos.z];
@@ -173,10 +173,10 @@ static int test_out_of_bounds_position_not_in_grid(void) {
 
     Entity entity;
     Entity_Init(&entity);
-    const Entity_Id id = Entity_New(&entity);
+    const EntityId id = Entity_New(&entity);
     const Vector3i pos = {-1, 0, 0};
 
-    World_SetEntityPosition(&world, id, pos);
+    ASSERT(World_SetEntityPosition(&world, id, pos));
 
     // Still tracked in hashmap
     Vector3i out;
@@ -196,9 +196,9 @@ static int test_remove_entity_clears_hashmap(void) {
 
     Entity entity;
     Entity_Init(&entity);
-    const Entity_Id id = Entity_New(&entity);
+    const EntityId id = Entity_New(&entity);
 
-    World_SetEntityPosition(&world, id, (Vector3i) {0, 0, 0});
+    ASSERT(World_SetEntityPosition(&world, id, (Vector3i) {0, 0, 0}));
     World_RemoveEntity(&world, id);
 
     ASSERT(!World_GetEntityPosition(&world, id, nullptr));
@@ -215,10 +215,10 @@ static int test_remove_entity_clears_grid_cell(void) {
 
     Entity entity;
     Entity_Init(&entity);
-    const Entity_Id id = Entity_New(&entity);
+    const EntityId id = Entity_New(&entity);
     const Vector3i pos = {0, 0, 0};
 
-    World_SetEntityPosition(&world, id, pos);
+    ASSERT(World_SetEntityPosition(&world, id, pos));
     World_RemoveEntity(&world, id);
 
     ASSERT(world.grid[pos.x][pos.y][pos.z].entity_id.generation == 0);
@@ -235,17 +235,35 @@ static int test_remove_one_of_two_entities_in_cell(void) {
 
     Entity entity;
     Entity_Init(&entity);
-    const Entity_Id id_a = Entity_New(&entity);
-    const Entity_Id id_b = Entity_New(&entity);
+    const EntityId id_a = Entity_New(&entity);
+    const EntityId id_b = Entity_New(&entity);
     const Vector3i pos = {0, 0, 0};
 
-    World_SetEntityPosition(&world, id_a, pos);
-    World_SetEntityPosition(&world, id_b, pos);
+    ASSERT(World_SetEntityPosition(&world, id_a, pos));
+    ASSERT(World_SetEntityPosition(&world, id_b, pos));
     World_RemoveEntity(&world, id_a);
 
     // id_b must still be in the cell
     const GridCell *head = &world.grid[pos.x][pos.y][pos.z];
     ASSERT(head->entity_id.index == id_b.index && head->entity_id.generation == id_b.generation);
+
+    World_Delete(&world);
+    Arena_Destroy(arena);
+    return 0;
+}
+
+static int test_grid_add_and_remove_reject_out_of_bounds_position(void) {
+    Arena *arena = make_arena();
+    World world;
+    make_world(&world, arena);
+
+    Entity entity;
+    Entity_Init(&entity);
+    const EntityId id = Entity_New(&entity);
+    const Vector3i pos = {-1, 0, 0};
+
+    ASSERT(!World_GridAdd(&world, pos, id));
+    ASSERT(!World_GridRemove(&world, pos, id));
 
     World_Delete(&world);
     Arena_Destroy(arena);
@@ -269,5 +287,6 @@ int main(void) {
     RUN_TEST(test_remove_entity_clears_hashmap);
     RUN_TEST(test_remove_entity_clears_grid_cell);
     RUN_TEST(test_remove_one_of_two_entities_in_cell);
+    RUN_TEST(test_grid_add_and_remove_reject_out_of_bounds_position);
     return failures > 0 ? 1 : 0;
 }

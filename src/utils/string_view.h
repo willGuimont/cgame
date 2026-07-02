@@ -1,5 +1,4 @@
-#ifndef CGAME_STRING_VIEW_H
-#define CGAME_STRING_VIEW_H
+#pragma once
 
 #include <ctype.h>
 #include <string.h>
@@ -9,44 +8,44 @@ typedef struct {
     size_t count;
 } StringView;
 
-static StringView SV_Create(const char *cstr) {
+static StringView StringView_Create(const char *cstr) {
     return (StringView) {
             .data = cstr,
             .count = strlen(cstr),
     };
 }
 
-static void SV_ChopRight(StringView *sv, size_t n) {
+static void StringView_ChopRight(StringView *sv, size_t n) {
     if (n > sv->count)
         n = sv->count;
     sv->count -= n;
 }
 
-static void SV_ChopLeft(StringView *sv, size_t n) {
+static void StringView_ChopLeft(StringView *sv, size_t n) {
     if (n > sv->count)
         n = sv->count;
     sv->count -= n;
     sv->data += n;
 }
 
-static void SV_TrimRight(StringView *sv) {
-    while (sv->count > 0 && isspace(sv->data[sv->count - 1])) {
-        SV_ChopRight(sv, 1);
+static void StringView_TrimRight(StringView *sv) {
+    while (sv->count > 0 && isspace((unsigned char) sv->data[sv->count - 1])) {
+        StringView_ChopRight(sv, 1);
     }
 }
 
-static void SV_TrimLeft(StringView *sv) {
-    while (sv->count > 0 && isspace(sv->data[0])) {
-        SV_ChopLeft(sv, 1);
+static void StringView_TrimLeft(StringView *sv) {
+    while (sv->count > 0 && isspace((unsigned char) sv->data[0])) {
+        StringView_ChopLeft(sv, 1);
     }
 }
 
-static void SV_Trim(StringView *sv) {
-    SV_TrimLeft(sv);
-    SV_TrimRight(sv);
+static void StringView_Trim(StringView *sv) {
+    StringView_TrimLeft(sv);
+    StringView_TrimRight(sv);
 }
 
-static StringView SV_ChopByDelim(StringView *sv, const char delim) {
+static StringView StringView_ChopByDelim(StringView *sv, const char delim) {
     size_t i = 0;
     while (i < sv->count && sv->data[i] != delim) {
         i += 1;
@@ -57,16 +56,14 @@ static StringView SV_ChopByDelim(StringView *sv, const char delim) {
                 .data = sv->data,
                 .count = i,
         };
-        SV_ChopLeft(sv, i + 1);
+        StringView_ChopLeft(sv, i + 1);
         return result;
     }
 
     const StringView result = *sv;
-    SV_ChopLeft(sv, sv->count);
+    StringView_ChopLeft(sv, sv->count);
     return result;
 }
 
-#define SV_FMT "%.*s"
-#define SV_ARG(s) (s).count, (s).data
-
-#endif // CGAME_STRING_VIEW_H
+#define STRING_VIEW_FMT "%.*s"
+#define STRING_VIEW_ARG(s) (s).count, (s).data

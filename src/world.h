@@ -1,7 +1,4 @@
-#ifndef CGAME_WORLD_H
-#define CGAME_WORLD_H
-
-#include <stb_ds.h>
+#pragma once
 
 #include "common.h"
 #include "entity.h"
@@ -13,12 +10,12 @@ constexpr i32 WORLD_HEIGHT = 5;
 constexpr i32 WORLD_DEPTH = 11;
 
 typedef struct GridCell {
-    Entity_Id entity_id;
+    EntityId entity_id;
     struct GridCell *next;
 } GridCell;
 
 typedef struct {
-    Entity_Id key;
+    EntityId key;
     Vector3i value;
 } EntityPositionMap;
 
@@ -30,18 +27,16 @@ typedef struct {
 
 void World_Init(World *world, Arena *arena);
 
-void World_SetEntityPosition(World *world, const Entity_Id entity_id, const Vector3i value);
+bool World_SetEntityPosition(World *world, EntityId entity_id, Vector3i value);
 
-bool World_GetEntityPosition(World *world, const Entity_Id entity_id, Vector3i *out_position);
+bool World_GetEntityPosition(World *world, EntityId entity_id, Vector3i *out_position);
 
-void World_RemoveEntity(World *world, const Entity_Id entity_id);
+void World_RemoveEntity(World *world, EntityId entity_id);
 
 void World_Delete(World *world);
 
-bool World_GridInBounds(const Vector3i pos);
+bool World_GridInBounds(Vector3i pos);
 
-void World_GridAdd(World *world, const Vector3i pos, const Entity_Id id);
+bool World_GridAdd(World *world, Vector3i pos, EntityId id);
 
-void World_GridRemove(World *world, const Vector3i pos, const Entity_Id id);
-
-#endif // CGAME_WORLD_H
+bool World_GridRemove(World *world, Vector3i pos, EntityId id);

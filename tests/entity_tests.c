@@ -24,7 +24,7 @@ static int test_entity_new_allocates_first_slot(void) {
     Entity entity;
     Entity_Init(&entity);
 
-    const Entity_Id id = Entity_New(&entity);
+    const EntityId id = Entity_New(&entity);
 
     ASSERT(id.index == 0U);
     ASSERT(id.generation == 1U);
@@ -38,8 +38,8 @@ static int test_entity_delete_reuses_slot_with_new_generation(void) {
     Entity entity;
     Entity_Init(&entity);
 
-    const Entity_Id first = Entity_New(&entity);
-    const Entity_Id second = Entity_New(&entity);
+    const EntityId first = Entity_New(&entity);
+    const EntityId second = Entity_New(&entity);
 
     ASSERT(first.index == 0U);
     ASSERT(second.index == 1U);
@@ -50,7 +50,7 @@ static int test_entity_delete_reuses_slot_with_new_generation(void) {
     ASSERT(entity.entity_count == 1U);
     ASSERT(entity.free_count == 1U);
 
-    const Entity_Id recycled = Entity_New(&entity);
+    const EntityId recycled = Entity_New(&entity);
     ASSERT(recycled.index == first.index);
     ASSERT(recycled.generation == first.generation + 1U);
     ASSERT(entity.entity_count == 2U);
@@ -62,7 +62,7 @@ static int test_entity_delete_rejects_stale_id(void) {
     Entity entity;
     Entity_Init(&entity);
 
-    const Entity_Id first = Entity_New(&entity);
+    const EntityId first = Entity_New(&entity);
     ASSERT(Entity_Delete(&entity, first));
 
     const bool deleted_again = Entity_Delete(&entity, first);
@@ -72,12 +72,23 @@ static int test_entity_delete_rejects_stale_id(void) {
     return 0;
 }
 
+static int test_entity_delete_rejects_null_id(void) {
+    Entity entity;
+    Entity_Init(&entity);
+
+    const bool removed = Entity_Delete(&entity, (EntityId) {0});
+    ASSERT(!removed);
+    ASSERT(entity.entity_count == 0U);
+    ASSERT(entity.free_count == 0U);
+    return 0;
+}
+
 static int test_entity_delete_validates_generation(void) {
     Entity entity;
     Entity_Init(&entity);
 
-    const Entity_Id id = Entity_New(&entity);
-    Entity_Id invalid_generation = id;
+    const EntityId id = Entity_New(&entity);
+    EntityId invalid_generation = id;
     invalid_generation.generation += 10U;
 
     const bool removed = Entity_Delete(&entity, invalid_generation);
@@ -87,12 +98,29 @@ static int test_entity_delete_validates_generation(void) {
     return 0;
 }
 
+static int test_entity_new_returns_null_id_when_full(void) {
+    Entity entity;
+    Entity_Init(&entity);
+
+    for (u32 i = 0; i < (u32) MAX_ENTITIES; i++) {
+        const EntityId id = Entity_New(&entity);
+        ASSERT(EntityId_IsValid(id));
+    }
+
+    const EntityId full = Entity_New(&entity);
+    ASSERT(!EntityId_IsValid(full));
+    ASSERT(entity.entity_count == (u32) MAX_ENTITIES);
+    return 0;
+}
+
 int main(void) {
     int failures = 0;
     RUN_TEST(test_entity_init_resets_state);
     RUN_TEST(test_entity_new_allocates_first_slot);
     RUN_TEST(test_entity_delete_reuses_slot_with_new_generation);
     RUN_TEST(test_entity_delete_rejects_stale_id);
+    RUN_TEST(test_entity_delete_rejects_null_id);
     RUN_TEST(test_entity_delete_validates_generation);
+    RUN_TEST(test_entity_new_returns_null_id_when_full);
     return failures > 0 ? 1 : 0;
 }
