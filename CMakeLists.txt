@@ -54,7 +54,7 @@ add_library(cgame
         src/cgame/utils/arena.c
         src/cgame/world.c
         src/cgame/utils/bitset.h
-        src/cgame/cute_headers_impl.c
+        src/cgame/hex.c
 )
 
 target_include_directories(cgame

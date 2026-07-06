@@ -18,6 +18,7 @@ foreach (test_src IN ITEMS
         test_dynamic_array.c
         test_string_view.c
         test_entity.c
+        test_hex.c
         test_world.c
 )
     get_filename_component(test_name ${test_src} NAME_WE)
