@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 4.1)
 project(cgame LANGUAGES C)
 
 include(CTest)
+find_package(Threads REQUIRED)
 
 set(CMAKE_C_STANDARD 23)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -15,12 +16,27 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(FLECS_SHARED OFF CACHE BOOL "" FORCE)
+set(FLECS_STATIC ON CACHE BOOL "" FORCE)
+set(FLECS_TESTS OFF CACHE BOOL "" FORCE)
 add_subdirectory(third_party/raylib)
 add_subdirectory(third_party/box2d)
 add_subdirectory(third_party/box3d)
+add_subdirectory(third_party/flecs)
 
 add_library(stb INTERFACE)
 target_include_directories(stb SYSTEM INTERFACE third_party/stb)
+
+add_library(cute_headers INTERFACE)
+target_include_directories(cute_headers SYSTEM INTERFACE third_party/cute_headers)
+
+add_library(par INTERFACE)
+target_include_directories(par SYSTEM INTERFACE third_party/par)
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_path(S2N_INCLUDE_DIR s2n.h)
+    find_library(S2N_LIBRARY s2n)
+endif()
 
 # cgame library
 add_library(cgame
@@ -36,6 +52,7 @@ add_library(cgame
         src/utils/arena.c
         src/world.c
         src/utils/bitset.h
+        src/cute_headers_impl.c
 )
 
 target_include_directories(cgame
@@ -46,7 +63,17 @@ target_include_directories(cgame
 target_link_libraries(cgame
         PUBLIC
         stb
+        cute_headers
+        par
+        flecs::flecs_static
+        Threads::Threads
 )
+
+if (S2N_INCLUDE_DIR AND S2N_LIBRARY)
+    target_include_directories(cgame SYSTEM PUBLIC ${S2N_INCLUDE_DIR})
+    target_compile_definitions(cgame PUBLIC CGAME_CUTE_TLS_S2N)
+    target_link_libraries(cgame PUBLIC ${S2N_LIBRARY})
+endif()
 
 target_compile_options(cgame
         PRIVATE

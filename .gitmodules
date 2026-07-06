@@ -10,3 +10,12 @@
 [submodule "third_party/box2d"]
 	path = third_party/box2d
 	url = git@github.com:erincatto/box2d.git
+[submodule "third_party/cute_headers"]
+	path = third_party/cute_headers
+	url = git@github.com:RandyGaul/cute_headers.git
+[submodule "third_party/flecs"]
+	path = third_party/flecs
+	url = git@github.com:SanderMertens/flecs.git
+[submodule "third_party/par"]
+	path = third_party/par
+	url = git@github.com:prideout/par.git

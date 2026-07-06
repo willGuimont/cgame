@@ -42,6 +42,10 @@ void *Arena_Push(Arena *arena, const u64 size, const b32 non_zero) {
         return nullptr;
     }
 
+    if (size > (u64) SIZE_MAX) {
+        return nullptr;
+    }
+
     if (new_pos > arena->commit_pos) {
         u64 new_commit_pos = new_pos;
         new_commit_pos += arena->commit_size - 1;
@@ -63,7 +67,7 @@ void *Arena_Push(Arena *arena, const u64 size, const b32 non_zero) {
     u8 *out = (u8 *) arena + pos_aligned;
 
     if (!non_zero) {
-        memset(out, 0, size);
+        memset(out, 0, (size_t) size);
     }
 
     return out;
