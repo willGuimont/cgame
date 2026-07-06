@@ -21,11 +21,17 @@ typedef struct {
 
 typedef struct {
     Arena *arena;
-    GridCell grid[WORLD_WIDTH][WORLD_HEIGHT][WORLD_DEPTH];
+    i32 width;
+    i32 height;
+    i32 depth;
+    GridCell *grid;
+    GridCell *free_grid_cells;
     EntityPositionMap *entity_position;
 } World;
 
 void World_Init(World *world, Arena *arena);
+
+bool World_InitSized(World *world, Arena *arena, i32 width, i32 height, i32 depth);
 
 bool World_SetEntityPosition(World *world, EntityId entity_id, Vector3i value);
 
@@ -35,7 +41,11 @@ void World_RemoveEntity(World *world, EntityId entity_id);
 
 void World_Delete(World *world);
 
-bool World_GridInBounds(Vector3i pos);
+bool World_GridInBounds(const World *world, Vector3i pos);
+
+GridCell *World_GridCell(World *world, Vector3i pos);
+
+const GridCell *World_GridCellConst(const World *world, Vector3i pos);
 
 bool World_GridAdd(World *world, Vector3i pos, EntityId id);
 

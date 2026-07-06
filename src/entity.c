@@ -17,13 +17,18 @@ EntityId Entity_New(Entity *entity) {
         new_idx = entity->next_entity++;
     }
 
-    if (entity->id[new_idx].generation == 0) {
-        entity->id[new_idx].generation = 1;
+    u32 generation = entity->id[new_idx].generation;
+    if (generation == 0) {
+        generation = 1;
     }
 
+    entity->id[new_idx] = (EntityId) {.index = new_idx, .generation = generation};
+    entity->position[new_idx] = Vector3i_Zero();
+    entity->orientation[new_idx] = Vector3i_Zero();
+    entity->momentum[new_idx] = Vector3i_Zero();
     entity->entity_count++;
 
-    return (EntityId) {.index = new_idx, .generation = entity->id[new_idx].generation};
+    return entity->id[new_idx];
 }
 
 bool Entity_Delete(Entity *entity, const EntityId id) {

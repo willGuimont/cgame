@@ -150,8 +150,9 @@ static int test_sv_chop_by_delim_splits_and_updates_input(void) {
     return 0;
 }
 
-static int expect_sv_arg(const size_t count, const char *data, const StringView expected) {
-    ASSERT(count == expected.count);
+static int expect_sv_arg(const int count, const char *data, const StringView expected) {
+    ASSERT(count >= 0);
+    ASSERT((size_t) count == expected.count);
     ASSERT(data == expected.data);
     return 0;
 }

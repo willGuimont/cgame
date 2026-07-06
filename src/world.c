@@ -1,27 +1,87 @@
 #include "world.h"
 
+#include <stdint.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <stb_ds.h>
 
-bool World_GridInBounds(const Vector3i pos) {
-    return pos.x >= 0 && pos.x < WORLD_WIDTH && pos.y >= 0 && pos.y < WORLD_HEIGHT && pos.z >= 0 && pos.z < WORLD_DEPTH;
+static bool World_ValidDimensions(const i32 width, const i32 height, const i32 depth) {
+    return width > 0 && height > 0 && depth > 0 && (u64) width <= (u64) SIZE_MAX / (u64) height &&
+           (u64) width * (u64) height <= (u64) SIZE_MAX / (u64) depth &&
+           (u64) width * (u64) height * (u64) depth <= (u64) SIZE_MAX / sizeof(GridCell);
+}
+
+static size_t World_GridIndex(const World *world, const Vector3i pos) {
+    return (size_t) pos.x + (size_t) pos.y * (size_t) world->width +
+           (size_t) pos.z * (size_t) world->width * (size_t) world->height;
+}
+
+static bool World_GridCellContains(const GridCell *head, const EntityId id) {
+    for (const GridCell *cell = head; cell; cell = cell->next) {
+        if (EntityId_Equal(cell->entity_id, id)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+static GridCell *World_AllocGridCell(World *world) {
+    if (world->free_grid_cells) {
+        GridCell *node = world->free_grid_cells;
+        world->free_grid_cells = node->next;
+        memset(node, 0, sizeof(*node));
+        return node;
+    }
+    if (!world->arena) {
+        return nullptr;
+    }
+    return PUSH_STRUCT(world->arena, GridCell);
+}
+
+static void World_FreeGridCell(World *world, GridCell *node) {
+    node->entity_id = (EntityId) {0};
+    node->next = world->free_grid_cells;
+    world->free_grid_cells = node;
+}
+
+bool World_GridInBounds(const World *world, const Vector3i pos) {
+    return world && world->grid && pos.x >= 0 && pos.x < world->width && pos.y >= 0 && pos.y < world->height &&
+           pos.z >= 0 && pos.z < world->depth;
+}
+
+GridCell *World_GridCell(World *world, const Vector3i pos) {
+    if (!World_GridInBounds(world, pos)) {
+        return nullptr;
+    }
+    return &world->grid[World_GridIndex(world, pos)];
+}
+
+const GridCell *World_GridCellConst(const World *world, const Vector3i pos) {
+    if (!World_GridInBounds(world, pos)) {
+        return nullptr;
+    }
+    return &world->grid[World_GridIndex(world, pos)];
 }
 
 bool World_GridAdd(World *world, const Vector3i pos, const EntityId id) {
-    if (!World_GridInBounds(pos)) {
+    if (!EntityId_IsValid(id) || !World_GridInBounds(world, pos)) {
         return false;
     }
 
-    GridCell *head = &world->grid[pos.x][pos.y][pos.z];
+    GridCell *head = World_GridCell(world, pos);
 
     if (head->entity_id.generation == 0) {
         head->entity_id = id;
         return true;
     }
 
-    GridCell *node = PUSH_STRUCT(world->arena, GridCell);
+    if (World_GridCellContains(head, id)) {
+        return true;
+    }
+
+    GridCell *node = World_AllocGridCell(world);
     if (!node) {
         return false;
     }
@@ -32,20 +92,21 @@ bool World_GridAdd(World *world, const Vector3i pos, const EntityId id) {
 }
 
 bool World_GridRemove(World *world, const Vector3i pos, const EntityId id) {
-    if (!World_GridInBounds(pos)) {
+    if (!EntityId_IsValid(id) || !World_GridInBounds(world, pos)) {
         return false;
     }
 
-    GridCell *head = &world->grid[pos.x][pos.y][pos.z];
+    GridCell *head = World_GridCell(world, pos);
 
     if (head->entity_id.generation == 0)
         return false;
 
-    if (head->entity_id.index == id.index && head->entity_id.generation == id.generation) {
+    if (EntityId_Equal(head->entity_id, id)) {
         if (head->next) {
-            const GridCell *next = head->next;
+            GridCell *next = head->next;
             head->entity_id = next->entity_id;
             head->next = next->next;
+            World_FreeGridCell(world, next);
         } else {
             head->entity_id = (EntityId) {0};
         }
@@ -55,8 +116,9 @@ bool World_GridRemove(World *world, const Vector3i pos, const EntityId id) {
     GridCell *prev = head;
     GridCell *curr = head->next;
     while (curr) {
-        if (curr->entity_id.index == id.index && curr->entity_id.generation == id.generation) {
+        if (EntityId_Equal(curr->entity_id, id)) {
             prev->next = curr->next;
+            World_FreeGridCell(world, curr);
             return true;
         }
         prev = curr;
@@ -65,13 +127,31 @@ bool World_GridRemove(World *world, const Vector3i pos, const EntityId id) {
     return false;
 }
 
-void World_Init(World *world, Arena *arena) {
+void World_Init(World *world, Arena *arena) { (void) World_InitSized(world, arena, WORLD_WIDTH, WORLD_HEIGHT, WORLD_DEPTH); }
+
+bool World_InitSized(World *world, Arena *arena, const i32 width, const i32 height, const i32 depth) {
+    memset(world, 0, sizeof(*world));
+    if (!World_ValidDimensions(width, height, depth)) {
+        return false;
+    }
+
     world->arena = arena;
-    world->entity_position = nullptr;
-    memset(world->grid, 0, sizeof(world->grid));
+    world->width = width;
+    world->height = height;
+    world->depth = depth;
+    world->grid = calloc((size_t) width * (size_t) height * (size_t) depth, sizeof(*world->grid));
+    if (!world->grid) {
+        memset(world, 0, sizeof(*world));
+        return false;
+    }
+    return true;
 }
 
 bool World_SetEntityPosition(World *world, const EntityId entity_id, const Vector3i value) {
+    if (!world || !EntityId_IsValid(entity_id)) {
+        return false;
+    }
+
     Vector3i old_pos;
     const bool had_old_pos = World_GetEntityPosition(world, entity_id, &old_pos);
 
@@ -80,11 +160,11 @@ bool World_SetEntityPosition(World *world, const EntityId entity_id, const Vecto
         return true;
     }
 
-    if (World_GridInBounds(value) && !World_GridAdd(world, value, entity_id)) {
+    if (World_GridInBounds(world, value) && !World_GridAdd(world, value, entity_id)) {
         return false;
     }
 
-    if (had_old_pos && World_GridInBounds(old_pos)) {
+    if (had_old_pos && World_GridInBounds(world, old_pos)) {
         World_GridRemove(world, old_pos, entity_id);
     }
 
@@ -93,6 +173,10 @@ bool World_SetEntityPosition(World *world, const EntityId entity_id, const Vecto
 }
 
 bool World_GetEntityPosition(World *world, const EntityId entity_id, Vector3i *out_position) {
+    if (!world || !EntityId_IsValid(entity_id)) {
+        return false;
+    }
+
     const ptrdiff_t index = hmgeti(world->entity_position, entity_id);
     if (index == -1) {
         return false;
@@ -104,11 +188,22 @@ bool World_GetEntityPosition(World *world, const EntityId entity_id, Vector3i *o
 }
 
 void World_RemoveEntity(World *world, const EntityId entity_id) {
+    if (!world || !EntityId_IsValid(entity_id)) {
+        return;
+    }
+
     Vector3i pos;
-    if (World_GetEntityPosition(world, entity_id, &pos) && World_GridInBounds(pos)) {
+    if (World_GetEntityPosition(world, entity_id, &pos) && World_GridInBounds(world, pos)) {
         World_GridRemove(world, pos, entity_id);
     }
     hmdel(world->entity_position, entity_id);
 }
 
-void World_Delete(World *world) { hmfree(world->entity_position); }
+void World_Delete(World *world) {
+    if (!world) {
+        return;
+    }
+    hmfree(world->entity_position);
+    free(world->grid);
+    memset(world, 0, sizeof(*world));
+}

@@ -58,6 +58,25 @@ static int test_entity_delete_reuses_slot_with_new_generation(void) {
     return 0;
 }
 
+static int test_entity_new_clears_reused_slot_state(void) {
+    Entity entity;
+    Entity_Init(&entity);
+
+    const EntityId first = Entity_New(&entity);
+    entity.position[first.index] = (Vector3i) {1, 2, 3};
+    entity.orientation[first.index] = (Vector3i) {4, 5, 6};
+    entity.momentum[first.index] = (Vector3i) {7, 8, 9};
+
+    ASSERT(Entity_Delete(&entity, first));
+    const EntityId recycled = Entity_New(&entity);
+
+    ASSERT(recycled.index == first.index);
+    ASSERT(Vector3i_Equals(entity.position[recycled.index], Vector3i_Zero()));
+    ASSERT(Vector3i_Equals(entity.orientation[recycled.index], Vector3i_Zero()));
+    ASSERT(Vector3i_Equals(entity.momentum[recycled.index], Vector3i_Zero()));
+    return 0;
+}
+
 static int test_entity_delete_rejects_stale_id(void) {
     Entity entity;
     Entity_Init(&entity);
@@ -118,6 +137,7 @@ int main(void) {
     RUN_TEST(test_entity_init_resets_state);
     RUN_TEST(test_entity_new_allocates_first_slot);
     RUN_TEST(test_entity_delete_reuses_slot_with_new_generation);
+    RUN_TEST(test_entity_new_clears_reused_slot_state);
     RUN_TEST(test_entity_delete_rejects_stale_id);
     RUN_TEST(test_entity_delete_rejects_null_id);
     RUN_TEST(test_entity_delete_validates_generation);

@@ -22,6 +22,13 @@ static int test_arena_create_sets_fields(void) {
     return 0;
 }
 
+static int test_arena_create_rejects_invalid_sizes(void) {
+    ASSERT(Arena_Create(0, COMMIT) == nullptr);
+    ASSERT(Arena_Create(RESERVE, 0) == nullptr);
+    ASSERT(Arena_Create(COMMIT, RESERVE) == nullptr);
+    return 0;
+}
+
 // --- Arena_Push alignment ---
 
 static int test_arena_push_returns_aligned_pointer(void) {
@@ -132,6 +139,17 @@ static int test_arena_push_beyond_reserve_returns_null(void) {
 
     const u64 reserve = arena->reserve_size;
     const void *p = Arena_Push(arena, reserve, false);
+    ASSERT(p == nullptr);
+
+    Arena_Destroy(arena);
+    return 0;
+}
+
+static int test_arena_push_overflow_returns_null(void) {
+    Arena *arena = Arena_Create(RESERVE, COMMIT);
+    ASSERT(arena != nullptr);
+
+    const void *p = Arena_Push(arena, UINT64_MAX, false);
     ASSERT(p == nullptr);
 
     Arena_Destroy(arena);
@@ -367,6 +385,7 @@ static int test_arena_push_array_nz_returns_writable_memory(void) {
 int main(void) {
     int failures = 0;
     RUN_TEST(test_arena_create_sets_fields);
+    RUN_TEST(test_arena_create_rejects_invalid_sizes);
     RUN_TEST(test_arena_push_returns_aligned_pointer);
     RUN_TEST(test_arena_push_odd_size_next_allocation_still_aligned);
     RUN_TEST(test_arena_push_allocations_do_not_overlap);
@@ -374,6 +393,7 @@ int main(void) {
     RUN_TEST(test_arena_push_skips_zeroing_when_non_zero_true);
     RUN_TEST(test_arena_push_beyond_initial_commit_succeeds);
     RUN_TEST(test_arena_push_beyond_reserve_returns_null);
+    RUN_TEST(test_arena_push_overflow_returns_null);
     RUN_TEST(test_arena_pop_reduces_pos);
     RUN_TEST(test_arena_pop_by_more_than_used_clamps_to_base_pos);
     RUN_TEST(test_arena_pop_on_empty_arena_is_no_op);

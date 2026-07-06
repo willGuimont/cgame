@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ctype.h>
+#include <limits.h>
 #include <string.h>
 
 typedef struct {
@@ -65,5 +66,7 @@ static StringView StringView_ChopByDelim(StringView *sv, const char delim) {
     return result;
 }
 
+static int StringView_PrintLen(const StringView sv) { return sv.count > (size_t) INT_MAX ? INT_MAX : (int) sv.count; }
+
 #define STRING_VIEW_FMT "%.*s"
-#define STRING_VIEW_ARG(s) (s).count, (s).data
+#define STRING_VIEW_ARG(s) StringView_PrintLen(s), (s).data

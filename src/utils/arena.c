@@ -7,11 +7,27 @@
 #include <stdlib.h>
 #include <string.h>
 
+static bool Arena_AlignUpPow2(const u64 value, const u64 align, u64 *out) {
+    if (align == 0 || (align & (align - 1)) != 0 || value > UINT64_MAX - (align - 1)) {
+        return false;
+    }
+    *out = ALIGN_UP_POW2(value, align);
+    return true;
+}
+
 Arena *Arena_Create(const u64 reserve_size, const u64 commit_size) {
     const u32 pagesize = Platform_GetPageSize();
 
-    const u64 reserve_size_aligned = ALIGN_UP_POW2(reserve_size, pagesize);
-    const u64 commit_size_aligned = ALIGN_UP_POW2(commit_size, pagesize);
+    if (pagesize == 0 || reserve_size == 0 || commit_size == 0) {
+        return nullptr;
+    }
+
+    u64 reserve_size_aligned;
+    u64 commit_size_aligned;
+    if (!Arena_AlignUpPow2(reserve_size, pagesize, &reserve_size_aligned) ||
+        !Arena_AlignUpPow2(commit_size, pagesize, &commit_size_aligned) || commit_size_aligned > reserve_size_aligned) {
+        return nullptr;
+    }
 
     Arena *arena = Platform_MemReserve(reserve_size_aligned);
 
@@ -32,10 +48,19 @@ Arena *Arena_Create(const u64 reserve_size, const u64 commit_size) {
     return arena;
 }
 
-void Arena_Destroy(Arena *arena) { Platform_MemRelease(arena, arena->reserve_size); }
+void Arena_Destroy(Arena *arena) {
+    if (arena) {
+        Platform_MemRelease(arena, arena->reserve_size);
+    }
+}
 
 void *Arena_Push(Arena *arena, const u64 size, const b32 non_zero) {
-    const u64 pos_aligned = ALIGN_UP_POW2(arena->pos, ARENA_ALIGN);
+    u64 pos_aligned;
+    if (!Arena_AlignUpPow2(arena->pos, ARENA_ALIGN, &pos_aligned) || pos_aligned > arena->reserve_size ||
+        size > arena->reserve_size - pos_aligned) {
+        return nullptr;
+    }
+
     const u64 new_pos = pos_aligned + size;
 
     if (new_pos > arena->reserve_size) {
