@@ -127,7 +127,7 @@ bool World_GridRemove(World *world, const Vector3i pos, const EntityId id) {
     return false;
 }
 
-void World_Init(World *world, Arena *arena) { (void) World_InitSized(world, arena, WORLD_WIDTH, WORLD_HEIGHT, WORLD_DEPTH); }
+void World_Init(World *world, Arena *arena) { (void) World_InitSized(world, arena, DEFAULT_WORLD_WIDTH, DEFAULT_WORLD_HEIGHT, DEFAULT_WORLD_DEPTH); }
 
 bool World_InitSized(World *world, Arena *arena, const i32 width, const i32 height, const i32 depth) {
     memset(world, 0, sizeof(*world));

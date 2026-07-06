@@ -8,7 +8,6 @@
 
 #ifndef __EMSCRIPTEN__
 #define CUTE_NET_IMPLEMENTATION
-#define CUTE_SOUND_IMPLEMENTATION
 #define CUTE_SYNC_IMPLEMENTATION
 
 #ifdef _WIN32
@@ -40,6 +39,5 @@ typedef struct cute_tiled_chunk_t cute_tiled_chunk_t;
 
 #ifndef __EMSCRIPTEN__
 #include <cute_net.h>
-#include <cute_sound.h>
 #include <cute_sync.h>
 #endif

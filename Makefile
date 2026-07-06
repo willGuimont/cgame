@@ -14,18 +14,18 @@ configure-release:
 build: build-debug build-release
 
 build-debug: configure-debug
-	cmake --build $(DEBUG_BUILD_DIR) --target cgame_app
+	cmake --build $(DEBUG_BUILD_DIR) --target hexazyme
 
 build-release: configure-release
-	cmake --build $(RELEASE_BUILD_DIR) --target cgame_app
+	cmake --build $(RELEASE_BUILD_DIR) --target hexazyme
 
 run: run-debug
 
 run-debug: build-debug
-	./$(DEBUG_BUILD_DIR)/cgame_app
+	./$(DEBUG_BUILD_DIR)/hexazyme
 
 run-release: build-release
-	./$(RELEASE_BUILD_DIR)/cgame_app
+	./$(RELEASE_BUILD_DIR)/hexazyme
 
 test: test-debug test-release
 
@@ -45,7 +45,7 @@ run-web: web-build
 	./scripts/serve_web.sh
 
 asan-verbose: build-debug
-	ASAN_OPTIONS=verbosity=2 ./$(DEBUG_BUILD_DIR)/cgame_app
+	ASAN_OPTIONS=verbosity=2 ./$(DEBUG_BUILD_DIR)/hexazyme
 
 asan-no-leaks: build-debug
-	ASAN_OPTIONS=detect_leaks=0 ./$(DEBUG_BUILD_DIR)/cgame_app
+	ASAN_OPTIONS=detect_leaks=0 ./$(DEBUG_BUILD_DIR)/hexazyme

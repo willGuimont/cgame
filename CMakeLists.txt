@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 4.1)
-project(cgame LANGUAGES C)
+project(cgame LANGUAGES C OBJC)
 
 include(CTest)
 find_package(Threads REQUIRED)
@@ -40,24 +40,26 @@ endif()
 
 # cgame library
 add_library(cgame
-        src/common.h
-        src/entity.h
-        src/utils/arena.h
-        src/utils/dynamic_array.h
-        src/utils/string_view.h
-        src/utils/vectori.h
-        src/world.h
-        src/entity.c
-        src/stb_impl.c
-        src/utils/arena.c
-        src/world.c
-        src/utils/bitset.h
-        src/cute_headers_impl.c
+        src/cgame/common.h
+        src/cgame/entity.h
+        src/cgame/game_loop.h
+        src/cgame/utils/arena.h
+        src/cgame/utils/dynamic_array.h
+        src/cgame/utils/string_view.h
+        src/cgame/utils/vectori.h
+        src/cgame/world.h
+        src/cgame/entity.c
+        src/cgame/game_loop.c
+        src/cgame/stb_impl.c
+        src/cgame/utils/arena.c
+        src/cgame/world.c
+        src/cgame/utils/bitset.h
+        src/cgame/cute_headers_impl.c
 )
 
 target_include_directories(cgame
         PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/cgame
 )
 
 target_link_libraries(cgame
@@ -66,6 +68,7 @@ target_link_libraries(cgame
         cute_headers
         par
         flecs::flecs_static
+        raylib
         Threads::Threads
 )
 
@@ -86,83 +89,94 @@ target_compile_options(cgame
         -Wno-unused-function
 )
 
-# cgame app executable
-add_executable(cgame_app
-        src/main.c
-        src/app.c
-        src/app.h
-)
+set(CGAME_APP_TARGETS)
 
-target_include_directories(cgame_app
-        PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
-
-target_compile_definitions(cgame_app
-        PRIVATE
-        ROOT_DIR="${CMAKE_SOURCE_DIR}"
-)
-
-target_compile_options(cgame_app
-        PRIVATE
-        -Wall
-        -Wextra
-        -Wpedantic
-        -Wconversion
-        -Wshadow
-        -Werror
-        -Wno-unused-function
-        -O2
-        $<$<AND:$<CONFIG:Debug>,$<COMPILE_LANG_AND_ID:C,Clang,GNU>>:-fsanitize=address>
-)
-
-target_link_options(cgame_app
-        PRIVATE
-        $<$<AND:$<CONFIG:Debug>,$<OR:$<C_COMPILER_ID:Clang>,$<C_COMPILER_ID:GNU>>>:-fsanitize=address>
-)
-
-target_link_libraries(cgame_app
-        PRIVATE
-        cgame
-        raylib
-        box2d
-        box3d
-)
-
-# Resource copying
-if ("${PLATFORM}" STREQUAL "Web")
-    set_target_properties(cgame_app PROPERTIES SUFFIX ".html")
-    add_custom_command(
-        TARGET cgame_app PRE_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/resources
+function(add_cgame_app target_name app_dir)
+    target_include_directories(${target_name}
+            PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/apps/${app_dir}
     )
-    target_link_options(cgame_app PRIVATE
-        "-sUSE_GLFW=3"
+
+    target_compile_definitions(${target_name}
+            PRIVATE
+            ROOT_DIR="${CMAKE_SOURCE_DIR}"
     )
-    file(GLOB_RECURSE CGAME_ASSET_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/assets/*")
-    if (CGAME_ASSET_FILES)
-        target_link_options(cgame_app PRIVATE
-            "--preload-file" "${CMAKE_SOURCE_DIR}/assets@resources"
+
+    target_compile_options(${target_name}
+            PRIVATE
+            -Wall
+            -Wextra
+            -Wpedantic
+            -Wconversion
+            -Wshadow
+            -Werror
+            -Wno-unused-function
+            -O2
+            $<$<AND:$<CONFIG:Debug>,$<COMPILE_LANG_AND_ID:C,Clang,GNU>>:-fsanitize=address>
+    )
+
+    target_link_options(${target_name}
+            PRIVATE
+            $<$<AND:$<CONFIG:Debug>,$<OR:$<C_COMPILER_ID:Clang>,$<C_COMPILER_ID:GNU>>>:-fsanitize=address>
+    )
+
+    target_link_libraries(${target_name}
+            PRIVATE
+            cgame
+            raylib
+    )
+
+    if ("${PLATFORM}" STREQUAL "Web")
+        set_target_properties(${target_name} PROPERTIES SUFFIX ".html")
+        add_custom_command(
+                TARGET ${target_name} PRE_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/resources
+        )
+        target_link_options(${target_name} PRIVATE
+                "-sUSE_GLFW=3"
+        )
+        file(GLOB_RECURSE CGAME_ASSET_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/assets/*")
+        if (CGAME_ASSET_FILES)
+            target_link_options(${target_name} PRIVATE
+                    "--preload-file" "${CMAKE_SOURCE_DIR}/assets@resources"
+            )
+        endif()
+    else()
+        add_custom_command(
+                TARGET ${target_name} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:${target_name}>/resources
         )
     endif()
-else()
-    add_custom_command(
-        TARGET cgame_app POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:cgame_app>/resources
-    )
-endif()
 
-# macOS Frameworks
-if (APPLE)
-    target_link_libraries(cgame_app PRIVATE "-framework IOKit" "-framework Cocoa" "-framework OpenGL")
-endif()
+    if (APPLE)
+        target_link_libraries(${target_name} PRIVATE "-framework IOKit" "-framework Cocoa" "-framework OpenGL")
+    endif()
+
+    set(CGAME_APP_TARGETS ${CGAME_APP_TARGETS} ${target_name} PARENT_SCOPE)
+endfunction()
+
+# Hexazyme application
+add_executable(hexazyme
+        src/apps/hexazyme/main.c
+        src/apps/hexazyme/app.c
+        src/apps/hexazyme/app.h
+        src/cgame/hex.h
+        src/apps/hexazyme/game.h
+        src/apps/hexazyme/sim.h
+        src/apps/hexazyme/render.h
+        src/apps/hexazyme/level.h
+)
+add_cgame_app(hexazyme hexazyme)
+
+add_custom_target(all_apps)
+add_dependencies(all_apps ${CGAME_APP_TARGETS})
 
 # Run target
 add_custom_target(run
         COMMAND ${CMAKE_COMMAND} -E env
         "LSAN_OPTIONS=suppressions=${CMAKE_SOURCE_DIR}/asan_suppressions.txt"
-        $<TARGET_FILE:cgame_app>
-        DEPENDS cgame_app
+        $<TARGET_FILE:hexazyme>
+        DEPENDS hexazyme
         WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
         USES_TERMINAL
 )

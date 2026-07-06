@@ -13,18 +13,18 @@ set(TEST_COMPILE_OPTIONS
 set(TEST_TARGETS)
 
 foreach (test_src IN ITEMS
-        arena_tests.c
-        bitset_tests.c
-        dynamic_array_tests.c
-        string_view_tests.c
-        entity_tests.c
-        world_tests.c
+        test_arena.c
+        test_bitset.c
+        test_dynamic_array.c
+        test_string_view.c
+        test_entity.c
+        test_world.c
 )
     get_filename_component(test_name ${test_src} NAME_WE)
     add_executable(${test_name} ${test_src})
     target_link_libraries(${test_name} PRIVATE cgame m)
     target_include_directories(${test_name} PRIVATE
-            ${PROJECT_SOURCE_DIR}/src
+            ${PROJECT_SOURCE_DIR}/src/cgame
             ${PROJECT_SOURCE_DIR}/tests
     )
     target_compile_options(${test_name} PRIVATE ${TEST_COMPILE_OPTIONS})

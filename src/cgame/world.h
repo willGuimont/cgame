@@ -5,9 +5,9 @@
 #include "utils/arena.h"
 #include "utils/vectori.h"
 
-constexpr i32 WORLD_WIDTH = 11;
-constexpr i32 WORLD_HEIGHT = 5;
-constexpr i32 WORLD_DEPTH = 11;
+constexpr i32 DEFAULT_WORLD_WIDTH = 11;
+constexpr i32 DEFAULT_WORLD_HEIGHT = 5;
+constexpr i32 DEFAULT_WORLD_DEPTH = 11;
 
 typedef struct GridCell {
     EntityId entity_id;
