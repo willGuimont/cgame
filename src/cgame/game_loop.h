@@ -2,13 +2,13 @@
 
 #include "common.h"
 
-typedef bool (*CGameInitFn)(void *user);
+typedef bool (*CGameInitFn)(void *state);
 
-typedef void (*CGameUpdateFn)(void *user, f32 dt);
+typedef void (*CGameUpdateFn)(void *state, f32 dt);
 
-typedef void (*CGameDrawFn)(void *user, f32 alpha);
+typedef void (*CGameDrawFn)(void *state, f32 alpha);
 
-typedef void (*CGameDeinitFn)(void *user);
+typedef void (*CGameDeinitFn)(void *state);
 
 typedef struct {
     const char *title;
@@ -18,7 +18,7 @@ typedef struct {
     f32 fixed_dt;
     f32 max_frame_dt;
     i32 max_updates_per_frame;
-    void *user;
+    void *state;
     CGameInitFn init;
     CGameUpdateFn update;
     CGameDrawFn draw;

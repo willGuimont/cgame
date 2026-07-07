@@ -49,24 +49,22 @@ static void CGame_RunFrame(CGameLoop *game_loop) {
     game_loop->accumulator += frame_dt;
 
     i32 update_count = 0;
-    while (game_loop->accumulator >= game_loop->desc.fixed_dt &&
-           update_count < game_loop->desc.max_updates_per_frame) {
+    while (game_loop->accumulator >= game_loop->desc.fixed_dt && update_count < game_loop->desc.max_updates_per_frame) {
         if (game_loop->desc.update) {
-            game_loop->desc.update(game_loop->desc.user, game_loop->desc.fixed_dt);
+            game_loop->desc.update(game_loop->desc.state, game_loop->desc.fixed_dt);
         }
         game_loop->accumulator -= game_loop->desc.fixed_dt;
         update_count++;
     }
 
-    if (update_count == game_loop->desc.max_updates_per_frame &&
-        game_loop->accumulator >= game_loop->desc.fixed_dt) {
+    if (update_count == game_loop->desc.max_updates_per_frame && game_loop->accumulator >= game_loop->desc.fixed_dt) {
         game_loop->accumulator = 0.0f;
     }
 
     const f32 alpha = game_loop->accumulator / game_loop->desc.fixed_dt;
 
     if (game_loop->desc.draw) {
-        game_loop->desc.draw(game_loop->desc.user, alpha);
+        game_loop->desc.draw(game_loop->desc.state, alpha);
     }
 }
 
@@ -91,7 +89,7 @@ int CGame_Run(const CGameLoopDesc *desc) {
     InitWindow(game_loop.desc.width, game_loop.desc.height, game_loop.desc.title);
     SetTargetFPS(game_loop.desc.target_fps);
 
-    if (game_loop.desc.init && !game_loop.desc.init(game_loop.desc.user)) {
+    if (game_loop.desc.init && !game_loop.desc.init(game_loop.desc.state)) {
         CloseWindow();
         return 1;
     }
@@ -100,7 +98,7 @@ int CGame_Run(const CGameLoopDesc *desc) {
     CGameLoop *web_loop = malloc(sizeof(*web_loop));
     if (!web_loop) {
         if (game_loop.desc.deinit) {
-            game_loop.desc.deinit(game_loop.desc.user);
+            game_loop.desc.deinit(game_loop.desc.state);
         }
         CloseWindow();
         return 1;
@@ -113,7 +111,7 @@ int CGame_Run(const CGameLoopDesc *desc) {
     }
 
     if (game_loop.desc.deinit) {
-        game_loop.desc.deinit(game_loop.desc.user);
+        game_loop.desc.deinit(game_loop.desc.state);
     }
     CloseWindow();
 #endif

@@ -2,6 +2,7 @@
 
 DEBUG_BUILD_DIR := cmake-build-debug
 RELEASE_BUILD_DIR := cmake-build-release
+APP ?= hexatak
 
 configure: configure-debug configure-release
 
@@ -14,18 +15,18 @@ configure-release:
 build: build-debug build-release
 
 build-debug: configure-debug
-	cmake --build $(DEBUG_BUILD_DIR) --target hexazyme
+	cmake --build $(DEBUG_BUILD_DIR) --target $(APP)
 
 build-release: configure-release
-	cmake --build $(RELEASE_BUILD_DIR) --target hexazyme
+	cmake --build $(RELEASE_BUILD_DIR) --target $(APP)
 
 run: run-debug
 
 run-debug: build-debug
-	./$(DEBUG_BUILD_DIR)/hexazyme
+	./$(DEBUG_BUILD_DIR)/$(APP)
 
 run-release: build-release
-	./$(RELEASE_BUILD_DIR)/hexazyme
+	./$(RELEASE_BUILD_DIR)/$(APP)
 
 test: test-debug test-release
 
@@ -36,16 +37,16 @@ test-release: configure-release
 	cmake --build $(RELEASE_BUILD_DIR) --target check
 
 web-build:
-	./scripts/build_web.sh
+	./scripts/build_web.sh $(APP)
 
 web-serve:
-	./scripts/serve_web.sh
+	./scripts/serve_web.sh $(APP)
 
 run-web: web-build
-	./scripts/serve_web.sh
+	./scripts/serve_web.sh $(APP)
 
 asan-verbose: build-debug
-	ASAN_OPTIONS=verbosity=2 ./$(DEBUG_BUILD_DIR)/hexazyme
+	ASAN_OPTIONS=verbosity=2 ./$(DEBUG_BUILD_DIR)/$(APP)
 
 asan-no-leaks: build-debug
-	ASAN_OPTIONS=detect_leaks=0 ./$(DEBUG_BUILD_DIR)/hexazyme
+	ASAN_OPTIONS=detect_leaks=0 ./$(DEBUG_BUILD_DIR)/$(APP)

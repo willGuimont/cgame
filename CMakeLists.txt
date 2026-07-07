@@ -128,12 +128,16 @@ function(add_cgame_app target_name app_dir)
 
     if ("${PLATFORM}" STREQUAL "Web")
         set_target_properties(${target_name} PROPERTIES SUFFIX ".html")
-        add_custom_command(
-                TARGET ${target_name} PRE_BUILD
+        add_custom_target(copy_assets_${target_name} ALL
                 COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/resources
         )
+        add_dependencies(${target_name} copy_assets_${target_name})
         target_link_options(${target_name} PRIVATE
                 "-sUSE_GLFW=3"
+                "--shell-file" "${CMAKE_SOURCE_DIR}/web/minshell.html"
+        )
+        set_target_properties(${target_name} PROPERTIES
+                LINK_DEPENDS "${CMAKE_SOURCE_DIR}/web/minshell.html"
         )
         file(GLOB_RECURSE CGAME_ASSET_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/assets/*")
         if (CGAME_ASSET_FILES)
@@ -142,10 +146,10 @@ function(add_cgame_app target_name app_dir)
             )
         endif()
     else()
-        add_custom_command(
-                TARGET ${target_name} POST_BUILD
+        add_custom_target(copy_assets_${target_name} ALL
                 COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:${target_name}>/resources
         )
+        add_dependencies(${target_name} copy_assets_${target_name})
     endif()
 
     if (APPLE)
@@ -155,31 +159,20 @@ function(add_cgame_app target_name app_dir)
     set(CGAME_APP_TARGETS ${CGAME_APP_TARGETS} ${target_name} PARENT_SCOPE)
 endfunction()
 
-# Hexazyme application
-add_executable(hexazyme
-        src/apps/hexazyme/main.c
-        src/apps/hexazyme/app.c
-        src/apps/hexazyme/app.h
+# Hexatak application
+add_executable(hexatak
+        src/apps/hexatak/main.c
+        src/apps/hexatak/app.c
+        src/apps/hexatak/app.h
+        src/apps/hexatak/logic.h
+        src/apps/hexatak/logic.c
         src/cgame/hex.h
-        src/apps/hexazyme/game.h
-        src/apps/hexazyme/sim.h
-        src/apps/hexazyme/render.h
-        src/apps/hexazyme/level.h
+        web/minshell.html
 )
-add_cgame_app(hexazyme hexazyme)
+add_cgame_app(hexatak hexatak)
 
 add_custom_target(all_apps)
 add_dependencies(all_apps ${CGAME_APP_TARGETS})
-
-# Run target
-add_custom_target(run
-        COMMAND ${CMAKE_COMMAND} -E env
-        "LSAN_OPTIONS=suppressions=${CMAKE_SOURCE_DIR}/asan_suppressions.txt"
-        $<TARGET_FILE:hexazyme>
-        DEPENDS hexazyme
-        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-        USES_TERMINAL
-)
 
 # Testing
 if (BUILD_TESTING)

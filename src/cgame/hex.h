@@ -31,12 +31,17 @@ typedef struct {
     f32 y;
 } HexPoint;
 
+typedef enum { HEX_ORIENTATION_POINTY = 0, HEX_ORIENTATION_FLAT } HexOrientation;
+
 typedef struct {
+    HexOrientation orientation;
     f32 size;
     HexPoint origin;
 } HexLayout;
 
 Hex Hex_Create(i32 q, i32 r);
+
+bool Hex_IsInBound(Hex hex, i32 radius);
 
 Cube Hex_ToCube(Hex hex);
 
@@ -55,6 +60,7 @@ Hex Hex_Multiply(Hex a, i32 k);
 i32 Hex_Length(Hex hex);
 
 i32 Hex_Distance(Hex a, Hex b);
+i32 Hex_GetLineDir(Hex a, Hex b, i32 *out_dist);
 
 Hex Hex_Direction(i32 direction);
 
@@ -89,3 +95,15 @@ HexPoint Hex_PointyToPixel(HexLayout layout, Hex hex);
 Hex Hex_PointyFromPixel(HexLayout layout, HexPoint point);
 
 HexPoint Hex_PointyCornerOffset(HexLayout layout, i32 corner);
+
+HexPoint Hex_FlatToPixel(HexLayout layout, Hex hex);
+
+Hex Hex_FlatFromPixel(HexLayout layout, HexPoint point);
+
+HexPoint Hex_FlatCornerOffset(HexLayout layout, i32 corner);
+
+HexPoint Hex_ToPixel(HexLayout layout, Hex hex);
+
+Hex Hex_FromPixel(HexLayout layout, HexPoint point);
+
+HexPoint Hex_CornerOffset(HexLayout layout, i32 corner);

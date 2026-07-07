@@ -1,6 +1,7 @@
 #include "hex.h"
 
 #include <math.h>
+#include <stdlib.h>
 
 static constexpr f32 HEX_SQRT3 = 1.7320508075688772935f;
 static constexpr f32 HEX_PI = 3.14159265358979323846f;
@@ -31,6 +32,11 @@ static bool Hex_Write(const Hex hex, Hex *out_hexes, const size_t out_count, con
 
 Hex Hex_Create(const i32 q, const i32 r) { return (Hex) {.q = q, .r = r}; }
 
+bool Hex_IsInBound(const Hex hex, const i32 radius) {
+    const i32 s = -hex.q - hex.r;
+    return abs(hex.q) <= radius && abs(hex.r) <= radius && abs(s) <= radius;
+}
+
 Cube Hex_ToCube(const Hex hex) { return (Cube) {.q = hex.q, .r = hex.r, .s = -hex.q - hex.r}; }
 
 Hex Hex_FromCube(const Cube cube) { return (Hex) {.q = cube.q, .r = cube.r}; }
@@ -51,6 +57,38 @@ i32 Hex_Length(const Hex hex) {
 }
 
 i32 Hex_Distance(const Hex a, const Hex b) { return Hex_Length(Hex_Subtract(a, b)); }
+
+i32 Hex_GetLineDir(const Hex a, const Hex b, i32 *out_dist) {
+    const Hex diff = Hex_Subtract(b, a);
+    for (i32 dir = 0; dir < 6; dir++) {
+        const Hex unit = Hex_Direction(dir);
+        i32 k = 0;
+        if (unit.q != 0) {
+            if (diff.q % unit.q != 0)
+                continue;
+            k = diff.q / unit.q;
+        } else {
+            if (diff.q != 0)
+                continue;
+            if (unit.r != 0) {
+                if (diff.r % unit.r != 0)
+                    continue;
+                k = diff.r / unit.r;
+            } else {
+                continue;
+            }
+        }
+
+        if (k > 0) {
+            if (diff.q == k * unit.q && diff.r == k * unit.r) {
+                if (out_dist)
+                    *out_dist = k;
+                return dir;
+            }
+        }
+    }
+    return -1;
+}
 
 Hex Hex_Direction(const i32 direction) { return HEX_DIRECTIONS[Hex_NormalizeDirection(direction)]; }
 
@@ -199,4 +237,46 @@ Hex Hex_PointyFromPixel(const HexLayout layout, const HexPoint point) {
 HexPoint Hex_PointyCornerOffset(const HexLayout layout, const i32 corner) {
     const f32 angle = HEX_PI / 180.0f * ((60.0f * (f32) Hex_NormalizeDirection(corner)) - 30.0f);
     return (HexPoint) {.x = layout.size * cosf(angle), .y = layout.size * sinf(angle)};
+}
+
+HexPoint Hex_FlatToPixel(const HexLayout layout, const Hex hex) {
+    return (HexPoint) {
+            .x = layout.origin.x + (layout.size * (1.5f * (f32) hex.q)),
+            .y = layout.origin.y + (layout.size * ((HEX_SQRT3 * 0.5f * (f32) hex.q) + (HEX_SQRT3 * (f32) hex.r))),
+    };
+}
+
+Hex Hex_FlatFromPixel(const HexLayout layout, const HexPoint point) {
+    const f32 x = (point.x - layout.origin.x) / layout.size;
+    const f32 y = (point.y - layout.origin.y) / layout.size;
+    return Hex_Round((HexFractional) {
+            .q = 2.0f / 3.0f * x,
+            .r = (-1.0f / 3.0f * x) + (HEX_SQRT3 / 3.0f * y),
+    });
+}
+
+HexPoint Hex_FlatCornerOffset(const HexLayout layout, const i32 corner) {
+    const f32 angle = HEX_PI / 180.0f * (60.0f * (f32) Hex_NormalizeDirection(corner));
+    return (HexPoint) {.x = layout.size * cosf(angle), .y = layout.size * sinf(angle)};
+}
+
+HexPoint Hex_ToPixel(const HexLayout layout, const Hex hex) {
+    if (layout.orientation == HEX_ORIENTATION_FLAT) {
+        return Hex_FlatToPixel(layout, hex);
+    }
+    return Hex_PointyToPixel(layout, hex);
+}
+
+Hex Hex_FromPixel(const HexLayout layout, const HexPoint point) {
+    if (layout.orientation == HEX_ORIENTATION_FLAT) {
+        return Hex_FlatFromPixel(layout, point);
+    }
+    return Hex_PointyFromPixel(layout, point);
+}
+
+HexPoint Hex_CornerOffset(const HexLayout layout, const i32 corner) {
+    if (layout.orientation == HEX_ORIENTATION_FLAT) {
+        return Hex_FlatCornerOffset(layout, corner);
+    }
+    return Hex_PointyCornerOffset(layout, corner);
 }

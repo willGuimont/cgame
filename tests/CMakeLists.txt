@@ -20,6 +20,7 @@ foreach (test_src IN ITEMS
         test_entity.c
         test_hex.c
         test_world.c
+        test_ring_buf.c
 )
     get_filename_component(test_name ${test_src} NAME_WE)
     add_executable(${test_name} ${test_src})

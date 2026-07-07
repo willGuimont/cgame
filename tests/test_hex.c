@@ -190,6 +190,54 @@ static int test_hex_pointy_pixel_conversions(void) {
     return 0;
 }
 
+static int test_hex_flat_pixel_conversions(void) {
+    const HexLayout layout = {.orientation = HEX_ORIENTATION_FLAT, .size = 10.0f, .origin = {.x = 100.0f, .y = 50.0f}};
+    const Hex hex = Hex_Create(2, -1);
+    const HexPoint pixel = Hex_FlatToPixel(layout, hex);
+
+    ASSERT(near_f32(pixel.x, 130.0f));
+    ASSERT(near_f32(pixel.y, 50.0f));
+    ASSERT(Hex_Equals(Hex_FlatFromPixel(layout, pixel), hex));
+
+    const HexPoint corner = Hex_FlatCornerOffset(layout, 0);
+    ASSERT(near_f32(corner.x, 10.0f));
+    ASSERT(near_f32(corner.y, 0.0f));
+
+    const HexPoint corner1 = Hex_FlatCornerOffset(layout, 1);
+    ASSERT(near_f32(corner1.x, 5.0f));
+    ASSERT(near_f32(corner1.y, 8.660254f));
+
+    return 0;
+}
+
+static int test_hex_generic_pixel_conversions(void) {
+    const HexLayout layout_pointy = {.orientation = HEX_ORIENTATION_POINTY, .size = 10.0f, .origin = {.x = 100.0f, .y = 50.0f}};
+    const HexLayout layout_flat = {.orientation = HEX_ORIENTATION_FLAT, .size = 10.0f, .origin = {.x = 100.0f, .y = 50.0f}};
+    const Hex hex = Hex_Create(2, -1);
+
+    // Test Pointy via generic
+    const HexPoint pixel_p = Hex_ToPixel(layout_pointy, hex);
+    ASSERT(near_f32(pixel_p.x, 125.98076f));
+    ASSERT(near_f32(pixel_p.y, 35.0f));
+    ASSERT(Hex_Equals(Hex_FromPixel(layout_pointy, pixel_p), hex));
+
+    const HexPoint corner_p = Hex_CornerOffset(layout_pointy, 0);
+    ASSERT(near_f32(corner_p.x, 8.660254f));
+    ASSERT(near_f32(corner_p.y, -5.0f));
+
+    // Test Flat via generic
+    const HexPoint pixel_f = Hex_ToPixel(layout_flat, hex);
+    ASSERT(near_f32(pixel_f.x, 130.0f));
+    ASSERT(near_f32(pixel_f.y, 50.0f));
+    ASSERT(Hex_Equals(Hex_FromPixel(layout_flat, pixel_f), hex));
+
+    const HexPoint corner_f = Hex_CornerOffset(layout_flat, 0);
+    ASSERT(near_f32(corner_f.x, 10.0f));
+    ASSERT(near_f32(corner_f.y, 0.0f));
+
+    return 0;
+}
+
 static int test_hex_direction_indices_wrap(void) {
     const Hex origin = Hex_Create(0, 0);
 
@@ -216,6 +264,8 @@ int main(void) {
     RUN_TEST(test_hex_range_helpers_return_required_count_for_partial_buffers);
     RUN_TEST(test_hex_line_draw);
     RUN_TEST(test_hex_pointy_pixel_conversions);
+    RUN_TEST(test_hex_flat_pixel_conversions);
+    RUN_TEST(test_hex_generic_pixel_conversions);
     RUN_TEST(test_hex_direction_indices_wrap);
     return failures > 0 ? 1 : 0;
 }
