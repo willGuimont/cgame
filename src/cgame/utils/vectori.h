@@ -47,20 +47,20 @@ static Vector2i Vector2i_Subtract(const Vector2i v1, const Vector2i v2) {
 
 static Vector2i Vector2i_SubtractValue(const Vector2i v, const i32 sub) { return (Vector2i) {v.x - sub, v.y - sub}; }
 
-static i64 Vector2i_LengthSqr(const Vector2i v) { return (i64) v.x * (i64) v.x + (i64) v.y * (i64) v.y; }
+static i64 Vector2i_LengthSqr(const Vector2i v) { return ((i64) v.x * (i64) v.x) + ((i64) v.y * (i64) v.y); }
 
 static i64 Vector2i_DotProduct(const Vector2i v1, const Vector2i v2) {
-    return (i64) v1.x * (i64) v2.x + (i64) v1.y * (i64) v2.y;
+    return ((i64) v1.x * (i64) v2.x) + ((i64) v1.y * (i64) v2.y);
 }
 
 static i64 Vector2i_CrossProduct(const Vector2i v1, const Vector2i v2) {
-    return (i64) v1.x * (i64) v2.y - (i64) v1.y * (i64) v2.x;
+    return ((i64) v1.x * (i64) v2.y) - ((i64) v1.y * (i64) v2.x);
 }
 
 static i64 Vector2i_DistanceSqr(const Vector2i v1, const Vector2i v2) {
     const i64 dx = (i64) v1.x - (i64) v2.x;
     const i64 dy = (i64) v1.y - (i64) v2.y;
-    return dx * dx + dy * dy;
+    return (dx * dx) + (dy * dy);
 }
 
 static Vector2i Vector2i_Scale(const Vector2i v, const i32 scale) { return (Vector2i) {v.x * scale, v.y * scale}; }
@@ -110,22 +110,22 @@ static Vector3i Vector3i_SubtractValue(const Vector3i v, const i32 sub) {
 }
 
 static i64 Vector3i_LengthSqr(const Vector3i v) {
-    return (i64) v.x * (i64) v.x + (i64) v.y * (i64) v.y + (i64) v.z * (i64) v.z;
+    return ((i64) v.x * (i64) v.x) + ((i64) v.y * (i64) v.y) + ((i64) v.z * (i64) v.z);
 }
 
 static i64 Vector3i_DotProduct(const Vector3i v1, const Vector3i v2) {
-    return (i64) v1.x * (i64) v2.x + (i64) v1.y * (i64) v2.y + (i64) v1.z * (i64) v2.z;
+    return ((i64) v1.x * (i64) v2.x) + ((i64) v1.y * (i64) v2.y) + ((i64) v1.z * (i64) v2.z);
 }
 
 static Vector3i Vector3i_CrossProduct(const Vector3i v1, const Vector3i v2) {
-    return (Vector3i) {v1.y * v2.z - v1.z * v2.y, v1.z * v2.x - v1.x * v2.z, v1.x * v2.y - v1.y * v2.x};
+    return (Vector3i) {(v1.y * v2.z) - (v1.z * v2.y), (v1.z * v2.x) - (v1.x * v2.z), (v1.x * v2.y) - (v1.y * v2.x)};
 }
 
 static i64 Vector3i_DistanceSqr(const Vector3i v1, const Vector3i v2) {
     const i64 dx = (i64) v1.x - (i64) v2.x;
     const i64 dy = (i64) v1.y - (i64) v2.y;
     const i64 dz = (i64) v1.z - (i64) v2.z;
-    return dx * dx + dy * dy + dz * dz;
+    return (dx * dx) + (dy * dy) + (dz * dz);
 }
 
 static Vector3i Vector3i_Scale(const Vector3i v, const i32 scale) {
@@ -178,11 +178,12 @@ static Vector4i Vector4i_SubtractValue(const Vector4i v, const i32 sub) {
 }
 
 static i64 Vector4i_LengthSqr(const Vector4i v) {
-    return (i64) v.x * (i64) v.x + (i64) v.y * (i64) v.y + (i64) v.z * (i64) v.z + (i64) v.w * (i64) v.w;
+    return ((i64) v.x * (i64) v.x) + ((i64) v.y * (i64) v.y) + ((i64) v.z * (i64) v.z) + ((i64) v.w * (i64) v.w);
 }
 
 static i64 Vector4i_DotProduct(const Vector4i v1, const Vector4i v2) {
-    return (i64) v1.x * (i64) v2.x + (i64) v1.y * (i64) v2.y + (i64) v1.z * (i64) v2.z + (i64) v1.w * (i64) v2.w;
+    return ((i64) v1.x * (i64) v2.x) + ((i64) v1.y * (i64) v2.y) + ((i64) v1.z * (i64) v2.z) +
+           ((i64) v1.w * (i64) v2.w);
 }
 
 static i64 Vector4i_DistanceSqr(const Vector4i v1, const Vector4i v2) {
@@ -190,7 +191,7 @@ static i64 Vector4i_DistanceSqr(const Vector4i v1, const Vector4i v2) {
     const i64 dy = (i64) v1.y - (i64) v2.y;
     const i64 dz = (i64) v1.z - (i64) v2.z;
     const i64 dw = (i64) v1.w - (i64) v2.w;
-    return dx * dx + dy * dy + dz * dz + dw * dw;
+    return (dx * dx) + (dy * dy) + (dz * dz) + (dw * dw);
 }
 
 static Vector4i Vector4i_Scale(const Vector4i v, const i32 scale) {

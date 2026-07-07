@@ -1,21 +1,20 @@
 #include "world.h"
 
 #include <stddef.h>
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <stb_ds.h>
 
 static bool World_ValidDimensions(const i32 width, const i32 height, const i32 depth) {
-    return width > 0 && height > 0 && depth > 0 && (u64) width <= (u64) SIZE_MAX / (u64) height &&
-           (u64) width * (u64) height <= (u64) SIZE_MAX / (u64) depth &&
-           (u64) width * (u64) height * (u64) depth <= (u64) SIZE_MAX / sizeof(GridCell);
+    return width > 0 && height > 0 && depth > 0 && (u64) width <= SIZE_MAX / (u64) height &&
+           (u64) width * (u64) height <= SIZE_MAX / (u64) depth &&
+           (u64) width * (u64) height * (u64) depth <= SIZE_MAX / sizeof(GridCell);
 }
 
 static size_t World_GridIndex(const World *world, const Vector3i pos) {
-    return (size_t) pos.x + (size_t) pos.y * (size_t) world->width +
-           (size_t) pos.z * (size_t) world->width * (size_t) world->height;
+    return (size_t) pos.x + ((size_t) pos.y * (size_t) world->width) +
+           ((size_t) pos.z * (size_t) world->width * (size_t) world->height);
 }
 
 static bool World_GridCellContains(const GridCell *head, const EntityId id) {

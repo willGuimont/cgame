@@ -354,7 +354,7 @@ static int test_grid_remove_recycles_overflow_cell(void) {
 
     ASSERT(World_GridAdd(&world, pos, id_a));
     ASSERT(World_GridAdd(&world, pos, id_b));
-    GridCell *first_overflow = World_GridCell(&world, pos)->next;
+    const GridCell *first_overflow = World_GridCell(&world, pos)->next;
     ASSERT(first_overflow != nullptr);
 
     ASSERT(World_GridRemove(&world, pos, id_b));

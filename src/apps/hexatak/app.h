@@ -54,12 +54,16 @@ typedef struct {
     int level_select_page;
     float esc_timer;
     bool show_tip;
+    bool win_animation_active;
+    float win_animation_timer;
+    int win_path[MAX_CELLS];
+    int win_path_len;
 } GameState;
 
 // State utilities
-void History_Push(History *history, const Board *board, const int move_count);
+void History_Push(History *history, const Board *board, int move_count);
 bool History_Undo(History *history, Board *board, int *move_count);
-int Board_PickCell(const Board *board, const Vector2 mouse, const float size, const Vector2 origin);
-void Level_Load(GameState *gs, const int level_idx);
+int Board_PickCell(const Board *board, Vector2 mouse, float size, Vector2 origin);
+void Level_Load(GameState *gs, int level_idx);
 
 int App_Run(void);

@@ -5,7 +5,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Hexatak - Hexagonal Grid Puzzle</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    
+
     <!-- Google Fonts: Outfit -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,15 +13,15 @@
 
     <style>
         :root {
-            --bg-color: #11111b;      /* Crust */
-            --card-color: #1e1e2e;    /* Base */
-            --border-color: #313244;  /* Surface0 */
-            --text-color: #cdd6f4;    /* Text */
-            --text-sub: #a6adc8;      /* Subtext0 */
-            --accent-blue: #89b4fa;   /* Blue */
-            --accent-peach: #fab387;  /* Peach */
+            --bg-color: #11111b; /* Crust */
+            --card-color: #1e1e2e; /* Base */
+            --border-color: #313244; /* Surface0 */
+            --text-color: #cdd6f4; /* Text */
+            --text-sub: #a6adc8; /* Subtext0 */
+            --accent-blue: #89b4fa; /* Blue */
+            --accent-peach: #fab387; /* Peach */
             --accent-lavender: #cba6f7; /* Lavender */
-            --accent-green: #a6e3a1;  /* Green */
+            --accent-green: #a6e3a1; /* Green */
         }
 
         body {
@@ -44,7 +44,7 @@
             position: absolute;
             width: 600px;
             height: 600px;
-            background: radial-gradient(circle, rgba(203, 166, 247, 0.08) 0%, rgba(0,0,0,0) 70%);
+            background: radial-gradient(circle, rgba(203, 166, 247, 0.08) 0%, rgba(0, 0, 0, 0) 70%);
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
@@ -94,16 +94,16 @@
             border: 2px solid var(--border-color);
             border-radius: 24px;
             padding: 12px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4), 
-                        0 0 30px rgba(203, 166, 247, 0.05);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4),
+            0 0 30px rgba(203, 166, 247, 0.05);
             transition: border-color 0.3s ease, box-shadow 0.3s ease;
             margin-bottom: 2rem;
         }
 
         .game-wrapper:hover {
             border-color: var(--accent-lavender);
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 
-                        0 0 40px rgba(203, 166, 247, 0.1);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5),
+            0 0 40px rgba(203, 166, 247, 0.1);
         }
 
         canvas.emscripten {
@@ -203,7 +203,7 @@
                 grid-template-columns: 1fr;
                 gap: 1rem;
             }
-            
+
             h1 {
                 font-size: 2.2rem;
             }
@@ -211,75 +211,81 @@
     </style>
 </head>
 <body>
-    <div class="glow-bg"></div>
+<div class="glow-bg"></div>
 
-    <div class="main-container">
-        <header>
-            <h1>HEXATAK</h1>
-            <div class="subtitle">A Hexagonal Grid Connection Puzzle inspired by Tak</div>
-        </header>
+<div class="main-container">
+    <header>
+        <h1>HEXATAK</h1>
+        <div class="subtitle">A Hexagonal Grid Connection Puzzle inspired by Tak</div>
+    </header>
 
-        <div class="game-wrapper">
-            <canvas class="emscripten" id="canvas" tabindex="-1"></canvas>
-        </div>
-
-        <div class="info-section">
-            <div class="info-card">
-                <h2 class="play-title">HOW TO PLAY</h2>
-                <ul>
-                    <li>To move a stack of stones: Select it by left-clicking, then click an adjacent hex to move it there.</li>
-                    <li>Move a single stone to an adjacent hex by clicking the target neighbor (<strong>a STEP</strong>).</li>
-                    <li>Spread multiple stones along a straight line path by clicking, holding, and dragging (<strong>a SPREAD</strong>).</li>
-                    <li>Connect the colored target boundaries to complete the node loop and solve the grid.</li>
-                </ul>
-            </div>
-
-            <div class="info-card">
-                <h2 class="keys-title">SHORTCUTS</h2>
-                <ul>
-                    <li><span class="key-badge">U</span> Undo the last move</li>
-                    <li><span class="key-badge">Y</span> Redo the last undone move</li>
-                    <li><span class="key-badge">R</span> Reset the current level layout</li>
-                    <li><span class="key-badge">Esc</span> Return to level select / exit screen</li>
-                    <li><span class="key-badge">Space</span> or <span class="key-badge">Click</span> Next level (when won)</li>
-                </ul>
-            </div>
-        </div>
-
-        <footer>
-            Built with Raylib and ❤
-        </footer>
+    <div class="game-wrapper">
+        <canvas class="emscripten" id="canvas" tabindex="-1"></canvas>
     </div>
 
-    <textarea id="output" rows="8" readonly></textarea>
+    <div class="info-section">
+        <div class="info-card">
+            <h2 class="play-title">HOW TO PLAY</h2>
+            <ul>
+                <li>To move a stack of stones: Select it by left-clicking, then click an adjacent hex to move it
+                    there.
+                </li>
+                <li>Move a single stone to an adjacent hex by clicking the target neighbor (<strong>a STEP</strong>).
+                </li>
+                <li>Spread multiple stones along a straight line path by clicking, holding, and dragging (<strong>a
+                    SPREAD</strong>).
+                </li>
+                <li>Connect the colored target boundaries to complete the node loop and solve the grid.</li>
+            </ul>
+        </div>
 
-    <script>
-        const outputElement = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('output'));
-        const canvasElement = /** @type {HTMLCanvasElement | null} */ (document.getElementById('canvas'));
+        <div class="info-card">
+            <h2 class="keys-title">SHORTCUTS</h2>
+            <ul>
+                <li><span class="key-badge">U</span> Undo the last move</li>
+                <li><span class="key-badge">Y</span> Redo the last undone move</li>
+                <li><span class="key-badge">R</span> Reset the current level layout</li>
+                <li><span class="key-badge">Esc</span> Return to level select / exit screen</li>
+                <li><span class="key-badge">Space</span> or <span class="key-badge">Click</span> Next level (when won)
+                </li>
+            </ul>
+        </div>
+    </div>
 
-        var Module = {
-            print: (function () {
-                if (outputElement) outputElement.value = '';
-                return function (text) {
-                    if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-                    console.log(text);
-                    if (outputElement) {
-                        outputElement.value += text + "\n";
-                        outputElement.scrollTop = outputElement.scrollHeight;
-                    }
-                };
-            })(),
-            canvas: (function () {
-                if (!canvasElement) {
-                    throw new Error('Missing canvas element');
+    <footer>
+        Built with Raylib and ❤
+    </footer>
+</div>
+
+<label for="output"></label><textarea id="output" rows="8" readonly></textarea>
+
+<script>
+    const outputElement = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('output'));
+    const canvasElement = /** @type {HTMLCanvasElement | null} */ (document.getElementById('canvas'));
+
+    const Module = {
+        print: (function () {
+            if (outputElement) outputElement.value = '';
+            return function (text) {
+                if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+                console.log(text);
+                if (outputElement) {
+                    outputElement.value += text + "\n";
+                    outputElement.scrollTop = outputElement.scrollHeight;
                 }
-                canvasElement.addEventListener('contextmenu', function (event) {
-                    event.preventDefault();
-                });
-                return canvasElement;
-            })()
-        };
-    </script>
-    {{{ SCRIPT }}}
+            };
+        })(),
+        canvas: (function () {
+            if (!canvasElement) {
+                throw new Error('Missing canvas element');
+            }
+            canvasElement.addEventListener('contextmenu', function (event) {
+                event.preventDefault();
+            });
+            return canvasElement;
+        })()
+    };
+</script>
+{{{ SCRIPT }}}
 </body>
 </html>

@@ -176,7 +176,7 @@ static int test_arena_pop_by_more_than_used_clamps_to_base_pos(void) {
     ASSERT(arena != nullptr);
 
     Arena_Push(arena, 16, false);
-    Arena_Pop(arena, (u64) (1024 * 1024));
+    Arena_Pop(arena, 1024 * 1024);
     ASSERT(arena->pos == ARENA_BASE_POS);
 
     Arena_Destroy(arena);

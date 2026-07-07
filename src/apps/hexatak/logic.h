@@ -61,24 +61,25 @@ typedef struct {
     int blocked_count;
 } LevelDesc;
 
-#define LEVEL_COUNT 6
+constexpr i32 LEVEL_COUNT = 6;
 extern const LevelDesc LEVELS[LEVEL_COUNT];
 
 // Cell & Stack operations
 bool Cell_IsEmpty(const Cell *cell);
 Stone *Cell_Top(Cell *cell);
-bool Cell_Push(Cell *cell, const Stone stone);
+bool Cell_Push(Cell *cell, Stone stone);
 bool Cell_Pop(Cell *cell, Stone *out);
 void Cell_ResolveMerge(Cell *cell);
 
 // Board operations
-void Board_Init(Board *board, const int radius);
-int Board_FindCellIndex(const Board *board, const Hex h);
-bool Board_MoveStackOne(Board *board, const int from_index, const int dir);
-bool Board_SpreadStack(Board *board, const int from_index, const int dir, const int distance);
-bool Board_ApplyMove(Board *board, const Move move);
+void Board_Init(Board *board, int radius);
+int Board_FindCellIndex(const Board *board, Hex h);
+bool Board_MoveStackOne(Board *board, int from_index, int dir);
+bool Board_SpreadStack(Board *board, int from_index, int dir, int distance);
+bool Board_ApplyMove(Board *board, Move move);
 
 // Win Condition & Helpers
-bool Hex_OnSide(const Hex h, const int radius, const BoardSide side);
+bool Hex_OnSide(Hex h, int radius, BoardSide side);
 bool Cell_IsRoad(const Cell *cell);
-bool Board_HasConnection(const Board *board, const BoardSide a, const BoardSide b);
+bool Board_HasConnection(const Board *board, BoardSide a, BoardSide b);
+int Board_FindConnectionPath(const Board *board, BoardSide a, BoardSide b, int *path_out, int max_path_len);
