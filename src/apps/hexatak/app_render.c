@@ -59,21 +59,21 @@ void Render_DrawHex(const Vector2 center, const float size, const Color fill_col
     }
 }
 
-void Render_DrawStoneStack(const Font font, const Cell *cell, const Vector2 center, const float size, const i32 alpha, const bool active,
-                           const float pulse) {
+void Render_DrawStoneStack(const Font font, const Cell *cell, const Vector2 center, const float size, const i32 alpha,
+                           const bool active, const float pulse, const bool exploded) {
     if (cell->count == 0)
         return;
 
     const float base_radius = size * 0.55f;
     for (i32 i = 0; i < cell->count; i++) {
-        const float y_offset = -(float) i * 5.0f;
+        const float y_offset = exploded ? -(float) i * (base_radius + 12.0f) : -(float) i * 5.0f;
         Color col = Utils_GetStoneColor(cell->stones[i].value);
         col.a = (unsigned char) alpha;
 
         const Vector2 stone_center = {center.x, center.y + y_offset};
 
         float final_radius = base_radius;
-        if (active) {
+        if (active || exploded) {
             final_radius = base_radius * (1.0f + (0.15f * pulse));
             auto const glow_color =
                     (Color) {166, 227, 161, (unsigned char) (((float) alpha * 0.4f) + ((float) alpha * 0.3f * pulse))};
@@ -294,11 +294,14 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
             }
         }
 
+        const bool is_selected_stack = !is_editor && (gs->input.mode == INPUT_SELECTED || gs->input.mode == INPUT_DRAGGING) &&
+                                       gs->input.selected_index == i;
+
         if (draw_preview) {
-            Render_DrawStoneStack(gs->font_ibm, &gs->preview_board.cells[i], center, size, 120, false, 0.0f);
+            Render_DrawStoneStack(gs->font_ibm, &gs->preview_board.cells[i], center, size, 180, false, 0.0f, false);
             Render_DrawHex(center, size - 2.0f, (Color) {166, 227, 161, 40}, (Color) {166, 227, 161, 120});
-        } else {
-            Render_DrawStoneStack(gs->font_ibm, cell, center, size, 255, is_active_path, pulse);
+        } else if (!is_selected_stack) {
+            Render_DrawStoneStack(gs->font_ibm, cell, center, size, 255, is_active_path, pulse, false);
         }
 
         if (cell->required_value > 0) {
@@ -348,11 +351,21 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
             const HexPoint hp_step = Hex_ToPixel(layout, cursor);
             const Vector2 step_pt = {hp_step.x, hp_step.y};
 
-            DrawLineEx(start, step_pt, 4.0f, (Color) {166, 227, 161, 200});
+            DrawLineEx(start, step_pt, 3.0f, (Color) {166, 227, 161, 80});
             start = step_pt;
         }
 
-        DrawCircleV(start, 8.0f, (Color) {166, 227, 161, 255});
+        DrawCircleV(start, 8.0f, (Color) {166, 227, 161, 120});
+    }
+
+    if (!is_editor && (gs->input.mode == INPUT_SELECTED || gs->input.mode == INPUT_DRAGGING) &&
+        gs->input.selected_index >= 0 && gs->input.selected_index < board->count) {
+        const Cell *cell = &board->cells[gs->input.selected_index];
+        const HexLayout layout = {
+                .orientation = HEX_ORIENTATION_POINTY, .size = size, .origin = (HexPoint) {origin.x, origin.y}};
+        const HexPoint hp = Hex_ToPixel(layout, cell->hex);
+        const Vector2 center = {hp.x, hp.y};
+        Render_DrawStoneStack(gs->font_ibm, cell, center, size, 255, true, 0.35f, true);
     }
 }
 
