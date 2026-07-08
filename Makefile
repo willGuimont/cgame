@@ -2,7 +2,7 @@
         build build-debug build-release \
         run run-debug run-release \
         test test-debug test-release \
-        web-build web-build-app web-serve web-deploy run-web \
+        web-build web-build-app web-serve web-deploy \
         asan-verbose asan-no-leaks
 
 DEBUG_BUILD_DIR := cmake-build-debug
@@ -53,9 +53,6 @@ web-build-app: configure-web
 	cmake --build $(WEB_BUILD_DIR) --target $(APP) --parallel
 
 web-serve: web-build
-	./scripts/serve_web.sh
-
-run-web: web-build
 	./scripts/serve_web.sh
 
 web-deploy: web-build
