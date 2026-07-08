@@ -98,3 +98,19 @@ stack: -1,0:2:1,2
 stack: 1,0:2:1,2
 stack: 2,0:1:1
 required: 0,0:4
+
+# Level 9
+name: High Gate
+desc: The bridge opens only when the stack has the required height.
+tip: Height gates use a teal diamond marked H plus a number. The stone values do not matter for that gate; only the stack height must match. Move the height-3 tower onto the center bridge.
+radius: 2
+side_a: Q_NEG
+side_b: Q_POS
+move_limit: 1
+stack: -2,0:1:1
+stack: -2,1:1:1
+stack: -1,1:1:1
+stack: -1,0:3:1,2,4
+stack: 1,0:1:1
+stack: 2,0:1:1
+required_height: 0,0:3

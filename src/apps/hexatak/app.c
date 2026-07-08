@@ -118,9 +118,10 @@ static bool App_Init(void *state) {
     gs->editor_side_a = SIDE_Q_NEG;
     gs->editor_side_b = SIDE_Q_POS;
     gs->editor_move_limit = 0;
-    gs->editor_active_tool = 0;
+    gs->editor_active_tool = EDITOR_TOOL_STONES;
     gs->editor_selected_stone_value = 1;
     gs->editor_selected_required_value = 2;
+    gs->editor_selected_required_height = 3;
     gs->testing_editor_level = false;
     gs->editor_placement_stack[0] = 1;
     gs->editor_placement_stack_count = 1;
@@ -165,6 +166,13 @@ static void Editor_Export(const GameState *gs) {
 
     for (i32 i = 0; i < gs->editor_board.count; i++) {
         const Cell *cell = &gs->editor_board.cells[i];
+        if (cell->required_height > 0) {
+            fprintf(f, "required_height: %d,%d:%d\n", cell->hex.q, cell->hex.r, cell->required_height);
+        }
+    }
+
+    for (i32 i = 0; i < gs->editor_board.count; i++) {
+        const Cell *cell = &gs->editor_board.cells[i];
         if (cell->count > 0) {
             fprintf(f, "stack: %d,%d:%d:", cell->hex.q, cell->hex.r, cell->count);
             for (i32 s = 0; s < cell->count; s++) {
@@ -195,6 +203,11 @@ static void Editor_Export(const GameState *gs) {
         const Cell *cell = &gs->editor_board.cells[i];
         if (cell->required_value > 0)
             printf("required: %d,%d:%d\n", cell->hex.q, cell->hex.r, cell->required_value);
+    }
+    for (i32 i = 0; i < gs->editor_board.count; i++) {
+        const Cell *cell = &gs->editor_board.cells[i];
+        if (cell->required_height > 0)
+            printf("required_height: %d,%d:%d\n", cell->hex.q, cell->hex.r, cell->required_height);
     }
     for (i32 i = 0; i < gs->editor_board.count; i++) {
         const Cell *cell = &gs->editor_board.cells[i];
@@ -244,7 +257,7 @@ static void App_Update(void *state, f32 dt) {
             const Rectangle rect_tool_stones = {20.0f, 120.0f, 160.0f, 26.0f};
             const Rectangle rect_tool_blocked = {20.0f, 150.0f, 160.0f, 26.0f};
             const Rectangle rect_tool_required = {20.0f, 180.0f, 160.0f, 26.0f};
-            const Rectangle rect_tool_goals = {20.0f, 210.0f, 160.0f, 26.0f};
+            const Rectangle rect_tool_height = {20.0f, 210.0f, 160.0f, 26.0f};
 
             const Rectangle rect_radius = {20.0f, 275.0f, 160.0f, 26.0f};
             const Rectangle rect_side_a = {20.0f, 305.0f, 160.0f, 26.0f};
@@ -255,16 +268,16 @@ static void App_Update(void *state, f32 dt) {
 
             if (CheckCollisionPointRec(mouse, rect_tool_stones)) {
                 PlaySound(gs->snd_click);
-                gs->editor_active_tool = 0;
+                gs->editor_active_tool = EDITOR_TOOL_STONES;
             } else if (CheckCollisionPointRec(mouse, rect_tool_blocked)) {
                 PlaySound(gs->snd_click);
-                gs->editor_active_tool = 1;
+                gs->editor_active_tool = EDITOR_TOOL_BLOCKED;
             } else if (CheckCollisionPointRec(mouse, rect_tool_required)) {
                 PlaySound(gs->snd_click);
-                gs->editor_active_tool = 2;
-            } else if (CheckCollisionPointRec(mouse, rect_tool_goals)) {
+                gs->editor_active_tool = EDITOR_TOOL_REQUIRED_VALUE;
+            } else if (CheckCollisionPointRec(mouse, rect_tool_height)) {
                 PlaySound(gs->snd_click);
-                gs->editor_active_tool = 3;
+                gs->editor_active_tool = EDITOR_TOOL_REQUIRED_HEIGHT;
             } else if (CheckCollisionPointRec(mouse, rect_radius)) {
                 PlaySound(gs->snd_click);
                 i32 r = gs->editor_board.radius;
@@ -286,7 +299,7 @@ static void App_Update(void *state, f32 dt) {
                     gs->editor_move_limit++;
             }
 
-            if (gs->editor_active_tool == 0) {
+            if (gs->editor_active_tool == EDITOR_TOOL_STONES) {
                 // CLEAR button
                 Rectangle rect_clear = {140.0f, 433.0f, 40.0f, 18.0f};
                 if (CheckCollisionPointRec(mouse, rect_clear)) {
@@ -327,13 +340,21 @@ static void App_Update(void *state, f32 dt) {
                     gs->editor_placement_stack[3] = 1;
                     gs->editor_placement_stack_count = 4;
                 }
-            } else if (gs->editor_active_tool == 2) {
+            } else if (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_VALUE) {
                 for (i32 v = 1; v < 7; v++) {
                     Rectangle val_rect = {20.0f + (float) (v - 1) * 27.0f, 465.0f, 25.0f, 25.0f};
                     if (CheckCollisionPointRec(mouse, val_rect)) {
                         PlaySound(gs->snd_click);
                         i32 values[] = {1, 2, 4, 8, 16, 32, 64};
                         gs->editor_selected_required_value = values[v];
+                    }
+                }
+            } else if (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_HEIGHT) {
+                for (i32 v = 0; v < 6; v++) {
+                    Rectangle val_rect = {20.0f + (float) v * 27.0f, 465.0f, 25.0f, 25.0f};
+                    if (CheckCollisionPointRec(mouse, val_rect)) {
+                        PlaySound(gs->snd_click);
+                        gs->editor_selected_required_height = v + 1;
                     }
                 }
             }
@@ -381,85 +402,40 @@ static void App_Update(void *state, f32 dt) {
             Cell *cell = &gs->editor_board.cells[best];
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 PlaySound(gs->snd_click);
-                if (gs->editor_active_tool == 0) {
+                if (gs->editor_active_tool == EDITOR_TOOL_STONES) {
                     cell->count = 0;
                     for (i32 s = 0; s < gs->editor_placement_stack_count; s++) {
                         Cell_Push(cell, (Stone) {gs->editor_placement_stack[s]});
                     }
                     Cell_ResolveMerge(cell);
-                } else if (gs->editor_active_tool == 1) {
+                } else if (gs->editor_active_tool == EDITOR_TOOL_BLOCKED) {
                     cell->blocked = !cell->blocked;
                     if (cell->blocked) {
                         cell->count = 0;
                         cell->required_value = 0;
+                        cell->required_height = 0;
                     }
-                } else if (gs->editor_active_tool == 2) {
+                } else if (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_VALUE) {
                     if (cell->required_value == gs->editor_selected_required_value) {
                         cell->required_value = 0;
                     } else {
                         cell->required_value = gs->editor_selected_required_value;
                         cell->blocked = false;
                     }
-                } else if (gs->editor_active_tool == 3) {
-                    float angle = atan2f(mouse.y - origin.y, mouse.x - origin.x);
-                    float deg = angle * RAD2DEG;
-                    if (deg < 0.0f)
-                        deg += 360.0f;
-                    i32 sector = (i32) roundf(deg / 60.0f) % 6;
-                    switch (sector) {
-                        case 0:
-                            gs->editor_side_a = SIDE_Q_POS;
-                            break;
-                        case 1:
-                            gs->editor_side_a = SIDE_S_POS;
-                            break;
-                        case 2:
-                            gs->editor_side_a = SIDE_R_POS;
-                            break;
-                        case 3:
-                            gs->editor_side_a = SIDE_Q_NEG;
-                            break;
-                        case 4:
-                            gs->editor_side_a = SIDE_S_NEG;
-                            break;
-                        case 5:
-                            gs->editor_side_a = SIDE_R_NEG;
-                            break;
+                } else if (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_HEIGHT) {
+                    if (cell->required_height == gs->editor_selected_required_height) {
+                        cell->required_height = 0;
+                    } else {
+                        cell->required_height = gs->editor_selected_required_height;
+                        cell->blocked = false;
                     }
                 }
             } else if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
                 PlaySound(gs->snd_click);
-                if (gs->editor_active_tool == 3) {
-                    float angle = atan2f(mouse.y - origin.y, mouse.x - origin.x);
-                    float deg = angle * RAD2DEG;
-                    if (deg < 0.0f)
-                        deg += 360.0f;
-                    i32 sector = (i32) roundf(deg / 60.0f) % 6;
-                    switch (sector) {
-                        case 0:
-                            gs->editor_side_b = SIDE_Q_POS;
-                            break;
-                        case 1:
-                            gs->editor_side_b = SIDE_S_POS;
-                            break;
-                        case 2:
-                            gs->editor_side_b = SIDE_R_POS;
-                            break;
-                        case 3:
-                            gs->editor_side_b = SIDE_Q_NEG;
-                            break;
-                        case 4:
-                            gs->editor_side_b = SIDE_S_NEG;
-                            break;
-                        case 5:
-                            gs->editor_side_b = SIDE_R_NEG;
-                            break;
-                    }
-                } else {
-                    cell->count = 0;
-                    cell->blocked = false;
-                    cell->required_value = 0;
-                }
+                cell->count = 0;
+                cell->blocked = false;
+                cell->required_value = 0;
+                cell->required_height = 0;
             }
         }
         return;
@@ -941,12 +917,12 @@ static void App_Draw(void *state, f32 alpha) {
         const char *title_text = "HEXATAK";
         i32 tw_title = CGame_MeasureText(gs->font_roboto, title_text, 64);
         CGame_DrawText(gs->font_roboto, title_text, 360 - (tw_title / 2), (i32) title_y, 64,
-                     (Color) {250, 179, 135, 255}); // Peach
+                       (Color) {250, 179, 135, 255}); // Peach
 
         const char *subtitle = "A hexagonal tak inspired game";
         i32 tw_sub = CGame_MeasureText(gs->font_roboto, subtitle, 20);
         CGame_DrawText(gs->font_roboto, subtitle, 360 - (tw_sub / 2), (i32) (title_y + 82.0f), 20,
-                     (Color) {166, 173, 200, 255}); // Subtext Gray
+                       (Color) {166, 173, 200, 255}); // Subtext Gray
 
         // Play button
         Vector2 mouse = GetMousePosition();
@@ -961,18 +937,20 @@ static void App_Draw(void *state, f32 alpha) {
         bool editor_hovered = CheckCollisionPointRec(mouse, btn_editor);
         Color editor_bg = editor_hovered ? (Color) {203, 166, 247, 255} : (Color) {49, 50, 68, 255};
         Color editor_fg = editor_hovered ? (Color) {30, 30, 46, 255} : (Color) {205, 214, 244, 255};
-        CGame_DrawButton(gs->font_ibm, btn_editor, "LEVEL EDITOR", editor_bg, editor_fg, editor_hovered, UI_FONT_BUTTON);
+        CGame_DrawButton(gs->font_ibm, btn_editor, "LEVEL EDITOR", editor_bg, editor_fg, editor_hovered,
+                         UI_FONT_BUTTON);
 
         CGame_DrawText(gs->font_ibm, "Press ENTER or SPACE to start",
-                     360 - (CGame_MeasureText(gs->font_ibm, "Press ENTER or SPACE to start", 16) / 2), 530, 16,
-                     (Color) {110, 115, 141, 255});
+                       360 - (CGame_MeasureText(gs->font_ibm, "Press ENTER or SPACE to start", 16) / 2), 530, 16,
+                       (Color) {110, 115, 141, 255});
     } else if (gs->screen == SCREEN_LEVEL_SELECT) {
         // Draw Header
-        CGame_DrawText(gs->font_ibm, "SELECT LEVEL", 360 - (CGame_MeasureText(gs->font_ibm, "SELECT LEVEL", 30) / 2), 60,
-                     30, (Color) {250, 179, 135, 255});
-        CGame_DrawText(gs->font_ibm, "Choose a grid simulation node to solve",
-                     360 - (CGame_MeasureText(gs->font_ibm, "Choose a grid simulation node to solve", UI_FONT_BODY) / 2),
-                     105, UI_FONT_BODY, (Color) {166, 173, 200, 255});
+        CGame_DrawText(gs->font_ibm, "SELECT LEVEL", 360 - (CGame_MeasureText(gs->font_ibm, "SELECT LEVEL", 30) / 2),
+                       60, 30, (Color) {250, 179, 135, 255});
+        CGame_DrawText(
+                gs->font_ibm, "Choose a grid simulation node to solve",
+                360 - (CGame_MeasureText(gs->font_ibm, "Choose a grid simulation node to solve", UI_FONT_BODY) / 2),
+                105, UI_FONT_BODY, (Color) {166, 173, 200, 255});
 
         // Level Cards Grid for current page
         Vector2 mouse = GetMousePosition();
@@ -1011,17 +989,17 @@ static void App_Draw(void *state, f32 alpha) {
             char lvl_num_str[32];
             snprintf(lvl_num_str, sizeof(lvl_num_str), "LEVEL %d", i + 1);
             CGame_DrawText(gs->font_ibm, lvl_num_str, (i32) (x + 15), (i32) (y + 10), UI_FONT_HELP,
-                         (Color) {166, 173, 200, 255});
+                           (Color) {166, 173, 200, 255});
             float max_w = gs->level_completed[i] ? (CARD_W - 105.0f) : (CARD_W - 30.0f);
-            CGame_DrawTextScaled(gs->font_ibm, LEVELS[i].name, (i32) (x + 15), (i32) (y + 34), UI_FONT_BODY, (i32) max_w,
-                         (Color) {205, 214, 244, 255});
+            CGame_DrawTextScaled(gs->font_ibm, LEVELS[i].name, (i32) (x + 15), (i32) (y + 34), UI_FONT_BODY,
+                                 (i32) max_w, (Color) {205, 214, 244, 255});
 
             if (gs->level_completed[i]) {
                 DrawRectangle((i32) (x + CARD_W - 85), (i32) (y + 12), 70, 18, (Color) {166, 227, 161, 40});
                 DrawRectangleLines((i32) (x + CARD_W - 85), (i32) (y + 12), 70, 18, (Color) {166, 227, 161, 255});
                 i32 tw = CGame_MeasureText(gs->font_ibm, "SOLVED", 10);
                 CGame_DrawText(gs->font_ibm, "SOLVED", (i32) (x + CARD_W - 85.0f + 35.0f) - (tw / 2), (i32) (y + 16.0f),
-                             10, (Color) {166, 227, 161, 255});
+                               10, (Color) {166, 227, 161, 255});
             }
         }
 
@@ -1029,7 +1007,7 @@ static void App_Draw(void *state, f32 alpha) {
         Rectangle btn_back = {50.0f, 650.0f, 120.0f, 40.0f};
         bool back_hovered = CheckCollisionPointRec(mouse, btn_back);
         CGame_DrawButton(gs->font_ibm, btn_back, "BACK (Esc)", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255},
-                          back_hovered, UI_FONT_BUTTON);
+                         back_hovered, UI_FONT_BUTTON);
 
         // Pagination buttons and page indicator
         i32 total_pages = (LEVEL_COUNT + 5) / 6;
@@ -1040,20 +1018,20 @@ static void App_Draw(void *state, f32 alpha) {
         if (gs->level_select_page > 0) {
             bool prev_hovered = CheckCollisionPointRec(mouse, btn_prev);
             CGame_DrawButton(gs->font_ibm, btn_prev, "<", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255},
-                              prev_hovered, UI_FONT_BUTTON);
+                             prev_hovered, UI_FONT_BUTTON);
         } else {
-            CGame_DrawButton(gs->font_ibm, btn_prev, "<", (Color) {30, 30, 46, 255}, (Color) {88, 91, 112, 255},
-                              false, UI_FONT_BUTTON);
+            CGame_DrawButton(gs->font_ibm, btn_prev, "<", (Color) {30, 30, 46, 255}, (Color) {88, 91, 112, 255}, false,
+                             UI_FONT_BUTTON);
         }
 
         // Next Button
         if (gs->level_select_page + 1 < total_pages) {
             bool next_hovered = CheckCollisionPointRec(mouse, btn_next);
             CGame_DrawButton(gs->font_ibm, btn_next, ">", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255},
-                              next_hovered, UI_FONT_BUTTON);
+                             next_hovered, UI_FONT_BUTTON);
         } else {
-            CGame_DrawButton(gs->font_ibm, btn_next, ">", (Color) {30, 30, 46, 255}, (Color) {88, 91, 112, 255},
-                              false, UI_FONT_BUTTON);
+            CGame_DrawButton(gs->font_ibm, btn_next, ">", (Color) {30, 30, 46, 255}, (Color) {88, 91, 112, 255}, false,
+                             UI_FONT_BUTTON);
         }
 
         // Page Indicator
@@ -1089,7 +1067,7 @@ static void App_Draw(void *state, f32 alpha) {
                                       (Color) {243, 139, 168, 200});
 
             CGame_DrawText(gs->font_ibm, esc_msg, (i32) (360.0f - ((float) tw / 2.0f)), (i32) (PILL_Y + PILL_PAD_Y),
-                         UI_FONT_SMALL, (Color) {243, 139, 168, 255});
+                           UI_FONT_SMALL, (Color) {243, 139, 168, 255});
         }
 
         const LevelDesc *desc = &LEVELS[gs->current_level_idx];
@@ -1161,7 +1139,7 @@ static void App_Draw(void *state, f32 alpha) {
             const char *title = "INSTRUCTIONS";
             i32 tw = CGame_MeasureText(gs->font_ibm, title, 20);
             CGame_DrawText(gs->font_ibm, title, 360 - (tw / 2), (i32) (popup_y + 30.0f), 20,
-                         (Color) {250, 179, 135, 255});
+                           (Color) {250, 179, 135, 255});
 
             // Tip content
             CGame_DrawTextWrappedCentered(gs->font_ibm, desc->tip, 360, (i32) (popup_y + 30.0f + 20.0f + 20.0f), 440,
@@ -1178,8 +1156,8 @@ static void App_Draw(void *state, f32 alpha) {
             // Small instruction helper text below button
             const char *space_msg = "or press SPACE to close";
             i32 tw_space = CGame_MeasureText(gs->font_ibm, space_msg, UI_FONT_BADGE);
-            CGame_DrawText(gs->font_ibm, space_msg, 360 - (tw_space / 2), (i32) (popup_y + (float) total_height - 25.0f),
-                         UI_FONT_BADGE, (Color) {110, 115, 141, 255});
+            CGame_DrawText(gs->font_ibm, space_msg, 360 - (tw_space / 2),
+                           (i32) (popup_y + (float) total_height - 25.0f), UI_FONT_BADGE, (Color) {110, 115, 141, 255});
         }
     }
 

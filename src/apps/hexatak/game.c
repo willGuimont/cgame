@@ -107,6 +107,7 @@ void Board_Init(Board *board, const i32 radius) {
             cell->count = 0;
             cell->blocked = false;
             cell->required_value = 0;
+            cell->required_height = 0;
         }
     }
 }
@@ -244,6 +245,11 @@ bool Cell_IsRoad(const Cell *cell) {
         return false;
     if (cell->required_value > 0) {
         if (cell->stones[cell->count - 1].value != cell->required_value) {
+            return false;
+        }
+    }
+    if (cell->required_height > 0) {
+        if (cell->count != cell->required_height) {
             return false;
         }
     }
@@ -493,6 +499,15 @@ bool Levels_LoadAll(void) {
                     if (r_idx < 16) {
                         LEVELS[current_idx].required_hexes[r_idx].hex = (Hex) {q, r};
                         LEVELS[current_idx].required_hexes[r_idx].required_value = req_val;
+                    }
+                }
+            } else if (strcmp(key, "required_height") == 0) {
+                i32 q = 0, r = 0, req_height = 0;
+                if (sscanf(val, "%d,%d:%d", &q, &r, &req_height) == 3) {
+                    const i32 r_idx = LEVELS[current_idx].required_height_count++;
+                    if (r_idx < 16) {
+                        LEVELS[current_idx].required_height_hexes[r_idx].hex = (Hex) {q, r};
+                        LEVELS[current_idx].required_height_hexes[r_idx].required_height = req_height;
                     }
                 }
             } else if (strcmp(key, "stack") == 0) {

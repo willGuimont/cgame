@@ -71,6 +71,13 @@ void Level_Load(GameState *gs, const i32 level_idx) {
         }
     }
 
+    for (i32 i = 0; i < desc->required_height_count; i++) {
+        const i32 idx = Board_FindCellIndex(&gs->board, desc->required_height_hexes[i].hex);
+        if (idx >= 0) {
+            gs->board.cells[idx].required_height = desc->required_height_hexes[i].required_height;
+        }
+    }
+
     gs->current_level_idx = level_idx;
     gs->move_count = 0;
     gs->level_won = false;
@@ -122,6 +129,13 @@ void Level_Reset(GameState *gs) {
             const int idx = Board_FindCellIndex(&gs->board, desc->required_hexes[i].hex);
             if (idx >= 0) {
                 gs->board.cells[idx].required_value = desc->required_hexes[i].required_value;
+            }
+        }
+
+        for (int i = 0; i < desc->required_height_count; i++) {
+            const int idx = Board_FindCellIndex(&gs->board, desc->required_height_hexes[i].hex);
+            if (idx >= 0) {
+                gs->board.cells[idx].required_height = desc->required_height_hexes[i].required_height;
             }
         }
     }

@@ -37,6 +37,13 @@ typedef enum {
     SCREEN_LEVEL_EDITOR,
 } ScreenState;
 
+typedef enum {
+    EDITOR_TOOL_STONES,
+    EDITOR_TOOL_BLOCKED,
+    EDITOR_TOOL_REQUIRED_VALUE,
+    EDITOR_TOOL_REQUIRED_HEIGHT,
+} EditorTool;
+
 typedef struct {
     Board board;
     History history;
@@ -70,9 +77,10 @@ typedef struct {
     bool testing_editor_level;
 
     // Editor active tools
-    i32 editor_active_tool; // 0 = Stones, 1 = Blocked, 2 = Required
+    EditorTool editor_active_tool;
     i32 editor_selected_stone_value; // 1, 2, 4, 8, etc.
     i32 editor_selected_required_value; // 2, 4, 8, etc.
+    i32 editor_selected_required_height;
     i32 editor_placement_stack[16];
     i32 editor_placement_stack_count;
 
@@ -88,4 +96,3 @@ typedef struct {
     Font font_ibm;
     Font font_roboto;
 } GameState;
-

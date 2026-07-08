@@ -15,6 +15,7 @@ typedef struct {
     i32 count;
     bool blocked;
     i32 required_value;
+    i32 required_height;
 } Cell;
 
 typedef struct {
@@ -65,9 +66,14 @@ typedef struct {
         i32 required_value;
     } required_hexes[16];
     i32 required_count;
+    struct {
+        Hex hex;
+        i32 required_height;
+    } required_height_hexes[16];
+    i32 required_height_count;
 } LevelDesc;
 
-constexpr i32 LEVEL_COUNT = 8;
+constexpr i32 LEVEL_COUNT = 9;
 extern LevelDesc LEVELS[LEVEL_COUNT];
 bool Levels_LoadAll(void);
 const char *Utils_GetSideString(BoardSide side);
