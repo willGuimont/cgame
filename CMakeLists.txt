@@ -187,6 +187,12 @@ function(cgame_generate_web_index)
 
     set(CGAME_WEB_APP_CARDS "")
 
+    configure_file(
+            ${CMAKE_SOURCE_DIR}/web/favicon.svg
+            ${CMAKE_BINARY_DIR}/favicon.svg
+            COPYONLY
+    )
+
     foreach (app IN LISTS apps)
         get_property(title GLOBAL PROPERTY "CGAME_APP_${app}_TITLE")
         get_property(description GLOBAL PROPERTY "CGAME_APP_${app}_DESCRIPTION")

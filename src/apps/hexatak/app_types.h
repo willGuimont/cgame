@@ -82,4 +82,12 @@ typedef struct {
     Sound snd_win;
     Sound snd_reset;
     Sound snd_undo;
+
+    // Fonts
+    Font font_ibm;
+    Font font_roboto;
 } GameState;
+
+// Text wrappers
+void App_DrawText(Font font, const char *text, int posX, int posY, int fontSize, Color color);
+int App_MeasureText(Font font, const char *text, int font_size);

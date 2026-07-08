@@ -24,6 +24,40 @@ static Sound App_LoadSound(const char *file_name) {
     return snd;
 }
 
+static Font App_LoadFont(const char *file_name) {
+    char path[512];
+    snprintf(path, sizeof(path), "resources/font/%s", file_name);
+    Font font = LoadFontEx(path, 64, NULL, 0);
+    if (font.texture.id == 0) {
+#ifdef ROOT_DIR
+        snprintf(path, sizeof(path), ROOT_DIR "/assets/font/%s", file_name);
+        font = LoadFontEx(path, 64, NULL, 0);
+#endif
+    }
+    if (font.texture.id > 0) {
+        SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
+    }
+    return font;
+}
+
+void App_DrawText(const Font font, const char *text, const int pos_x, const int pos_y, const int font_size,
+                  const Color color) {
+    if (font.texture.id > 0) {
+        const Vector2 position = {(float) pos_x, (float) pos_y};
+        DrawTextEx(font, text, position, (float) font_size, 1.0f, color);
+    } else {
+        DrawText(text, pos_x, pos_y, font_size, color);
+    }
+}
+
+int App_MeasureText(const Font font, const char *text, const int font_size) {
+    if (font.texture.id > 0) {
+        const Vector2 size = MeasureTextEx(font, text, (float) font_size, 1.0f);
+        return (int) size.x;
+    }
+    return MeasureText(text, font_size);
+}
+
 static i32 Board_CountStones(const Board *board) {
     i32 count = 0;
     for (i32 i = 0; i < board->count; i++) {
@@ -49,6 +83,9 @@ static bool App_Init(void *state) {
     gs->snd_win = App_LoadSound("win.wav");
     gs->snd_reset = App_LoadSound("reset.wav");
     gs->snd_undo = App_LoadSound("undo.wav");
+
+    gs->font_ibm = App_LoadFont("IBMPlexMono-Regular.ttf");
+    gs->font_roboto = App_LoadFont("RobotoMono-Regular.ttf");
 
     Level_Load(gs, 0);
     gs->screen = SCREEN_TITLE;
@@ -482,7 +519,8 @@ static void App_Update(void *state, f32 dt) {
             if (!desc->tip) {
                 gs->show_tip = false;
             } else {
-                i32 text_height = Utils_MeasureTextWrappedHeight(desc->tip, 440, 16, 6);
+                i32 text_height =
+                        Utils_MeasureTextWrappedHeight(gs->font_ibm, desc->tip, 440, UI_FONT_TIP, UI_LINE_TIP);
                 i32 total_height = 30 + 24 + 20 + text_height + 30 + 40 + 30;
                 float popup_y = 360.0f - ((float) total_height / 2.0f);
                 Rectangle btn_ok = {300.0f, popup_y + (float) total_height - 70.0f, 120.0f, 40.0f};
@@ -905,13 +943,14 @@ static void App_Draw(void *state, f32 alpha) {
         // Pulse and draw the Title
         float title_y = 200.0f + (8.0f * sinf(gs->anim_time * 2.0f));
         const char *title_text = "HEXATAK";
-        i32 tw_title = MeasureText(title_text, 64);
-        DrawText(title_text, 360 - (tw_title / 2), (i32) title_y, 64, (Color) {250, 179, 135, 255}); // Peach
+        i32 tw_title = App_MeasureText(gs->font_roboto, title_text, 64);
+        App_DrawText(gs->font_roboto, title_text, 360 - (tw_title / 2), (i32) title_y, 64,
+                     (Color) {250, 179, 135, 255}); // Peach
 
         const char *subtitle = "A hexagonal tak inspired game";
-        i32 tw_sub = MeasureText(subtitle, 18);
-        DrawText(subtitle, 360 - (tw_sub / 2), (i32) (title_y + 80.0f), 18,
-                 (Color) {166, 173, 200, 255}); // Subtext Gray
+        i32 tw_sub = App_MeasureText(gs->font_roboto, subtitle, 20);
+        App_DrawText(gs->font_roboto, subtitle, 360 - (tw_sub / 2), (i32) (title_y + 82.0f), 20,
+                     (Color) {166, 173, 200, 255}); // Subtext Gray
 
         // Play button
         Vector2 mouse = GetMousePosition();
@@ -919,23 +958,25 @@ static void App_Draw(void *state, f32 alpha) {
         bool play_hovered = CheckCollisionPointRec(mouse, btn_play);
         Color play_bg = play_hovered ? (Color) {137, 180, 250, 255} : (Color) {49, 50, 68, 255};
         Color play_fg = play_hovered ? (Color) {30, 30, 46, 255} : (Color) {205, 214, 244, 255};
-        Render_DrawButton(btn_play, "PLAY", play_bg, play_fg, play_hovered);
+        Render_DrawButton(gs->font_ibm, btn_play, "PLAY", play_bg, play_fg, play_hovered);
 
         // Editor button
         Rectangle btn_editor = {260.0f, 465.0f, 200.0f, 50.0f};
         bool editor_hovered = CheckCollisionPointRec(mouse, btn_editor);
         Color editor_bg = editor_hovered ? (Color) {203, 166, 247, 255} : (Color) {49, 50, 68, 255};
         Color editor_fg = editor_hovered ? (Color) {30, 30, 46, 255} : (Color) {205, 214, 244, 255};
-        Render_DrawButton(btn_editor, "LEVEL EDITOR", editor_bg, editor_fg, editor_hovered);
+        Render_DrawButton(gs->font_ibm, btn_editor, "LEVEL EDITOR", editor_bg, editor_fg, editor_hovered);
 
-        DrawText("Press ENTER or SPACE to start", 360 - (MeasureText("Press ENTER or SPACE to start", 14) / 2), 530, 14,
-                 (Color) {110, 115, 141, 255});
+        App_DrawText(gs->font_ibm, "Press ENTER or SPACE to start",
+                     360 - (App_MeasureText(gs->font_ibm, "Press ENTER or SPACE to start", 16) / 2), 530, 16,
+                     (Color) {110, 115, 141, 255});
     } else if (gs->screen == SCREEN_LEVEL_SELECT) {
         // Draw Header
-        DrawText("SELECT LEVEL", 360 - (MeasureText("SELECT LEVEL", 28) / 2), 60, 28, (Color) {250, 179, 135, 255});
-        DrawText("Choose a grid simulation node to solve",
-                 360 - (MeasureText("Choose a grid simulation node to solve", 16) / 2), 105, 16,
-                 (Color) {166, 173, 200, 255});
+        App_DrawText(gs->font_ibm, "SELECT LEVEL", 360 - (App_MeasureText(gs->font_ibm, "SELECT LEVEL", 30) / 2), 60,
+                     30, (Color) {250, 179, 135, 255});
+        App_DrawText(gs->font_ibm, "Choose a grid simulation node to solve",
+                     360 - (App_MeasureText(gs->font_ibm, "Choose a grid simulation node to solve", UI_FONT_BODY) / 2),
+                     105, UI_FONT_BODY, (Color) {166, 173, 200, 255});
 
         // Level Cards Grid for current page
         Vector2 mouse = GetMousePosition();
@@ -973,22 +1014,24 @@ static void App_Draw(void *state, f32 alpha) {
 
             char lvl_num_str[32];
             snprintf(lvl_num_str, sizeof(lvl_num_str), "LEVEL %d", i + 1);
-            DrawText(lvl_num_str, (i32) (x + 15), (i32) (y + 12), 14, (Color) {166, 173, 200, 255});
-            DrawText(LEVELS[i].name, (i32) (x + 15), (i32) (y + 32), 16, (Color) {205, 214, 244, 255});
+            App_DrawText(gs->font_ibm, lvl_num_str, (i32) (x + 15), (i32) (y + 10), UI_FONT_HELP,
+                         (Color) {166, 173, 200, 255});
+            App_DrawText(gs->font_ibm, LEVELS[i].name, (i32) (x + 15), (i32) (y + 34), UI_FONT_BODY,
+                         (Color) {205, 214, 244, 255});
 
             if (gs->level_completed[i]) {
                 DrawRectangle((i32) (x + CARD_W - 85), (i32) (y + 12), 70, 18, (Color) {166, 227, 161, 40});
                 DrawRectangleLines((i32) (x + CARD_W - 85), (i32) (y + 12), 70, 18, (Color) {166, 227, 161, 255});
-                i32 tw = MeasureText("SOLVED", 9);
-                DrawText("SOLVED", (i32) (x + CARD_W - 85.0f + 35.0f) - (tw / 2), (i32) (y + 16.0f), 9,
-                         (Color) {166, 227, 161, 255});
+                i32 tw = App_MeasureText(gs->font_ibm, "SOLVED", 10);
+                App_DrawText(gs->font_ibm, "SOLVED", (i32) (x + CARD_W - 85.0f + 35.0f) - (tw / 2), (i32) (y + 16.0f),
+                             10, (Color) {166, 227, 161, 255});
             }
         }
 
         // Back Button
         Rectangle btn_back = {50.0f, 650.0f, 120.0f, 40.0f};
         bool back_hovered = CheckCollisionPointRec(mouse, btn_back);
-        Render_DrawButton(btn_back, "BACK (Esc)", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255},
+        Render_DrawButton(gs->font_ibm, btn_back, "BACK (Esc)", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255},
                           back_hovered);
 
         // Pagination buttons and page indicator
@@ -999,25 +1042,29 @@ static void App_Draw(void *state, f32 alpha) {
         // Prev Button
         if (gs->level_select_page > 0) {
             bool prev_hovered = CheckCollisionPointRec(mouse, btn_prev);
-            Render_DrawButton(btn_prev, "<", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255}, prev_hovered);
+            Render_DrawButton(gs->font_ibm, btn_prev, "<", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255},
+                              prev_hovered);
         } else {
-            Render_DrawButton(btn_prev, "<", (Color) {30, 30, 46, 255}, (Color) {88, 91, 112, 255}, false);
+            Render_DrawButton(gs->font_ibm, btn_prev, "<", (Color) {30, 30, 46, 255}, (Color) {88, 91, 112, 255},
+                              false);
         }
 
         // Next Button
         if (gs->level_select_page + 1 < total_pages) {
             bool next_hovered = CheckCollisionPointRec(mouse, btn_next);
-            Render_DrawButton(btn_next, ">", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255}, next_hovered);
+            Render_DrawButton(gs->font_ibm, btn_next, ">", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255},
+                              next_hovered);
         } else {
-            Render_DrawButton(btn_next, ">", (Color) {30, 30, 46, 255}, (Color) {88, 91, 112, 255}, false);
+            Render_DrawButton(gs->font_ibm, btn_next, ">", (Color) {30, 30, 46, 255}, (Color) {88, 91, 112, 255},
+                              false);
         }
 
         // Page Indicator
         char page_str[32];
         snprintf(page_str, sizeof(page_str), "%d / %d", gs->level_select_page + 1, total_pages);
-        i32 page_tw = MeasureText(page_str, 16);
+        i32 page_tw = App_MeasureText(gs->font_ibm, page_str, UI_FONT_BODY);
         i32 page_x = 460 - (page_tw / 2);
-        DrawText(page_str, page_x, 662, 16, (Color) {205, 214, 244, 255});
+        App_DrawText(gs->font_ibm, page_str, page_x, 661, UI_FONT_BODY, (Color) {205, 214, 244, 255});
     } else if (gs->screen == SCREEN_LEVEL_EDITOR) {
         constexpr float SIZE = 40.0f;
         const Vector2 origin = {460.0f, 360.0f};
@@ -1040,9 +1087,9 @@ static void App_Draw(void *state, f32 alpha) {
                                       (Color) {243, 139, 168, 200});
 
             const char *esc_msg = "Press ESC again to exit level";
-            i32 tw = MeasureText(esc_msg, 13);
-            DrawText(esc_msg, (i32) (360.0f - ((float) tw / 2.0f)), (i32) (PILL_Y + 10.0f), 13,
-                     (Color) {243, 139, 168, 255});
+            i32 tw = App_MeasureText(gs->font_ibm, esc_msg, UI_FONT_SMALL);
+            App_DrawText(gs->font_ibm, esc_msg, (i32) (360.0f - ((float) tw / 2.0f)), (i32) (PILL_Y + 8.0f),
+                         UI_FONT_SMALL, (Color) {243, 139, 168, 255});
         }
 
         const LevelDesc *desc = &LEVELS[gs->current_level_idx];
@@ -1053,29 +1100,29 @@ static void App_Draw(void *state, f32 alpha) {
 
             constexpr i32 FONT_SZ_TITLE = 36;
             const char *win_title = "LEVEL CLEARED!";
-            const i32 tw1 = MeasureText(win_title, FONT_SZ_TITLE);
-            DrawText(win_title, 360 - (tw1 / 2), 280, FONT_SZ_TITLE, (Color) {166, 227, 161, 255});
+            const i32 tw1 = App_MeasureText(gs->font_ibm, win_title, FONT_SZ_TITLE);
+            App_DrawText(gs->font_ibm, win_title, 360 - (tw1 / 2), 280, FONT_SZ_TITLE, (Color) {166, 227, 161, 255});
 
             char msg_str[128];
             snprintf(msg_str, sizeof(msg_str), "Completed in %d moves!", gs->move_count);
-            const i32 tw2 = MeasureText(msg_str, 20);
-            DrawText(msg_str, 360 - (tw2 / 2), 340, 20, (Color) {205, 214, 244, 255});
+            const i32 tw2 = App_MeasureText(gs->font_ibm, msg_str, 22);
+            App_DrawText(gs->font_ibm, msg_str, 360 - (tw2 / 2), 340, 22, (Color) {205, 214, 244, 255});
 
             const char *next_msg = (gs->current_level_idx + 1 < LEVEL_COUNT) ? "Press SPACE or CLICK for next level"
                                                                              : "Press SPACE or CLICK to finish";
-            const i32 tw3 = MeasureText(next_msg, 18);
-            DrawText(next_msg, 360 - (tw3 / 2), 380, 18, (Color) {166, 173, 200, 255});
+            const i32 tw3 = App_MeasureText(gs->font_ibm, next_msg, 20);
+            App_DrawText(gs->font_ibm, next_msg, 360 - (tw3 / 2), 380, 20, (Color) {166, 173, 200, 255});
         } else if (gs->move_count >= desc->move_limit && !gs->win_animation_active) {
             DrawRectangle(0, 0, 720, 720, (Color) {17, 17, 27, 200});
 
             constexpr i32 FONT_SZ_TITLE = 36;
             const char *lose_title = "OUT OF MOVES!";
-            const i32 tw1 = MeasureText(lose_title, FONT_SZ_TITLE);
-            DrawText(lose_title, 360 - (tw1 / 2), 280, FONT_SZ_TITLE, (Color) {243, 139, 168, 255});
+            const i32 tw1 = App_MeasureText(gs->font_ibm, lose_title, FONT_SZ_TITLE);
+            App_DrawText(gs->font_ibm, lose_title, 360 - (tw1 / 2), 280, FONT_SZ_TITLE, (Color) {243, 139, 168, 255});
 
             const char *reset_msg = "Press R / click RESET to retry level";
-            const i32 tw2 = MeasureText(reset_msg, 20);
-            DrawText(reset_msg, 360 - (tw2 / 2), 340, 20, (Color) {205, 214, 244, 255});
+            const i32 tw2 = App_MeasureText(gs->font_ibm, reset_msg, 22);
+            App_DrawText(gs->font_ibm, reset_msg, 360 - (tw2 / 2), 340, 22, (Color) {205, 214, 244, 255});
         }
 
         if (gs->game_completed) {
@@ -1083,23 +1130,23 @@ static void App_Draw(void *state, f32 alpha) {
 
             constexpr i32 FONT_SZ_TITLE = 40;
             const char *comp_title = "CONGRATULATIONS!";
-            const i32 tw1 = MeasureText(comp_title, FONT_SZ_TITLE);
-            DrawText(comp_title, 360 - (tw1 / 2), 240, FONT_SZ_TITLE, (Color) {166, 227, 161, 255});
+            const i32 tw1 = App_MeasureText(gs->font_ibm, comp_title, FONT_SZ_TITLE);
+            App_DrawText(gs->font_ibm, comp_title, 360 - (tw1 / 2), 240, FONT_SZ_TITLE, (Color) {166, 227, 161, 255});
 
             const char *comp_desc = "You have completed all levels of HEXATAK!";
-            const i32 tw2 = MeasureText(comp_desc, 20);
-            DrawText(comp_desc, 360 - (tw2 / 2), 310, 20, (Color) {205, 214, 244, 255});
+            const i32 tw2 = App_MeasureText(gs->font_ibm, comp_desc, 22);
+            App_DrawText(gs->font_ibm, comp_desc, 360 - (tw2 / 2), 310, 22, (Color) {205, 214, 244, 255});
 
             const char *comp_instr = "Press R / ENTER to return to Level Menu";
-            const i32 tw3 = MeasureText(comp_instr, 18);
-            DrawText(comp_instr, 360 - (tw3 / 2), 370, 18, (Color) {166, 173, 200, 255});
+            const i32 tw3 = App_MeasureText(gs->font_ibm, comp_instr, 20);
+            App_DrawText(gs->font_ibm, comp_instr, 360 - (tw3 / 2), 370, 20, (Color) {166, 173, 200, 255});
         }
 
         if (gs->show_tip && desc->tip) {
             // Darken background
             DrawRectangle(0, 0, 720, 720, (Color) {17, 17, 27, 200});
 
-            i32 text_height = Utils_MeasureTextWrappedHeight(desc->tip, 440, 16, 6);
+            i32 text_height = Utils_MeasureTextWrappedHeight(gs->font_ibm, desc->tip, 440, UI_FONT_TIP, UI_LINE_TIP);
             i32 total_height = 30 + 24 + 20 + text_height + 30 + 40 + 30;
             float popup_x = 110.0f;
             float popup_y = 360.0f - ((float) total_height / 2.0f);
@@ -1112,12 +1159,13 @@ static void App_Draw(void *state, f32 alpha) {
 
             // Title
             const char *title = "INSTRUCTIONS";
-            i32 tw = MeasureText(title, 20);
-            DrawText(title, 360 - (tw / 2), (i32) (popup_y + 30.0f), 20, (Color) {250, 179, 135, 255});
+            i32 tw = App_MeasureText(gs->font_ibm, title, 20);
+            App_DrawText(gs->font_ibm, title, 360 - (tw / 2), (i32) (popup_y + 30.0f), 20,
+                         (Color) {250, 179, 135, 255});
 
             // Tip content
-            Utils_DrawTextWrappedCentered(desc->tip, 360, (i32) (popup_y + 30.0f + 20.0f + 20.0f), 440, 16, 6,
-                                          (Color) {205, 214, 244, 255});
+            Utils_DrawTextWrappedCentered(gs->font_ibm, desc->tip, 360, (i32) (popup_y + 30.0f + 20.0f + 20.0f), 440,
+                                          UI_FONT_TIP, UI_LINE_TIP, (Color) {205, 214, 244, 255});
 
             // OK Button
             Rectangle btn_ok = {300.0f, popup_y + (float) total_height - 70.0f, 120.0f, 40.0f};
@@ -1125,13 +1173,13 @@ static void App_Draw(void *state, f32 alpha) {
             bool ok_hovered = CheckCollisionPointRec(mouse, btn_ok);
             Color ok_bg = ok_hovered ? (Color) {166, 227, 161, 255} : (Color) {49, 50, 68, 255};
             Color ok_fg = ok_hovered ? (Color) {30, 30, 46, 255} : (Color) {205, 214, 244, 255};
-            Render_DrawButton(btn_ok, "OK", ok_bg, ok_fg, ok_hovered);
+            Render_DrawButton(gs->font_ibm, btn_ok, "OK", ok_bg, ok_fg, ok_hovered);
 
             // Small instruction helper text below button
             const char *space_msg = "or press SPACE to close";
-            i32 tw_space = MeasureText(space_msg, 12);
-            DrawText(space_msg, 360 - (tw_space / 2), (i32) (popup_y + (float) total_height - 24.0f), 12,
-                     (Color) {110, 115, 141, 255});
+            i32 tw_space = App_MeasureText(gs->font_ibm, space_msg, UI_FONT_BADGE);
+            App_DrawText(gs->font_ibm, space_msg, 360 - (tw_space / 2), (i32) (popup_y + (float) total_height - 25.0f),
+                         UI_FONT_BADGE, (Color) {110, 115, 141, 255});
         }
     }
 
@@ -1147,6 +1195,11 @@ static void App_Deinit(void *state) {
     UnloadSound(gs->snd_reset);
     UnloadSound(gs->snd_undo);
     CloseAudioDevice();
+
+    UnloadFont(gs->font_ibm);
+    UnloadFont(gs->font_roboto);
+    gs->font_ibm = (Font) {0};
+    gs->font_roboto = (Font) {0};
 
     free(gs->history.items);
     free(gs->redo.items);

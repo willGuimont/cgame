@@ -1,5 +1,5 @@
 # Level 1
-name: 1. The Split
+name: The Split
 desc: Spread the central tower to bridge both sides.
 tip: Click and drag from the center stack to spread the stones across the board. When you spread a stack, it places stones of matching heights in sequence. You want to connect the WEST (Left) side to the EAST (Right) side. Pay attention to the move limit!
 radius: 2
@@ -10,7 +10,7 @@ stack: -2,0:1:1
 stack: 0,0:4:1,1,2,4
 
 # Level 2
-name: 2. Bridge Building
+name: Bridge Building
 desc: Stack towers to gain height, then spread them.
 tip: Move the towers onto each other to stack them up before spreading. Taller towers can be spread over a longer distance, which helps bridge larger gaps.
 radius: 2
@@ -22,7 +22,7 @@ stack: -1,0:2:1,2
 stack: 2,0:1:1
 
 # Level 3
-name: 3. Power of Two
+name: Power of Two
 desc: Merge matching stones to activate the central bridge.
 tip: When you move a stone of value V onto another stone of value V, they merge to double their value (2V). The central bridge tile requires a stone of value 2. Move a 1 onto another 1 at the center to merge them into a 2!
 radius: 1
@@ -36,7 +36,7 @@ stack: 0,1:1:1
 required: 0,0:2
 
 # Level 4
-name: 4. Around the Block
+name: Around the Block
 desc: Navigate around the central blockage.
 radius: 2
 side_a: Q_NEG
@@ -49,7 +49,7 @@ stack: 2,0:1:1
 blocked: 0,0
 
 # Level 5
-name: 5. Confluence
+name: Confluence
 desc: Merge two towers into one to bridge a longer gap.
 radius: 2
 side_a: R_POS
@@ -61,7 +61,7 @@ stack: 0,-1:2:1,2
 stack: 0,-2:1:1
 
 # Level 6
-name: 6. The Long Run
+name: The Long Run
 desc: Spread a very tall tower across a radius 3 board.
 radius: 3
 side_a: Q_NEG
@@ -72,7 +72,7 @@ stack: -2,0:5:1,2,4,8,16
 stack: 3,0:1:1
 
 # Level 7
-name: 7. The Great Barrier
+name: The Great Barrier
 desc: Combine towers and navigate the outer rings.
 radius: 3
 side_a: Q_NEG
@@ -86,7 +86,7 @@ stack: 3,0:1:1
 blocked: 0,0
 
 # Level 8
-name: 8. Toll Bridge
+name: Toll Bridge
 desc: The central bridge tile requires a specific value to activate.
 tip: Look at the required value on the bridge. Only a stone of that exact value on top of the stack will act as a bridge. Move the stacks towards the center to merge their matching top stones and create the required 4!
 radius: 2
