@@ -543,11 +543,11 @@ void Render_DrawEditorUI(const GameState *gs) {
         CGame_DrawButton(gs->font_ibm, rect_clear, "CLR", inactive_bg, inactive_fg,
                          CheckCollisionPointRec(mouse, rect_clear), UI_FONT_BUTTON);
 
-        // "ADD" values (1, 2, 3, 4, 8, 16, 32, 64)
+        // "ADD" values (1, 2, 4, 8, 16, 32, 64)
         CGame_DrawTextScaled(gs->font_ibm, "ADD TO STACK", 20, 485, UI_FONT_SMALL, 160, (Color) {166, 173, 200, 255});
-        i32 values[] = {1, 2, 3, 4, 8, 16, 32, 64};
-        for (i32 v = 0; v < 8; v++) {
-            Rectangle val_rect = {20.0f + (float) v * 21.0f, 505.0f, 19.0f, 19.0f};
+        i32 values[] = {1, 2, 4, 8, 16, 32, 64};
+        for (i32 v = 0; v < 7; v++) {
+            Rectangle val_rect = {20.0f + (float) v * 23.0f, 505.0f, 21.0f, 19.0f};
             Color col = Utils_GetStoneColor(values[v]);
             DrawRectangleRec(val_rect, col);
             DrawRectangleLinesEx(val_rect, 1.0f, (Color) {17, 17, 27, 255});
@@ -563,15 +563,15 @@ void Render_DrawEditorUI(const GameState *gs) {
         CGame_DrawTextScaled(gs->font_ibm, "PRESETS", 20, 530, UI_FONT_SMALL, 160, (Color) {166, 173, 200, 255});
         Rectangle btn_preset_asc = {20.0f, 545.0f, 75.0f, 18.0f};
         Rectangle btn_preset_desc = {105.0f, 545.0f, 75.0f, 18.0f};
-        CGame_DrawButton(gs->font_ibm, btn_preset_asc, "1,2,3,4", inactive_bg, inactive_fg,
+        CGame_DrawButton(gs->font_ibm, btn_preset_asc, "1,2,4,8", inactive_bg, inactive_fg,
                          CheckCollisionPointRec(mouse, btn_preset_asc), UI_FONT_BUTTON);
-        CGame_DrawButton(gs->font_ibm, btn_preset_desc, "4,3,2,1", inactive_bg, inactive_fg,
+        CGame_DrawButton(gs->font_ibm, btn_preset_desc, "8,4,2,1", inactive_bg, inactive_fg,
                          CheckCollisionPointRec(mouse, btn_preset_desc), UI_FONT_BUTTON);
     } else if (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_VALUE) {
         CGame_DrawTextScaled(gs->font_ibm, "REQUIRED VALUE", 20, 440, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
-        i32 values[] = {2, 4, 8, 16, 32, 64};
-        for (i32 v = 0; v < 6; v++) {
-            Rectangle val_rect = {20.0f + (float) v * 27.0f, 465.0f, 25.0f, 25.0f};
+        i32 values[] = {1, 2, 4, 8, 16, 32, 64};
+        for (i32 v = 0; v < 7; v++) {
+            Rectangle val_rect = {20.0f + (float) v * 23.0f, 465.0f, 21.0f, 25.0f};
             Color col = Utils_GetStoneColor(values[v]);
             bool is_selected = (gs->editor_selected_required_value == values[v]);
             DrawRectangleRec(val_rect, col);
@@ -605,13 +605,16 @@ void Render_DrawEditorUI(const GameState *gs) {
 
     // Action buttons at the bottom
     const Rectangle btn_test = {20.0f, 575.0f, 160.0f, 35.0f};
-    const Rectangle btn_export = {20.0f, 620.0f, 160.0f, 35.0f};
+    const Rectangle btn_export = {20.0f, 620.0f, 75.0f, 35.0f};
+    const Rectangle btn_import = {105.0f, 620.0f, 75.0f, 35.0f};
     const Rectangle btn_menu = {20.0f, 665.0f, 160.0f, 35.0f};
 
     CGame_DrawButton(gs->font_ibm, btn_test, "TEST LEVEL", (Color) {166, 227, 161, 255}, (Color) {30, 30, 46, 255},
                      CheckCollisionPointRec(mouse, btn_test), UI_FONT_BUTTON);
     CGame_DrawButton(gs->font_ibm, btn_export, "EXPORT", (Color) {203, 166, 247, 255}, (Color) {30, 30, 46, 255},
                      CheckCollisionPointRec(mouse, btn_export), UI_FONT_BUTTON);
+    CGame_DrawButton(gs->font_ibm, btn_import, "IMPORT", (Color) {148, 226, 213, 255}, (Color) {30, 30, 46, 255},
+                     CheckCollisionPointRec(mouse, btn_import), UI_FONT_BUTTON);
     CGame_DrawButton(gs->font_ibm, btn_menu, "MAIN MENU", inactive_bg, inactive_fg,
                      CheckCollisionPointRec(mouse, btn_menu), UI_FONT_BUTTON);
 

@@ -2,6 +2,7 @@
 
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <raylib.h>
 #include <stdio.h>
@@ -18,7 +19,7 @@ static Sound App_LoadSound(const char *file_name) {
     Sound snd = LoadSound(path);
     if (!IsSoundValid(snd)) {
 #ifdef ROOT_DIR
-        snprintf(path, sizeof(path), ROOT_DIR "/assets/audio/%s", file_name);
+        snprintf(path, sizeof(path), ROOT_DIR "/assets/hexatak/audio/%s", file_name);
         snd = LoadSound(path);
 #endif
     }
@@ -38,7 +39,7 @@ static Font App_LoadFont(const char *file_name) {
     Font font = LoadFontEx(path, 64, codepoints, 96);
     if (font.texture.id == 0) {
 #ifdef ROOT_DIR
-        snprintf(path, sizeof(path), ROOT_DIR "/assets/font/%s", file_name);
+        snprintf(path, sizeof(path), ROOT_DIR "/assets/hexatak/font/%s", file_name);
         font = LoadFontEx(path, 64, codepoints, 96);
 #endif
     }
@@ -120,7 +121,7 @@ static bool App_Init(void *state) {
     gs->editor_move_limit = 0;
     gs->editor_active_tool = EDITOR_TOOL_STONES;
     gs->editor_selected_stone_value = 1;
-    gs->editor_selected_required_value = 2;
+    gs->editor_selected_required_value = 1;
     gs->editor_selected_required_height = 3;
     gs->testing_editor_level = false;
     gs->editor_placement_stack[0] = 1;
@@ -224,6 +225,142 @@ static void Editor_Export(const GameState *gs) {
     printf("======================\n\n");
 }
 
+static void Editor_FreeLevelDesc(LevelDesc *desc) {
+    if (!desc)
+        return;
+
+    free((void *) desc->name);
+    free((void *) desc->description);
+    free((void *) desc->tip);
+    memset(desc, 0, sizeof(*desc));
+}
+
+static void Editor_ApplyLevelDesc(GameState *gs, const LevelDesc *desc) {
+    if (!gs || !desc)
+        return;
+
+    Board_Init(&gs->editor_board, desc->radius);
+    gs->editor_side_a = desc->side_a;
+    gs->editor_side_b = desc->side_b;
+    gs->editor_move_limit = desc->move_limit;
+
+    for (i32 i = 0; i < desc->blocked_count; i++) {
+        const i32 idx = Board_FindCellIndex(&gs->editor_board, desc->blocked_hexes[i]);
+        if (idx >= 0) {
+            gs->editor_board.cells[idx].blocked = true;
+        }
+    }
+
+    for (i32 i = 0; i < desc->initial_stack_count; i++) {
+        const i32 idx = Board_FindCellIndex(&gs->editor_board, desc->initial_stacks[i].hex);
+        if (idx >= 0) {
+            Cell *cell = &gs->editor_board.cells[idx];
+            cell->count = desc->initial_stacks[i].count;
+            for (i32 s = 0; s < cell->count; s++) {
+                cell->stones[s].value = desc->initial_stacks[i].stone_values[s];
+            }
+        }
+    }
+
+    for (i32 i = 0; i < desc->required_count; i++) {
+        const i32 idx = Board_FindCellIndex(&gs->editor_board, desc->required_hexes[i].hex);
+        if (idx >= 0) {
+            gs->editor_board.cells[idx].required_value = desc->required_hexes[i].required_value;
+        }
+    }
+
+    for (i32 i = 0; i < desc->required_height_count; i++) {
+        const i32 idx = Board_FindCellIndex(&gs->editor_board, desc->required_height_hexes[i].hex);
+        if (idx >= 0) {
+            gs->editor_board.cells[idx].required_height = desc->required_height_hexes[i].required_height;
+        }
+    }
+
+    gs->editor_active_tool = EDITOR_TOOL_STONES;
+    gs->editor_placement_stack[0] = 1;
+    gs->editor_placement_stack_count = 1;
+}
+
+static bool Editor_IsImportEndLine(const char *line) {
+    if (!line)
+        return false;
+
+    while (*line == ' ' || *line == '\t') {
+        line++;
+    }
+    if (line[0] != 'E' || line[1] != 'N' || line[2] != 'D') {
+        return false;
+    }
+    line += 3;
+    while (*line == ' ' || *line == '\t' || *line == '\r' || *line == '\n') {
+        line++;
+    }
+    return *line == '\0';
+}
+
+static bool Editor_Import(GameState *gs) {
+#ifdef PLATFORM_WEB
+    (void) gs;
+    TraceLog(LOG_WARNING, "stdin import is not supported in the web build");
+    return false;
+#else
+    LevelDesc imported[1];
+    memset(imported, 0, sizeof(imported));
+
+    fprintf(stderr, "\n=== IMPORT LEVEL ===\n");
+    fprintf(stderr, "Paste the level text here, then enter a line containing only END.\n");
+    fprintf(stderr, "The format is the same as EXPORT.\n\n");
+    fflush(stderr);
+
+    FILE *input = fopen("/dev/tty", "r");
+    if (!input) {
+        input = stdin;
+    }
+
+    FILE *level_text = tmpfile();
+    if (!level_text) {
+        TraceLog(LOG_ERROR, "Failed to create temporary import stream");
+        if (input != stdin) {
+            fclose(input);
+        }
+        return false;
+    }
+
+    char line[512];
+    bool has_content = false;
+    while (fgets(line, sizeof(line), input)) {
+        if (Editor_IsImportEndLine(line)) {
+            break;
+        }
+        fputs(line, level_text);
+        has_content = true;
+    }
+
+    if (input != stdin) {
+        fclose(input);
+    }
+
+    if (!has_content) {
+        fclose(level_text);
+        TraceLog(LOG_WARNING, "No level text was imported");
+        return false;
+    }
+
+    rewind(level_text);
+    if (!Levels_LoadFromStream(level_text, imported, 1)) {
+        fclose(level_text);
+        TraceLog(LOG_ERROR, "Failed to import level from stdin");
+        Editor_FreeLevelDesc(&imported[0]);
+        return false;
+    }
+    fclose(level_text);
+
+    Editor_ApplyLevelDesc(gs, &imported[0]);
+    Editor_FreeLevelDesc(&imported[0]);
+    return true;
+#endif
+}
+
 static void App_Update(void *state, f32 dt) {
     auto const gs = (GameState *) state;
     gs->anim_time += dt;
@@ -307,45 +444,45 @@ static void App_Update(void *state, f32 dt) {
                     gs->editor_placement_stack_count = 0;
                 }
 
-                // ADD value buttons (1, 2, 3, 4, 8, 16, 32, 64)
-                for (i32 v = 0; v < 8; v++) {
-                    Rectangle val_rect = {20.0f + (float) v * 21.0f, 505.0f, 19.0f, 19.0f};
+                // ADD value buttons (1, 2, 4, 8, 16, 32, 64)
+                i32 values_add[] = {1, 2, 4, 8, 16, 32, 64};
+                for (i32 v = 0; v < 7; v++) {
+                    Rectangle val_rect = {20.0f + (float) v * 23.0f, 505.0f, 21.0f, 19.0f};
                     if (CheckCollisionPointRec(mouse, val_rect)) {
                         PlaySound(gs->snd_click);
                         if (gs->editor_placement_stack_count < 16) {
-                            i32 values_add[] = {1, 2, 3, 4, 8, 16, 32, 64};
                             gs->editor_placement_stack[gs->editor_placement_stack_count++] = values_add[v];
                         }
                     }
                 }
 
-                // Preset 1: 1, 2, 3, 4
+                // Preset 1: 1, 2, 4, 8
                 Rectangle btn_preset_asc = {20.0f, 545.0f, 75.0f, 18.0f};
                 if (CheckCollisionPointRec(mouse, btn_preset_asc)) {
                     PlaySound(gs->snd_click);
                     gs->editor_placement_stack[0] = 1;
                     gs->editor_placement_stack[1] = 2;
-                    gs->editor_placement_stack[2] = 3;
-                    gs->editor_placement_stack[3] = 4;
+                    gs->editor_placement_stack[2] = 4;
+                    gs->editor_placement_stack[3] = 8;
                     gs->editor_placement_stack_count = 4;
                 }
 
-                // Preset 2: 4, 3, 2, 1
+                // Preset 2: 8, 4, 2, 1
                 Rectangle btn_preset_desc = {105.0f, 545.0f, 75.0f, 18.0f};
                 if (CheckCollisionPointRec(mouse, btn_preset_desc)) {
                     PlaySound(gs->snd_click);
-                    gs->editor_placement_stack[0] = 4;
-                    gs->editor_placement_stack[1] = 3;
+                    gs->editor_placement_stack[0] = 8;
+                    gs->editor_placement_stack[1] = 4;
                     gs->editor_placement_stack[2] = 2;
                     gs->editor_placement_stack[3] = 1;
                     gs->editor_placement_stack_count = 4;
                 }
             } else if (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_VALUE) {
-                for (i32 v = 1; v < 7; v++) {
-                    Rectangle val_rect = {20.0f + (float) (v - 1) * 27.0f, 465.0f, 25.0f, 25.0f};
+                i32 values[] = {1, 2, 4, 8, 16, 32, 64};
+                for (i32 v = 0; v < 7; v++) {
+                    Rectangle val_rect = {20.0f + (float) v * 23.0f, 465.0f, 21.0f, 25.0f};
                     if (CheckCollisionPointRec(mouse, val_rect)) {
                         PlaySound(gs->snd_click);
-                        i32 values[] = {1, 2, 4, 8, 16, 32, 64};
                         gs->editor_selected_required_value = values[v];
                     }
                 }
@@ -360,7 +497,8 @@ static void App_Update(void *state, f32 dt) {
             }
 
             const Rectangle btn_test = {20.0f, 565.0f, 160.0f, 35.0f};
-            const Rectangle btn_export = {20.0f, 610.0f, 160.0f, 35.0f};
+            const Rectangle btn_export = {20.0f, 610.0f, 75.0f, 35.0f};
+            const Rectangle btn_import = {105.0f, 610.0f, 75.0f, 35.0f};
             const Rectangle btn_menu = {20.0f, 655.0f, 160.0f, 35.0f};
 
             if (CheckCollisionPointRec(mouse, btn_test)) {
@@ -376,18 +514,24 @@ static void App_Update(void *state, f32 dt) {
                 gs->win_path_len = 0;
                 gs->has_preview = false;
 
+                free((void *) LEVELS[0].name);
+                free((void *) LEVELS[0].description);
+                free((void *) LEVELS[0].tip);
                 LEVELS[0].radius = gs->editor_board.radius;
                 LEVELS[0].side_a = gs->editor_side_a;
                 LEVELS[0].side_b = gs->editor_side_b;
                 LEVELS[0].move_limit = gs->editor_move_limit;
-                LEVELS[0].name = "Test Level";
-                LEVELS[0].description = "Testing custom editor level.";
-                LEVELS[0].tip = "Press Esc or click EDITOR to return to the editor.";
+                LEVELS[0].name = strdup("Test Level");
+                LEVELS[0].description = strdup("Testing custom editor level.");
+                LEVELS[0].tip = strdup("");
 
                 gs->current_level_idx = 0;
             } else if (CheckCollisionPointRec(mouse, btn_export)) {
                 PlaySound(gs->snd_click);
                 Editor_Export(gs);
+            } else if (CheckCollisionPointRec(mouse, btn_import)) {
+                PlaySound(gs->snd_click);
+                Editor_Import(gs);
             } else if (CheckCollisionPointRec(mouse, btn_menu)) {
                 PlaySound(gs->snd_click);
                 Levels_LoadAll();
@@ -455,6 +599,17 @@ static void App_Update(void *state, f32 dt) {
             gs->screen = SCREEN_TITLE;
             return;
         }
+
+#ifndef NDEBUG
+        const Rectangle btn_reload = {190.0f, 650.0f, 120.0f, 40.0f};
+        if (CheckCollisionPointRec(mouse, btn_reload) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            PlaySound(gs->snd_click);
+            if (!Levels_LoadAll()) {
+                TraceLog(LOG_ERROR, "Failed to reload levels.txt");
+            }
+            return;
+        }
+#endif
 
         // Pagination buttons
         constexpr i32 TOTAL_PAGES = (LEVEL_COUNT + 5) / 6;
@@ -1008,6 +1163,13 @@ static void App_Draw(void *state, f32 alpha) {
         bool back_hovered = CheckCollisionPointRec(mouse, btn_back);
         CGame_DrawButton(gs->font_ibm, btn_back, "BACK (Esc)", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255},
                          back_hovered, UI_FONT_BUTTON);
+
+#ifndef NDEBUG
+        Rectangle btn_reload = {190.0f, 650.0f, 120.0f, 40.0f};
+        bool reload_hovered = CheckCollisionPointRec(mouse, btn_reload);
+        CGame_DrawButton(gs->font_ibm, btn_reload, "RELOAD", (Color) {148, 226, 213, 255},
+                         (Color) {30, 30, 46, 255}, reload_hovered, UI_FONT_BUTTON);
+#endif
 
         // Pagination buttons and page indicator
         i32 total_pages = (LEVEL_COUNT + 5) / 6;

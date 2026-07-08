@@ -100,7 +100,7 @@ set(CGAME_APP_TARGETS)
 
 function(add_cgame_app target_name app_dir)
     set(options)
-    set(one_value_args TITLE DESCRIPTION WEB_DIR)
+    set(one_value_args TITLE DESCRIPTION WEB_DIR ASSET_DIR)
     set(multi_value_args)
     cmake_parse_arguments(APP "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
@@ -116,6 +116,12 @@ function(add_cgame_app target_name app_dir)
         set(APP_WEB_DIR "${CMAKE_SOURCE_DIR}/web/${target_name}")
     elseif (NOT IS_ABSOLUTE "${APP_WEB_DIR}")
         set(APP_WEB_DIR "${CMAKE_SOURCE_DIR}/${APP_WEB_DIR}")
+    endif ()
+
+    if (NOT APP_ASSET_DIR)
+        set(APP_ASSET_DIR "${CMAKE_SOURCE_DIR}/assets/${target_name}")
+    elseif (NOT IS_ABSOLUTE "${APP_ASSET_DIR}")
+        set(APP_ASSET_DIR "${CMAKE_SOURCE_DIR}/${APP_ASSET_DIR}")
     endif ()
 
     set_property(GLOBAL APPEND PROPERTY CGAME_APP_TARGETS "${target_name}")
@@ -188,16 +194,16 @@ function(add_cgame_app target_name app_dir)
                 PATTERN "index.html.in" EXCLUDE
         )
 
-        file(GLOB_RECURSE CGAME_ASSET_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/assets/*")
+        file(GLOB_RECURSE CGAME_ASSET_FILES CONFIGURE_DEPENDS "${APP_ASSET_DIR}/*")
         if (CGAME_ASSET_FILES)
             target_link_options(${target_name} PRIVATE
-                    "--preload-file" "${CMAKE_SOURCE_DIR}/assets@resources"
+                    "--preload-file" "${APP_ASSET_DIR}@resources"
             )
         endif ()
     else ()
         add_custom_target(copy_assets_${target_name} ALL
                 COMMAND ${CMAKE_COMMAND} -E copy_directory
-                ${CMAKE_SOURCE_DIR}/assets
+                ${APP_ASSET_DIR}
                 $<TARGET_FILE_DIR:${target_name}>/resources
         )
         add_dependencies(${target_name} copy_assets_${target_name})

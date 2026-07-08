@@ -1,0 +1,69 @@
+name: The Gap
+tip: Click a stone to select it, then click the target tile to move it. A continuous chain of occupied tiles from WEST to EAST completes the level.
+radius: 1
+side_a: Q_NEG
+side_b: Q_POS
+move_limit: 1
+stack: -1,0:1:1
+stack: 1,-1:1:1
+stack: 1,0:1:1
+
+name: Winding Road
+tip: Connect the west and east sides with a continuous path. The road does not need to be straight.
+radius: 2
+side_a: Q_NEG
+side_b: Q_POS
+move_limit: 2
+stack: -2,0:1:1
+stack: 0,-2:1:1
+stack: 0,-1:1:1
+stack: 0,0:1:1
+stack: 0,1:1:1
+stack: 0,2:1:1
+stack: 2,0:1:1
+
+name: A First Gate
+desc: Merge stones to activate the gate.
+tip: A value gate is active only when the top stone on that cell matches the required value exactly. To create higher values, move stones with the same value onto each other to merge them.
+radius: 1
+side_a: Q_NEG
+side_b: Q_POS
+move_limit: 2
+required: 0,0:2
+stack: -1,0:1:1
+stack: 0,-1:1:1
+stack: 1,-1:1:1
+stack: 1,0:1:1
+
+name: Spanning the Gap
+tip: Click the tall stack, then drag toward the gap. Spreading drops one stone on each tile along the chosen direction, letting one tower fill several missing spaces at once.
+radius: 2
+side_a: Q_NEG
+side_b: Q_POS
+move_limit: 1
+stack: -2,0:1:1
+stack: -1,0:1:1
+stack: 0,-2:4:1,2,4,8
+stack: 1,0:1:1
+stack: 2,0:1:1
+
+name: Taking a Step Back
+radius: 2
+side_a: Q_NEG
+side_b: Q_POS
+move_limit: 2
+stack: -2,0:1:1
+stack: -1,0:1:1
+stack: 1,-2:4:1,2,4,8
+stack: 1,0:1:1
+stack: 2,0:1:1
+
+name: Bridge Building
+tip: Move the towers onto each other to stack them up before spreading.
+radius: 2
+side_a: Q_NEG
+side_b: Q_POS
+move_limit: 2
+stack: -2,0:2:4,8
+stack: -1,0:2:1,2
+stack: 2,0:1:1

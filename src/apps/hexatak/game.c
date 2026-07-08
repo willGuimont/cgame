@@ -378,6 +378,7 @@ i32 Board_FindConnectionPath(const Board *board, const BoardSide a, const BoardS
 
 // Levels
 LevelDesc LEVELS[LEVEL_COUNT];
+constexpr i32 LEVEL_ENTRY_LIMIT = 16;
 
 static void Parsing_TrimString(char *str) {
     size_t l = strlen(str);
@@ -391,6 +392,72 @@ static void Parsing_TrimString(char *str) {
     if (start > 0) {
         memmove(str, str + start, strlen(str + start) + 1);
     }
+}
+
+static void Levels_FreeAll(LevelDesc *levels, const i32 max_levels) {
+    if (!levels || max_levels <= 0) {
+        return;
+    }
+
+    for (i32 i = 0; i < max_levels; i++) {
+        free((void *) levels[i].name);
+        free((void *) levels[i].description);
+        free((void *) levels[i].tip);
+        levels[i].name = nullptr;
+        levels[i].description = nullptr;
+        levels[i].tip = nullptr;
+    }
+}
+
+static bool Levels_Fail(LevelDesc *levels, const i32 max_levels) {
+    Levels_FreeAll(levels, max_levels);
+    return false;
+}
+
+static bool Levels_IsValidDesc(const LevelDesc *desc) {
+    if (!desc || !desc->name) {
+        return false;
+    }
+    if (desc->radius < 0 || Hex_SpiralCount(desc->radius) > MAX_CELLS) {
+        return false;
+    }
+    if (desc->blocked_count < 0 || desc->blocked_count > LEVEL_ENTRY_LIMIT ||
+        desc->required_count < 0 || desc->required_count > LEVEL_ENTRY_LIMIT ||
+        desc->required_height_count < 0 || desc->required_height_count > LEVEL_ENTRY_LIMIT ||
+        desc->initial_stack_count < 0 || desc->initial_stack_count > LEVEL_ENTRY_LIMIT) {
+        return false;
+    }
+
+    for (i32 i = 0; i < desc->blocked_count; i++) {
+        if (!Hex_IsInBound(desc->blocked_hexes[i], desc->radius)) {
+            return false;
+        }
+    }
+    for (i32 i = 0; i < desc->required_count; i++) {
+        if (!Hex_IsInBound(desc->required_hexes[i].hex, desc->radius) || desc->required_hexes[i].required_value <= 0) {
+            return false;
+        }
+    }
+    for (i32 i = 0; i < desc->required_height_count; i++) {
+        if (!Hex_IsInBound(desc->required_height_hexes[i].hex, desc->radius) ||
+            desc->required_height_hexes[i].required_height <= 0 ||
+            desc->required_height_hexes[i].required_height > MAX_STACK) {
+            return false;
+        }
+    }
+    for (i32 i = 0; i < desc->initial_stack_count; i++) {
+        if (!Hex_IsInBound(desc->initial_stacks[i].hex, desc->radius) || desc->initial_stacks[i].count <= 0 ||
+            desc->initial_stacks[i].count > MAX_STACK) {
+            return false;
+        }
+        for (i32 s = 0; s < desc->initial_stacks[i].count; s++) {
+            if (desc->initial_stacks[i].stone_values[s] <= 0) {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 static BoardSide Parsing_ParseSide(const char *str) {
@@ -427,23 +494,12 @@ const char *Utils_GetSideString(const BoardSide side) {
     return "Q_NEG";
 }
 
-bool Levels_LoadAll(void) {
-    memset(LEVELS, 0, sizeof(LEVELS));
-
-#ifdef PLATFORM_WEB
-    FILE *f = fopen("resources/levels.txt", "r");
-#else
-    FILE *f = fopen("resources/levels.txt", "r");
-    if (!f) {
-        // Fallback for local desktop debugging when running outside the output directory
-#ifdef ROOT_DIR
-        f = fopen(ROOT_DIR "/assets/levels.txt", "r");
-#endif
-    }
-#endif
-    if (!f) {
+bool Levels_LoadFromStream(FILE *f, LevelDesc *levels, i32 max_levels) {
+    if (!f || !levels || max_levels <= 0) {
         return false;
     }
+
+    memset(levels, 0, (size_t) max_levels * sizeof(LevelDesc));
 
     char line[512];
     i32 current_idx = -1;
@@ -466,78 +522,121 @@ bool Levels_LoadAll(void) {
 
         if (strcmp(key, "name") == 0) {
             current_idx++;
-            if (current_idx >= LEVEL_COUNT) {
-                return false;
+            if (current_idx >= max_levels) {
+                return Levels_Fail(levels, max_levels);
             }
-            LEVELS[current_idx].name = strdup(val);
-        } else if (current_idx >= 0 && current_idx < LEVEL_COUNT) {
+            levels[current_idx].name = strdup(val);
+        } else if (current_idx >= 0 && current_idx < max_levels) {
             if (strcmp(key, "desc") == 0) {
-                LEVELS[current_idx].description = strdup(val);
+                levels[current_idx].description = strdup(val);
             } else if (strcmp(key, "tip") == 0) {
-                LEVELS[current_idx].tip = strdup(val);
+                levels[current_idx].tip = strdup(val);
             } else if (strcmp(key, "radius") == 0) {
-                LEVELS[current_idx].radius = atoi(val);
+                levels[current_idx].radius = atoi(val);
             } else if (strcmp(key, "side_a") == 0) {
-                LEVELS[current_idx].side_a = Parsing_ParseSide(val);
+                levels[current_idx].side_a = Parsing_ParseSide(val);
             } else if (strcmp(key, "side_b") == 0) {
-                LEVELS[current_idx].side_b = Parsing_ParseSide(val);
+                levels[current_idx].side_b = Parsing_ParseSide(val);
             } else if (strcmp(key, "move_limit") == 0) {
-                LEVELS[current_idx].move_limit = atoi(val);
+                levels[current_idx].move_limit = atoi(val);
             } else if (strcmp(key, "blocked") == 0) {
                 i32 q = 0;
                 i32 r = 0;
                 if (sscanf(val, "%d,%d", &q, &r) == 2) {
-                    i32 b_idx = LEVELS[current_idx].blocked_count++;
-                    if (b_idx < 16) {
-                        LEVELS[current_idx].blocked_hexes[b_idx] = (Hex) {q, r};
+                    if (levels[current_idx].blocked_count >= LEVEL_ENTRY_LIMIT) {
+                        return Levels_Fail(levels, max_levels);
                     }
+                    const i32 b_idx = levels[current_idx].blocked_count++;
+                    levels[current_idx].blocked_hexes[b_idx] = (Hex) {q, r};
                 }
             } else if (strcmp(key, "required") == 0) {
                 i32 q = 0, r = 0, req_val = 0;
                 if (sscanf(val, "%d,%d:%d", &q, &r, &req_val) == 3) {
-                    i32 r_idx = LEVELS[current_idx].required_count++;
-                    if (r_idx < 16) {
-                        LEVELS[current_idx].required_hexes[r_idx].hex = (Hex) {q, r};
-                        LEVELS[current_idx].required_hexes[r_idx].required_value = req_val;
+                    if (levels[current_idx].required_count >= LEVEL_ENTRY_LIMIT) {
+                        return Levels_Fail(levels, max_levels);
                     }
+                    const i32 r_idx = levels[current_idx].required_count++;
+                    levels[current_idx].required_hexes[r_idx].hex = (Hex) {q, r};
+                    levels[current_idx].required_hexes[r_idx].required_value = req_val;
                 }
             } else if (strcmp(key, "required_height") == 0) {
                 i32 q = 0, r = 0, req_height = 0;
                 if (sscanf(val, "%d,%d:%d", &q, &r, &req_height) == 3) {
-                    const i32 r_idx = LEVELS[current_idx].required_height_count++;
-                    if (r_idx < 16) {
-                        LEVELS[current_idx].required_height_hexes[r_idx].hex = (Hex) {q, r};
-                        LEVELS[current_idx].required_height_hexes[r_idx].required_height = req_height;
+                    if (levels[current_idx].required_height_count >= LEVEL_ENTRY_LIMIT) {
+                        return Levels_Fail(levels, max_levels);
                     }
+                    const i32 r_idx = levels[current_idx].required_height_count++;
+                    levels[current_idx].required_height_hexes[r_idx].hex = (Hex) {q, r};
+                    levels[current_idx].required_height_hexes[r_idx].required_height = req_height;
                 }
             } else if (strcmp(key, "stack") == 0) {
                 i32 q = 0, r = 0, count = 0;
-                char vals_str[256];
-                if (sscanf(val, "%d,%d:%d:%255s", &q, &r, &count, vals_str) >= 3) {
-                    i32 s_idx = LEVELS[current_idx].initial_stack_count++;
-                    if (s_idx < 16) {
-                        LEVELS[current_idx].initial_stacks[s_idx].hex = (Hex) {q, r};
-                        LEVELS[current_idx].initial_stacks[s_idx].count = count;
+                char vals_str[256] = {0};
+                if (sscanf(val, "%d,%d:%d:%255s", &q, &r, &count, vals_str) == 4) {
+                    if (count <= 0 || count > MAX_STACK ||
+                        levels[current_idx].initial_stack_count >= LEVEL_ENTRY_LIMIT) {
+                        return Levels_Fail(levels, max_levels);
+                    }
 
-                        char *token = vals_str;
-                        for (i32 s = 0; s < count; s++) {
-                            char *next_comma = strchr(token, ',');
-                            if (next_comma) {
-                                *next_comma = '\0';
-                            }
-                            LEVELS[current_idx].initial_stacks[s_idx].stone_values[s] = atoi(token);
-                            if (next_comma) {
-                                token = next_comma + 1;
-                            } else {
-                                break;
-                            }
+                    const i32 s_idx = levels[current_idx].initial_stack_count++;
+                    levels[current_idx].initial_stacks[s_idx].hex = (Hex) {q, r};
+                    levels[current_idx].initial_stacks[s_idx].count = count;
+
+                    char *token = strtok(vals_str, ",");
+                    for (i32 s = 0; s < count; s++) {
+                        if (!token) {
+                            return Levels_Fail(levels, max_levels);
                         }
+                        levels[current_idx].initial_stacks[s_idx].stone_values[s] = atoi(token);
+                        token = strtok(nullptr, ",");
+                    }
+                    if (token) {
+                        return Levels_Fail(levels, max_levels);
                     }
                 }
             }
         }
     }
 
-    fclose(f);
+    if (current_idx < 0) {
+        return Levels_Fail(levels, max_levels);
+    }
+    for (i32 i = 0; i <= current_idx; i++) {
+        if (!Levels_IsValidDesc(&levels[i])) {
+            return Levels_Fail(levels, max_levels);
+        }
+    }
+
     return true;
+}
+
+bool Levels_LoadAll(void) {
+#ifdef PLATFORM_WEB
+    FILE *f = fopen("resources/levels.txt", "r");
+#else
+    FILE *f = fopen("resources/levels.txt", "r");
+    if (!f) {
+        // Fallback for local desktop debugging when running outside the output directory
+#ifdef ROOT_DIR
+        f = fopen(ROOT_DIR "/assets/hexatak/levels.txt", "r");
+#endif
+    }
+#endif
+    if (!f) {
+        return false;
+    }
+
+    LevelDesc loaded[LEVEL_COUNT];
+    memset(loaded, 0, sizeof(loaded));
+
+    const bool ok = Levels_LoadFromStream(f, loaded, LEVEL_COUNT);
+    fclose(f);
+    if (!ok) {
+        Levels_FreeAll(loaded, LEVEL_COUNT);
+        return false;
+    }
+
+    Levels_FreeAll(LEVELS, LEVEL_COUNT);
+    memcpy(LEVELS, loaded, sizeof(loaded));
+    return ok;
 }

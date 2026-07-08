@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stdio.h>
+
 #include "hex.h"
 
 constexpr i32 MAX_CELLS = 64;
@@ -73,9 +75,10 @@ typedef struct {
     i32 required_height_count;
 } LevelDesc;
 
-constexpr i32 LEVEL_COUNT = 9;
+constexpr i32 LEVEL_COUNT = 19;
 extern LevelDesc LEVELS[LEVEL_COUNT];
 bool Levels_LoadAll(void);
+bool Levels_LoadFromStream(FILE *f, LevelDesc *levels, i32 max_levels);
 const char *Utils_GetSideString(BoardSide side);
 
 // Cell & Stack operations
