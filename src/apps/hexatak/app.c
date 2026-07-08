@@ -49,6 +49,34 @@ static i32 Board_CountStones(const Board *board) {
     return count;
 }
 
+static bool App_UndoMove(GameState *gs) {
+    if (gs->history.tail == gs->history.head)
+        return false;
+
+    PlaySound(gs->snd_undo);
+    History_Push(&gs->redo, &gs->board, gs->move_count);
+    History_Undo(&gs->history, &gs->board, &gs->move_count);
+    GameState_CheckWinCondition(gs);
+    gs->has_preview = false;
+    gs->input.mode = INPUT_IDLE;
+    gs->input.selected_index = -1;
+    return true;
+}
+
+static bool App_RedoMove(GameState *gs) {
+    if (gs->redo.tail == gs->redo.head)
+        return false;
+
+    PlaySound(gs->snd_undo);
+    History_Push(&gs->history, &gs->board, gs->move_count);
+    History_Undo(&gs->redo, &gs->board, &gs->move_count);
+    GameState_CheckWinCondition(gs);
+    gs->has_preview = false;
+    gs->input.mode = INPUT_IDLE;
+    gs->input.selected_index = -1;
+    return true;
+}
+
 static bool App_Init(void *state) {
     SetExitKey(0);
     InitAudioDevice();
@@ -596,28 +624,12 @@ static void App_Update(void *state, f32 dt) {
         }
 
         if (IsKeyPressed(KEY_U)) {
-            if (gs->history.tail != gs->history.head) {
-                PlaySound(gs->snd_undo);
-                History_Push(&gs->redo, &gs->board, gs->move_count);
-                History_Undo(&gs->history, &gs->board, &gs->move_count);
-                GameState_CheckWinCondition(gs);
-                gs->has_preview = false;
-                gs->input.mode = INPUT_IDLE;
-                gs->input.selected_index = -1;
-            }
+            App_UndoMove(gs);
             return;
         }
 
         if (IsKeyPressed(KEY_Y)) {
-            if (gs->redo.tail != gs->redo.head) {
-                PlaySound(gs->snd_undo);
-                History_Push(&gs->history, &gs->board, gs->move_count);
-                History_Undo(&gs->redo, &gs->board, &gs->move_count);
-                GameState_CheckWinCondition(gs);
-                gs->has_preview = false;
-                gs->input.mode = INPUT_IDLE;
-                gs->input.selected_index = -1;
-            }
+            App_RedoMove(gs);
             return;
         }
 
@@ -656,6 +668,13 @@ static void App_Update(void *state, f32 dt) {
 
         const LevelDesc *desc = &LEVELS[gs->current_level_idx];
         if (gs->move_count >= desc->move_limit && !gs->win_animation_active) {
+            const Vector2 mouse = GetMousePosition();
+            const Rectangle btn_undo = {90.0f, 650.0f, 120.0f, 40.0f};
+            if (CheckCollisionPointRec(mouse, btn_undo) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                App_UndoMove(gs);
+                return;
+            }
+
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER)) {
                 PlaySound(gs->snd_reset);
                 Level_Reset(gs);
@@ -674,28 +693,12 @@ static void App_Update(void *state, f32 dt) {
         if (CheckCollisionPointRec(mouse, btn_undo)) {
             clicked_ui = true;
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                if (gs->history.tail != gs->history.head) {
-                    PlaySound(gs->snd_undo);
-                    History_Push(&gs->redo, &gs->board, gs->move_count);
-                    History_Undo(&gs->history, &gs->board, &gs->move_count);
-                    GameState_CheckWinCondition(gs);
-                    gs->has_preview = false;
-                    gs->input.mode = INPUT_IDLE;
-                    gs->input.selected_index = -1;
-                }
+                App_UndoMove(gs);
             }
         } else if (CheckCollisionPointRec(mouse, btn_redo)) {
             clicked_ui = true;
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                if (gs->redo.tail != gs->redo.head) {
-                    PlaySound(gs->snd_undo);
-                    History_Push(&gs->history, &gs->board, gs->move_count);
-                    History_Undo(&gs->redo, &gs->board, &gs->move_count);
-                    GameState_CheckWinCondition(gs);
-                    gs->has_preview = false;
-                    gs->input.mode = INPUT_IDLE;
-                    gs->input.selected_index = -1;
-                }
+                App_RedoMove(gs);
             }
         } else if (CheckCollisionPointRec(mouse, btn_reset)) {
             clicked_ui = true;
@@ -1061,18 +1064,21 @@ static void App_Draw(void *state, f32 alpha) {
         Render_DrawUI(gs);
 
         if (gs->esc_timer > 0.0f) {
-            constexpr float PILL_W = 280.0f;
-            constexpr float PILL_H = 32.0f;
-            constexpr float PILL_X = 360.0f - (PILL_W / 2.0f);
             constexpr float PILL_Y = 142.0f;
 
-            DrawRectangleRounded((Rectangle) {PILL_X, PILL_Y, PILL_W, PILL_H}, 0.5f, 4, (Color) {30, 30, 46, 230});
-            DrawRectangleRoundedLines((Rectangle) {PILL_X, PILL_Y, PILL_W, PILL_H}, 0.5f, 4,
+            const char *esc_msg = "Press ESC again to exit level";
+            const i32 tw = CGame_MeasureText(gs->font_ibm, esc_msg, UI_FONT_SMALL);
+            constexpr float PILL_PAD_X = 24.0f;
+            constexpr float PILL_PAD_Y = 10.0f;
+            const float pill_w = (float) tw + (PILL_PAD_X * 2.0f);
+            constexpr float PILL_H = (float) UI_FONT_SMALL + (PILL_PAD_Y * 2.0f);
+            const float pill_x = 360.0f - (pill_w / 2.0f);
+
+            DrawRectangleRounded((Rectangle) {pill_x, PILL_Y, pill_w, PILL_H}, 0.5f, 4, (Color) {30, 30, 46, 230});
+            DrawRectangleRoundedLines((Rectangle) {pill_x, PILL_Y, pill_w, PILL_H}, 0.5f, 4,
                                       (Color) {243, 139, 168, 200});
 
-            const char *esc_msg = "Press ESC again to exit level";
-            i32 tw = CGame_MeasureText(gs->font_ibm, esc_msg, UI_FONT_SMALL);
-            CGame_DrawText(gs->font_ibm, esc_msg, (i32) (360.0f - ((float) tw / 2.0f)), (i32) (PILL_Y + 8.0f),
+            CGame_DrawText(gs->font_ibm, esc_msg, (i32) (360.0f - ((float) tw / 2.0f)), (i32) (PILL_Y + PILL_PAD_Y),
                          UI_FONT_SMALL, (Color) {243, 139, 168, 255});
         }
 
@@ -1104,7 +1110,7 @@ static void App_Draw(void *state, f32 alpha) {
             const i32 tw1 = CGame_MeasureText(gs->font_ibm, lose_title, FONT_SZ_TITLE);
             CGame_DrawText(gs->font_ibm, lose_title, 360 - (tw1 / 2), 280, FONT_SZ_TITLE, (Color) {243, 139, 168, 255});
 
-            const char *reset_msg = "Press R / click RESET to retry level";
+            const char *reset_msg = "Press U / click UNDO, or R to retry";
             const i32 tw2 = CGame_MeasureText(gs->font_ibm, reset_msg, 22);
             CGame_DrawText(gs->font_ibm, reset_msg, 360 - (tw2 / 2), 340, 22, (Color) {205, 214, 244, 255});
         }

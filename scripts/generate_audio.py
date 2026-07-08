@@ -27,9 +27,11 @@ def click_gen(t, duration):
     return amplitude * math.sin(2 * math.pi * freq * t)
 
 def move_gen(t, duration):
-    freq = 350 - 150 * (t / duration)
-    amplitude = math.sin(math.pi * (t / duration)) * math.exp(-4 * t)
-    return amplitude * math.sin(2 * math.pi * freq * t)
+    # Claves: high pitch (~2200 Hz) with an inharmonic wood resonance overtone and steep decay
+    freq = 2200.0
+    val = math.sin(2 * math.pi * freq * t) + 0.3 * math.sin(2 * math.pi * freq * 2.72 * t)
+    amplitude = math.exp(-110.0 * t)
+    return amplitude * val
 
 def merge_gen(t, duration):
     freq1 = 400 + 100 * (t / duration)
