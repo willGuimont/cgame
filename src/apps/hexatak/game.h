@@ -78,6 +78,8 @@ Stone *Cell_Top(Cell *cell);
 bool Cell_Push(Cell *cell, Stone stone);
 bool Cell_Pop(Cell *cell, Stone *out);
 void Cell_ResolveMerge(Cell *cell);
+bool Cell_PushMerge(Cell *cell, Stone stone);
+bool Cell_AppendMerge(Cell *src, Cell *dst);
 
 // Board operations
 void Board_Init(Board *board, i32 radius);

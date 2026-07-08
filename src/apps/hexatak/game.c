@@ -32,19 +32,62 @@ bool Cell_Pop(Cell *cell, Stone *out) {
     return true;
 }
 
-void Cell_ResolveMerge(Cell *cell) {
-    // TODO check if required
-    while (cell->count >= 2) {
-        const Stone *a = &cell->stones[cell->count - 1];
-        Stone *b = &cell->stones[cell->count - 2];
+static bool Stone_CanMerge(const Stone *a, const Stone *b) { return a->value == b->value; }
 
-        if (a->value == b->value) {
-            b->value *= 2;
-            cell->count--;
+static void Cell_RemoveAt(Cell *cell, const i32 idx) {
+    for (i32 i = idx; i < cell->count - 1; ++i) {
+        cell->stones[i] = cell->stones[i + 1];
+    }
+    --cell->count;
+}
+
+static void Cell_MergePair(Cell *cell, const i32 lower_idx) {
+    cell->stones[lower_idx].value *= 2;
+    Cell_RemoveAt(cell, lower_idx + 1);
+}
+
+static void Cell_ResolveMergeFrom(Cell *cell, i32 lower_idx) {
+    while (lower_idx >= 0 && lower_idx + 1 < cell->count &&
+           Stone_CanMerge(&cell->stones[lower_idx], &cell->stones[lower_idx + 1])) {
+        Cell_MergePair(cell, lower_idx);
+        lower_idx--;
+    }
+}
+
+void Cell_ResolveMerge(Cell *cell) {
+    if (cell->count < 2)
+        return;
+
+    for (i32 i = 0; i + 1 < cell->count;) {
+        if (Stone_CanMerge(&cell->stones[i], &cell->stones[i + 1])) {
+            Cell_MergePair(cell, i);
+            if (i > 0)
+                i--;
         } else {
-            break;
+            i++;
         }
     }
+}
+
+bool Cell_PushMerge(Cell *cell, const Stone stone) {
+    if (!Cell_Push(cell, stone))
+        return false;
+
+    Cell_ResolveMergeFrom(cell, cell->count - 2);
+    return true;
+}
+
+bool Cell_AppendMerge(Cell *src, Cell *dst) {
+    Cell merged = *dst;
+    for (i32 i = 0; i < src->count; i++) {
+        if (!Cell_PushMerge(&merged, src->stones[i])) {
+            return false;
+        }
+    }
+
+    *dst = merged;
+    src->count = 0;
+    return true;
 }
 
 // Board initialization & lookup
@@ -84,7 +127,7 @@ bool Board_MoveStackOne(Board *board, const i32 from_index, const i32 dir) {
     if (dir < 0 || dir >= 6)
         return false;
 
-    Cell *from = &board->cells[from_index];
+    const Cell *from = &board->cells[from_index];
     if (from->count == 0)
         return false;
 
@@ -95,20 +138,15 @@ bool Board_MoveStackOne(Board *board, const i32 from_index, const i32 dir) {
     if (to_index < 0)
         return false;
 
-    Cell *to = &board->cells[to_index];
+    const Cell *to = &board->cells[to_index];
     if (to->blocked)
         return false;
 
-    if (to->count + from->count > MAX_STACK)
+    Board next = *board;
+    if (!Cell_AppendMerge(&next.cells[from_index], &next.cells[to_index]))
         return false;
 
-    for (i32 i = 0; i < from->count; i++) {
-        Cell_Push(to, from->stones[i]);
-    }
-
-    from->count = 0;
-    Cell_ResolveMerge(to);
-
+    *board = next;
     return true;
 }
 
@@ -141,12 +179,12 @@ bool Board_SpreadStack(Board *board, const i32 from_index, const i32 dir, const 
         const Cell *cell = &board->cells[idx];
         if (cell->blocked)
             return false;
-        if (cell->count >= MAX_STACK)
-            return false;
 
         path_indices[step] = idx;
     }
 
+    Board next = *board;
+    Cell *next_from = &next.cells[from_index];
     Stone carried[MAX_STACK];
     const i32 start = from->count - distance;
 
@@ -154,14 +192,15 @@ bool Board_SpreadStack(Board *board, const i32 from_index, const i32 dir, const 
         carried[i] = from->stones[start + i];
     }
 
-    from->count -= distance;
+    next_from->count -= distance;
 
     for (i32 i = 0; i < distance; i++) {
-        Cell *dst = &board->cells[path_indices[i]];
-        Cell_Push(dst, carried[i]);
-        Cell_ResolveMerge(dst);
+        Cell *dst = &next.cells[path_indices[i]];
+        if (!Cell_PushMerge(dst, carried[i]))
+            return false;
     }
 
+    *board = next;
     return true;
 }
 
