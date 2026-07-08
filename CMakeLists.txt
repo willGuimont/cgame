@@ -164,8 +164,13 @@ add_executable(hexatak
         src/apps/hexatak/main.c
         src/apps/hexatak/app.c
         src/apps/hexatak/app.h
-        src/apps/hexatak/logic.h
-        src/apps/hexatak/logic.c
+        src/apps/hexatak/app_types.h
+        src/apps/hexatak/app_state.h
+        src/apps/hexatak/app_state.c
+        src/apps/hexatak/app_render.h
+        src/apps/hexatak/app_render.c
+        src/apps/hexatak/game.h
+        src/apps/hexatak/game.c
         src/cgame/hex.h
         web/minshell.html
 )

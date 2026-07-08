@@ -1,0 +1,489 @@
+#include "game.h"
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "raylib.h"
+
+// Stack operations
+bool Cell_IsEmpty(const Cell *cell) { return cell->count == 0; }
+
+Stone *Cell_Top(Cell *cell) {
+    if (cell->count == 0)
+        return nullptr;
+    return &cell->stones[cell->count - 1];
+}
+
+bool Cell_Push(Cell *cell, const Stone stone) {
+    if (cell->count >= MAX_STACK)
+        return false;
+    cell->stones[cell->count++] = stone;
+    return true;
+}
+
+bool Cell_Pop(Cell *cell, Stone *out) {
+    if (cell->count <= 0)
+        return false;
+    if (out)
+        *out = cell->stones[--cell->count];
+    else
+        cell->count--;
+    return true;
+}
+
+void Cell_ResolveMerge(Cell *cell) {
+    // TODO check if required
+    while (cell->count >= 2) {
+        const Stone *a = &cell->stones[cell->count - 1];
+        Stone *b = &cell->stones[cell->count - 2];
+
+        if (a->value == b->value) {
+            b->value *= 2;
+            cell->count--;
+        } else {
+            break;
+        }
+    }
+}
+
+// Board initialization & lookup
+void Board_Init(Board *board, const i32 radius) {
+    board->count = 0;
+    board->radius = radius;
+
+    for (i32 q = -radius; q <= radius; q++) {
+        for (i32 r = -radius; r <= radius; r++) {
+            const Hex h = Hex_Create(q, r);
+
+            if (!Hex_IsInBound(h, radius))
+                continue;
+
+            Cell *cell = &board->cells[board->count++];
+            cell->hex = h;
+            cell->count = 0;
+            cell->blocked = false;
+            cell->required_value = 0;
+        }
+    }
+}
+
+i32 Board_FindCellIndex(const Board *board, const Hex h) {
+    for (i32 i = 0; i < board->count; i++) {
+        if (Hex_Equals(board->cells[i].hex, h)) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+// Movement algorithms
+bool Board_MoveStackOne(Board *board, const i32 from_index, const i32 dir) {
+    if (from_index < 0 || from_index >= board->count)
+        return false;
+    if (dir < 0 || dir >= 6)
+        return false;
+
+    Cell *from = &board->cells[from_index];
+    if (from->count == 0)
+        return false;
+
+    const Hex delta = Hex_Direction(dir);
+    const Hex to_hex = Hex_Add(from->hex, delta);
+
+    const i32 to_index = Board_FindCellIndex(board, to_hex);
+    if (to_index < 0)
+        return false;
+
+    Cell *to = &board->cells[to_index];
+    if (to->blocked)
+        return false;
+
+    if (to->count + from->count > MAX_STACK)
+        return false;
+
+    for (i32 i = 0; i < from->count; i++) {
+        Cell_Push(to, from->stones[i]);
+    }
+
+    from->count = 0;
+    Cell_ResolveMerge(to);
+
+    return true;
+}
+
+bool Board_SpreadStack(Board *board, const i32 from_index, const i32 dir, const i32 distance) {
+    if (from_index < 0 || from_index >= board->count)
+        return false;
+    if (dir < 0 || dir >= 6)
+        return false;
+
+    Cell *from = &board->cells[from_index];
+
+    if (from->count == 0)
+        return false;
+    if (distance <= 0)
+        return false;
+    if (distance > from->count)
+        return false;
+
+    const Hex delta = Hex_Direction(dir);
+    i32 path_indices[MAX_STACK];
+    Hex cursor = from->hex;
+
+    for (i32 step = 0; step < distance; step++) {
+        cursor = Hex_Add(cursor, delta);
+
+        const i32 idx = Board_FindCellIndex(board, cursor);
+        if (idx < 0)
+            return false;
+
+        const Cell *cell = &board->cells[idx];
+        if (cell->blocked)
+            return false;
+        if (cell->count >= MAX_STACK)
+            return false;
+
+        path_indices[step] = idx;
+    }
+
+    Stone carried[MAX_STACK];
+    const i32 start = from->count - distance;
+
+    for (i32 i = 0; i < distance; i++) {
+        carried[i] = from->stones[start + i];
+    }
+
+    from->count -= distance;
+
+    for (i32 i = 0; i < distance; i++) {
+        Cell *dst = &board->cells[path_indices[i]];
+        Cell_Push(dst, carried[i]);
+        Cell_ResolveMerge(dst);
+    }
+
+    return true;
+}
+
+bool Board_ApplyMove(Board *board, const Move move) {
+    switch (move.type) {
+        case MOVE_STEP:
+            return Board_MoveStackOne(board, move.from_index, move.dir);
+        case MOVE_SPREAD:
+            return Board_SpreadStack(board, move.from_index, move.dir, move.distance);
+        default:
+            return false;
+    }
+}
+
+// Win Condition Helpers
+bool Hex_OnSide(const Hex h, const i32 radius, const BoardSide side) {
+    const i32 s = -h.q - h.r;
+
+    switch (side) {
+        case SIDE_Q_NEG:
+            return h.q == -radius;
+        case SIDE_Q_POS:
+            return h.q == radius;
+        case SIDE_R_NEG:
+            return h.r == -radius;
+        case SIDE_R_POS:
+            return h.r == radius;
+        case SIDE_S_NEG:
+            return s == -radius;
+        case SIDE_S_POS:
+            return s == radius;
+    }
+
+    return false;
+}
+
+bool Cell_IsRoad(const Cell *cell) {
+    if (cell->blocked)
+        return false;
+    if (cell->count <= 0)
+        return false;
+    if (cell->required_value > 0) {
+        if (cell->stones[cell->count - 1].value != cell->required_value) {
+            return false;
+        }
+    }
+    return true;
+}
+
+bool Board_HasConnection(const Board *board, const BoardSide a, const BoardSide b) {
+    bool visited[MAX_CELLS] = {0};
+    i32 queue[MAX_CELLS];
+    i32 head = 0;
+    i32 tail = 0;
+
+    for (i32 i = 0; i < board->count; i++) {
+        const Cell *cell = &board->cells[i];
+
+        if (!Cell_IsRoad(cell))
+            continue;
+        if (!Hex_OnSide(cell->hex, board->radius, a))
+            continue;
+
+        visited[i] = true;
+        queue[tail++] = i;
+    }
+
+    while (head < tail) {
+        const i32 idx = queue[head++];
+        const Cell *cell = &board->cells[idx];
+
+        if (Hex_OnSide(cell->hex, board->radius, b)) {
+            return true;
+        }
+
+        for (i32 dir = 0; dir < 6; dir++) {
+            const Hex d = Hex_Direction(dir);
+            const Hex nh = Hex_Add(cell->hex, d);
+
+            const i32 ni = Board_FindCellIndex(board, nh);
+            if (ni < 0)
+                continue;
+            if (visited[ni])
+                continue;
+            if (!Cell_IsRoad(&board->cells[ni]))
+                continue;
+
+            visited[ni] = true;
+            queue[tail++] = ni;
+        }
+    }
+
+    return false;
+}
+
+i32 Board_FindConnectionPath(const Board *board, const BoardSide a, const BoardSide b, i32 *path_out,
+                             const i32 max_path_len) {
+    bool visited[MAX_CELLS] = {0};
+    i32 parent[MAX_CELLS];
+    for (i32 i = 0; i < MAX_CELLS; i++) {
+        parent[i] = -1;
+    }
+
+    i32 queue[MAX_CELLS];
+    i32 head = 0;
+    i32 tail = 0;
+
+    for (i32 i = 0; i < board->count; i++) {
+        const Cell *cell = &board->cells[i];
+
+        if (!Cell_IsRoad(cell))
+            continue;
+        if (!Hex_OnSide(cell->hex, board->radius, a))
+            continue;
+
+        visited[i] = true;
+        queue[tail++] = i;
+        parent[i] = -2;
+    }
+
+    i32 end_idx = -1;
+    while (head < tail) {
+        const i32 idx = queue[head++];
+        const Cell *cell = &board->cells[idx];
+
+        if (Hex_OnSide(cell->hex, board->radius, b)) {
+            end_idx = idx;
+            break;
+        }
+
+        for (i32 dir = 0; dir < 6; dir++) {
+            const Hex d = Hex_Direction(dir);
+            const Hex nh = Hex_Add(cell->hex, d);
+
+            const i32 ni = Board_FindCellIndex(board, nh);
+            if (ni < 0)
+                continue;
+            if (visited[ni])
+                continue;
+            if (!Cell_IsRoad(&board->cells[ni]))
+                continue;
+
+            visited[ni] = true;
+            parent[ni] = idx;
+            queue[tail++] = ni;
+        }
+    }
+
+    if (end_idx == -1)
+        return 0;
+
+    i32 temp_path[MAX_CELLS];
+    i32 count = 0;
+    i32 curr = end_idx;
+    while (curr != -2 && curr >= 0) {
+        temp_path[count++] = curr;
+        curr = parent[curr];
+    }
+
+    i32 len = 0;
+    for (i32 i = count - 1; i >= 0; i--) {
+        if (len < max_path_len) {
+            path_out[len++] = temp_path[i];
+        }
+    }
+
+    return len;
+}
+
+// Levels
+LevelDesc LEVELS[LEVEL_COUNT];
+
+static void Parsing_TrimString(char *str) {
+    size_t l = strlen(str);
+    while (l > 0 && (str[l - 1] == '\r' || str[l - 1] == '\n' || str[l - 1] == ' ' || str[l - 1] == '\t')) {
+        str[--l] = '\0';
+    }
+    size_t start = 0;
+    while (str[start] == ' ' || str[start] == '\t') {
+        start++;
+    }
+    if (start > 0) {
+        memmove(str, str + start, strlen(str + start) + 1);
+    }
+}
+
+static BoardSide Parsing_ParseSide(const char *str) {
+    if (strcmp(str, "Q_NEG") == 0)
+        return SIDE_Q_NEG;
+    if (strcmp(str, "Q_POS") == 0)
+        return SIDE_Q_POS;
+    if (strcmp(str, "R_NEG") == 0)
+        return SIDE_R_NEG;
+    if (strcmp(str, "R_POS") == 0)
+        return SIDE_R_POS;
+    if (strcmp(str, "S_NEG") == 0)
+        return SIDE_S_NEG;
+    if (strcmp(str, "S_POS") == 0)
+        return SIDE_S_POS;
+    return SIDE_Q_NEG;
+}
+
+const char *Utils_GetSideString(const BoardSide side) {
+    switch (side) {
+        case SIDE_Q_NEG:
+            return "Q_NEG";
+        case SIDE_Q_POS:
+            return "Q_POS";
+        case SIDE_R_NEG:
+            return "R_NEG";
+        case SIDE_R_POS:
+            return "R_POS";
+        case SIDE_S_NEG:
+            return "S_NEG";
+        case SIDE_S_POS:
+            return "S_POS";
+    }
+    return "Q_NEG";
+}
+
+bool Levels_LoadAll(void) {
+    memset(LEVELS, 0, sizeof(LEVELS));
+
+#ifdef PLATFORM_WEB
+    FILE *f = fopen("resources/levels.txt", "r");
+#else
+    FILE *f = fopen("resources/levels.txt", "r");
+    if (!f) {
+        // Fallback for local desktop debugging when running outside the output directory
+#ifdef ROOT_DIR
+        f = fopen(ROOT_DIR "/assets/levels.txt", "r");
+#endif
+    }
+#endif
+    if (!f) {
+        return false;
+    }
+
+    char line[512];
+    i32 current_idx = -1;
+
+    while (fgets(line, sizeof(line), f)) {
+        Parsing_TrimString(line);
+        if (line[0] == '\0' || line[0] == '#') {
+            continue;
+        }
+
+        char *colon = strchr(line, ':');
+        if (!colon)
+            continue;
+
+        *colon = '\0';
+        char *key = line;
+        char *val = colon + 1;
+        Parsing_TrimString(key);
+        Parsing_TrimString(val);
+
+        if (strcmp(key, "name") == 0) {
+            current_idx++;
+            if (current_idx >= LEVEL_COUNT) {
+                return false;
+            }
+            LEVELS[current_idx].name = strdup(val);
+        } else if (current_idx >= 0 && current_idx < LEVEL_COUNT) {
+            if (strcmp(key, "desc") == 0) {
+                LEVELS[current_idx].description = strdup(val);
+            } else if (strcmp(key, "tip") == 0) {
+                LEVELS[current_idx].tip = strdup(val);
+            } else if (strcmp(key, "radius") == 0) {
+                LEVELS[current_idx].radius = atoi(val);
+            } else if (strcmp(key, "side_a") == 0) {
+                LEVELS[current_idx].side_a = Parsing_ParseSide(val);
+            } else if (strcmp(key, "side_b") == 0) {
+                LEVELS[current_idx].side_b = Parsing_ParseSide(val);
+            } else if (strcmp(key, "move_limit") == 0) {
+                LEVELS[current_idx].move_limit = atoi(val);
+            } else if (strcmp(key, "blocked") == 0) {
+                i32 q = 0;
+                i32 r = 0;
+                if (sscanf(val, "%d,%d", &q, &r) == 2) {
+                    i32 b_idx = LEVELS[current_idx].blocked_count++;
+                    if (b_idx < 16) {
+                        LEVELS[current_idx].blocked_hexes[b_idx] = (Hex) {q, r};
+                    }
+                }
+            } else if (strcmp(key, "required") == 0) {
+                i32 q = 0, r = 0, req_val = 0;
+                if (sscanf(val, "%d,%d:%d", &q, &r, &req_val) == 3) {
+                    i32 r_idx = LEVELS[current_idx].required_count++;
+                    if (r_idx < 16) {
+                        LEVELS[current_idx].required_hexes[r_idx].hex = (Hex) {q, r};
+                        LEVELS[current_idx].required_hexes[r_idx].required_value = req_val;
+                    }
+                }
+            } else if (strcmp(key, "stack") == 0) {
+                i32 q = 0, r = 0, count = 0;
+                char vals_str[256];
+                if (sscanf(val, "%d,%d:%d:%255s", &q, &r, &count, vals_str) >= 3) {
+                    i32 s_idx = LEVELS[current_idx].initial_stack_count++;
+                    if (s_idx < 16) {
+                        LEVELS[current_idx].initial_stacks[s_idx].hex = (Hex) {q, r};
+                        LEVELS[current_idx].initial_stacks[s_idx].count = count;
+
+                        char *token = vals_str;
+                        for (i32 s = 0; s < count; s++) {
+                            char *next_comma = strchr(token, ',');
+                            if (next_comma) {
+                                *next_comma = '\0';
+                            }
+                            LEVELS[current_idx].initial_stacks[s_idx].stone_values[s] = atoi(token);
+                            if (next_comma) {
+                                token = next_comma + 1;
+                            } else {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fclose(f);
+    return true;
+}

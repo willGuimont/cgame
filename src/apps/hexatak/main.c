@@ -4,4 +4,4 @@
 const char *__lsan_default_options(void) { return "suppressions=" ROOT_DIR "/asan_suppressions.txt"; }
 #endif
 
-int main(void) { return App_Run(); }
+i32 main(void) { return App_Run(); }

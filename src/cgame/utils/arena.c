@@ -92,7 +92,7 @@ void *Arena_Push(Arena *arena, const u64 size, const b32 non_zero) {
     u8 *out = (u8 *) arena + pos_aligned;
 
     if (!non_zero) {
-        memset(out, 0, size);
+        memset(out, 0, (size_t) size);
     }
 
     return out;

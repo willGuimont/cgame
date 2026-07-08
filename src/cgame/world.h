@@ -43,7 +43,7 @@ void World_Delete(World *world);
 
 bool World_GridInBounds(const World *world, Vector3i pos);
 
-GridCell *World_GridCell(World *world, Vector3i pos);
+GridCell *World_GridCell(const World *world, Vector3i pos);
 
 const GridCell *World_GridCellConst(const World *world, Vector3i pos);
 

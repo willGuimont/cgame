@@ -66,7 +66,7 @@ static StringView StringView_ChopByDelim(StringView *sv, const char delim) {
     return result;
 }
 
-static int StringView_PrintLen(const StringView sv) { return sv.count > (size_t) INT_MAX ? INT_MAX : (int) sv.count; }
+static i32 StringView_PrintLen(const StringView sv) { return sv.count > (size_t) INT_MAX ? INT_MAX : (i32) sv.count; }
 
 #define STRING_VIEW_FMT "%.*s"
 #define STRING_VIEW_ARG(s) StringView_PrintLen(s), (s).data

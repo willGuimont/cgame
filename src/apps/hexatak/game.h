@@ -2,24 +2,25 @@
 
 #include "hex.h"
 
-constexpr int MAX_CELLS = 64;
-constexpr int MAX_STACK = 16;
+constexpr i32 MAX_CELLS = 64;
+constexpr i32 MAX_STACK = 16;
 
 typedef struct {
-    int value;
+    i32 value;
 } Stone;
 
 typedef struct {
     Hex hex;
     Stone stones[MAX_STACK];
-    int count;
+    i32 count;
     bool blocked;
+    i32 required_value;
 } Cell;
 
 typedef struct {
     Cell cells[MAX_CELLS];
-    int count;
-    int radius;
+    i32 count;
+    i32 radius;
 } Board;
 
 typedef enum {
@@ -29,9 +30,9 @@ typedef enum {
 
 typedef struct {
     MoveType type;
-    int from_index;
-    int dir;
-    int distance;
+    i32 from_index;
+    i32 dir;
+    i32 distance;
 } Move;
 
 typedef enum {
@@ -47,22 +48,29 @@ typedef struct {
     const char *name;
     const char *description;
     const char *tip;
-    int radius;
+    i32 radius;
     BoardSide side_a;
     BoardSide side_b;
-    int move_limit;
+    i32 move_limit;
     struct {
         Hex hex;
-        int count;
-        int stone_values[MAX_STACK];
+        i32 count;
+        i32 stone_values[MAX_STACK];
     } initial_stacks[16];
-    int initial_stack_count;
+    i32 initial_stack_count;
     Hex blocked_hexes[16];
-    int blocked_count;
+    i32 blocked_count;
+    struct {
+        Hex hex;
+        i32 required_value;
+    } required_hexes[16];
+    i32 required_count;
 } LevelDesc;
 
-constexpr i32 LEVEL_COUNT = 6;
-extern const LevelDesc LEVELS[LEVEL_COUNT];
+constexpr i32 LEVEL_COUNT = 8;
+extern LevelDesc LEVELS[LEVEL_COUNT];
+bool Levels_LoadAll(void);
+const char *Utils_GetSideString(BoardSide side);
 
 // Cell & Stack operations
 bool Cell_IsEmpty(const Cell *cell);
@@ -72,14 +80,14 @@ bool Cell_Pop(Cell *cell, Stone *out);
 void Cell_ResolveMerge(Cell *cell);
 
 // Board operations
-void Board_Init(Board *board, int radius);
-int Board_FindCellIndex(const Board *board, Hex h);
-bool Board_MoveStackOne(Board *board, int from_index, int dir);
-bool Board_SpreadStack(Board *board, int from_index, int dir, int distance);
+void Board_Init(Board *board, i32 radius);
+i32 Board_FindCellIndex(const Board *board, Hex h);
+bool Board_MoveStackOne(Board *board, i32 from_index, i32 dir);
+bool Board_SpreadStack(Board *board, i32 from_index, i32 dir, i32 distance);
 bool Board_ApplyMove(Board *board, Move move);
 
 // Win Condition & Helpers
-bool Hex_OnSide(Hex h, int radius, BoardSide side);
+bool Hex_OnSide(Hex h, i32 radius, BoardSide side);
 bool Cell_IsRoad(const Cell *cell);
 bool Board_HasConnection(const Board *board, BoardSide a, BoardSide b);
-int Board_FindConnectionPath(const Board *board, BoardSide a, BoardSide b, int *path_out, int max_path_len);
+i32 Board_FindConnectionPath(const Board *board, BoardSide a, BoardSide b, i32 *path_out, i32 max_path_len);

@@ -263,7 +263,7 @@
     const outputElement = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('output'));
     const canvasElement = /** @type {HTMLCanvasElement | null} */ (document.getElementById('canvas'));
 
-    const Module = {
+    var Module = {
         print: (function () {
             if (outputElement) outputElement.value = '';
             return function (text) {

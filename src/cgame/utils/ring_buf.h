@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 typedef struct {
-    int *items;
+    i32 *items;
     size_t head;
     size_t tail;
     size_t capacity;
@@ -15,7 +15,7 @@ typedef struct {
     do {                                                                                                               \
         if (((rb).tail - (rb).head) >= (rb).capacity) {                                                                \
             size_t _rb_new_capacity = (rb).capacity == 0 ? 256 : (rb).capacity * 2;                                    \
-            int *_rb_new_items = malloc(_rb_new_capacity * sizeof(*(rb).items));                                       \
+            typeof((rb).items) _rb_new_items = malloc(_rb_new_capacity * sizeof(*(rb).items));                         \
             if (_rb_new_items != nullptr) {                                                                            \
                 size_t _rb_size = (rb).tail - (rb).head;                                                               \
                 for (size_t _rb_i = 0; _rb_i < _rb_size; _rb_i++) {                                                    \
@@ -37,5 +37,13 @@ typedef struct {
         if ((rb).tail != (rb).head) {                                                                                  \
             *(out) = (rb).items[(rb).head & ((rb).capacity - 1)];                                                      \
             (rb).head++;                                                                                               \
+        }                                                                                                              \
+    } while (0)
+
+#define RING_BUFFER_POP_BACK(rb, out)                                                                                  \
+    do {                                                                                                               \
+        if ((rb).tail != (rb).head) {                                                                                  \
+            (rb).tail--;                                                                                               \
+            *(out) = (rb).items[(rb).tail & ((rb).capacity - 1)];                                                      \
         }                                                                                                              \
     } while (0)

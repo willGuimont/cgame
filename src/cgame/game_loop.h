@@ -25,4 +25,4 @@ typedef struct {
     CGameDeinitFn deinit;
 } CGameLoopDesc;
 
-int CGame_Run(const CGameLoopDesc *desc);
+i32 CGame_Run(const CGameLoopDesc *desc);

@@ -136,11 +136,36 @@ static int test_rb_growth_preserves_order(void) {
     return 0;
 }
 
+static int test_rb_pop_back_lifo(void) {
+    RingBufferInt rb = {0};
+
+    RING_BUFFER_PUSH(rb, 10);
+    RING_BUFFER_PUSH(rb, 20);
+    RING_BUFFER_PUSH(rb, 30);
+
+    int val = 0;
+    RING_BUFFER_POP_BACK(rb, &val);
+    ASSERT(val == 30);
+    ASSERT((rb.tail - rb.head) == 2U);
+
+    RING_BUFFER_POP_BACK(rb, &val);
+    ASSERT(val == 20);
+    ASSERT((rb.tail - rb.head) == 1U);
+
+    RING_BUFFER_POP_BACK(rb, &val);
+    ASSERT(val == 10);
+    ASSERT((rb.tail - rb.head) == 0U);
+
+    rb_free(&rb);
+    return 0;
+}
+
 int main(void) {
     int failures = 0;
     RUN_TEST(test_rb_initial_allocation_and_push);
     RUN_TEST(test_rb_push_pop_fifo);
     RUN_TEST(test_rb_circular_wrap);
     RUN_TEST(test_rb_growth_preserves_order);
+    RUN_TEST(test_rb_pop_back_lifo);
     return failures > 0 ? 1 : 0;
 }

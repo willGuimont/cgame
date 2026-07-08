@@ -1,6 +1,6 @@
 #include "game_loop.h"
 
-#include "raylib.h"
+#include <raylib.h>
 
 #ifdef PLATFORM_WEB
 #include <emscripten/emscripten.h>
@@ -72,7 +72,7 @@ static void CGame_RunFrame(CGameLoop *game_loop) {
 static void CGame_RunFrameArg(void *arg) { CGame_RunFrame(arg); }
 #endif
 
-int CGame_Run(const CGameLoopDesc *desc) {
+i32 CGame_Run(const CGameLoopDesc *desc) {
     if (!desc) {
         return 1;
     }

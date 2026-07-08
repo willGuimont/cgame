@@ -5,7 +5,7 @@
 #include <stdlib.h>
 
 typedef struct {
-    int *items;
+    i32 *items;
     size_t count;
     size_t capacity;
 } DynamicArrayInt;
