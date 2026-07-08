@@ -1,7 +1,14 @@
-.PHONY: configure configure-debug configure-release build build-debug build-release run run-debug run-release test test-debug test-release web-build web-serve run-web asan-verbose asan-no-leaks
+.PHONY: configure configure-debug configure-release configure-web \
+        build build-debug build-release \
+        run run-debug run-release \
+        test test-debug test-release \
+        web-build web-build-app web-serve web-deploy run-web \
+        asan-verbose asan-no-leaks
 
 DEBUG_BUILD_DIR := cmake-build-debug
 RELEASE_BUILD_DIR := cmake-build-release
+WEB_BUILD_DIR := cmake-build-web
+
 APP ?= hexatak
 
 configure: configure-debug configure-release
@@ -11,6 +18,9 @@ configure-debug:
 
 configure-release:
 	cmake -S . -B $(RELEASE_BUILD_DIR) -DCMAKE_BUILD_TYPE=Release
+
+configure-web:
+	emcmake cmake -S . -B $(WEB_BUILD_DIR) -DPLATFORM=Web -DCMAKE_BUILD_TYPE=Release
 
 build: build-debug build-release
 
@@ -36,14 +46,20 @@ test-debug: configure-debug
 test-release: configure-release
 	cmake --build $(RELEASE_BUILD_DIR) --target check
 
-web-build:
-	./scripts/build_web.sh $(APP)
+web-build: configure-web
+	cmake --build $(WEB_BUILD_DIR) --target all_apps --parallel
 
-web-serve:
-	./scripts/serve_web.sh $(APP)
+web-build-app: configure-web
+	cmake --build $(WEB_BUILD_DIR) --target $(APP) --parallel
+
+web-serve: web-build
+	./scripts/serve_web.sh
 
 run-web: web-build
-	./scripts/serve_web.sh $(APP)
+	./scripts/serve_web.sh
+
+web-deploy: web-build
+	./scripts/deploy_web.sh
 
 asan-verbose: build-debug
 	ASAN_OPTIONS=verbosity=2 ./$(DEBUG_BUILD_DIR)/$(APP)

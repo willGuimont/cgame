@@ -9,10 +9,15 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 # Emscripten's EM_ASM macros require GNU extensions
 if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     set(CMAKE_C_EXTENSIONS ON)
-else()
+else ()
     set(CMAKE_C_EXTENSIONS OFF)
-endif()
+endif ()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+set(CGAME_WEB OFF)
+if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten" OR "${PLATFORM}" STREQUAL "Web")
+    set(CGAME_WEB ON)
+endif ()
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -36,7 +41,7 @@ target_include_directories(par SYSTEM INTERFACE third_party/par)
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_path(S2N_INCLUDE_DIR s2n.h)
     find_library(S2N_LIBRARY s2n)
-endif()
+endif ()
 
 # cgame library
 add_library(cgame
@@ -76,7 +81,7 @@ if (S2N_INCLUDE_DIR AND S2N_LIBRARY)
     target_include_directories(cgame SYSTEM PUBLIC ${S2N_INCLUDE_DIR})
     target_compile_definitions(cgame PUBLIC CGAME_CUTE_TLS_S2N)
     target_link_libraries(cgame PUBLIC ${S2N_LIBRARY})
-endif()
+endif ()
 
 target_compile_options(cgame
         PRIVATE
@@ -92,6 +97,23 @@ target_compile_options(cgame
 set(CGAME_APP_TARGETS)
 
 function(add_cgame_app target_name app_dir)
+    set(options)
+    set(one_value_args TITLE DESCRIPTION)
+    set(multi_value_args)
+    cmake_parse_arguments(APP "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
+
+    if (NOT APP_TITLE)
+        set(APP_TITLE "${target_name}")
+    endif ()
+
+    if (NOT APP_DESCRIPTION)
+        set(APP_DESCRIPTION "")
+    endif ()
+
+    set_property(GLOBAL APPEND PROPERTY CGAME_APP_TARGETS "${target_name}")
+    set_property(GLOBAL PROPERTY "CGAME_APP_${target_name}_TITLE" "${APP_TITLE}")
+    set_property(GLOBAL PROPERTY "CGAME_APP_${target_name}_DESCRIPTION" "${APP_DESCRIPTION}")
+
     target_include_directories(${target_name}
             PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/src/apps/${app_dir}
@@ -126,37 +148,79 @@ function(add_cgame_app target_name app_dir)
             raylib
     )
 
-    if ("${PLATFORM}" STREQUAL "Web")
+    if (CGAME_WEB)
         set_target_properties(${target_name} PROPERTIES SUFFIX ".html")
-        add_custom_target(copy_assets_${target_name} ALL
-                COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets ${CMAKE_BINARY_DIR}/resources
-        )
-        add_dependencies(${target_name} copy_assets_${target_name})
+
         target_link_options(${target_name} PRIVATE
                 "-sUSE_GLFW=3"
+                "-sWASM=1"
+                "-sTOTAL_MEMORY=67108864"
                 "--shell-file" "${CMAKE_SOURCE_DIR}/web/minshell.html"
         )
+
         set_target_properties(${target_name} PROPERTIES
                 LINK_DEPENDS "${CMAKE_SOURCE_DIR}/web/minshell.html"
         )
+
         file(GLOB_RECURSE CGAME_ASSET_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/assets/*")
         if (CGAME_ASSET_FILES)
             target_link_options(${target_name} PRIVATE
                     "--preload-file" "${CMAKE_SOURCE_DIR}/assets@resources"
             )
-        endif()
-    else()
+        endif ()
+    else ()
         add_custom_target(copy_assets_${target_name} ALL
-                COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/assets $<TARGET_FILE_DIR:${target_name}>/resources
+                COMMAND ${CMAKE_COMMAND} -E copy_directory
+                ${CMAKE_SOURCE_DIR}/assets
+                $<TARGET_FILE_DIR:${target_name}>/resources
         )
         add_dependencies(${target_name} copy_assets_${target_name})
-    endif()
+    endif ()
 
     if (APPLE)
         target_link_libraries(${target_name} PRIVATE "-framework IOKit" "-framework Cocoa" "-framework OpenGL")
-    endif()
+    endif ()
+endfunction()
 
-    set(CGAME_APP_TARGETS ${CGAME_APP_TARGETS} ${target_name} PARENT_SCOPE)
+function(cgame_generate_web_index)
+    get_property(apps GLOBAL PROPERTY CGAME_APP_TARGETS)
+
+    set(CGAME_WEB_APP_CARDS "")
+
+    foreach (app IN LISTS apps)
+        get_property(title GLOBAL PROPERTY "CGAME_APP_${app}_TITLE")
+        get_property(description GLOBAL PROPERTY "CGAME_APP_${app}_DESCRIPTION")
+
+        if (NOT title)
+            set(title "${app}")
+        endif()
+
+        string(APPEND CGAME_WEB_APP_CARDS
+                "        <a class=\"card\" href=\"${app}.html\">\n"
+                "            <h2>${title}</h2>\n"
+        )
+
+        if (description)
+            string(APPEND CGAME_WEB_APP_CARDS
+                    "            <p>${description}</p>\n"
+            )
+        endif()
+
+        string(APPEND CGAME_WEB_APP_CARDS
+                "            <code>${app}.html</code>\n"
+                "        </a>\n"
+        )
+    endforeach()
+
+    configure_file(
+            ${CMAKE_SOURCE_DIR}/web/index.html.in
+            ${CMAKE_BINARY_DIR}/index.html
+            @ONLY
+    )
+
+    add_custom_target(web_index ALL
+            DEPENDS ${CMAKE_BINARY_DIR}/index.html
+    )
 endfunction()
 
 # Hexatak application
@@ -174,10 +238,23 @@ add_executable(hexatak
         src/cgame/hex.h
         web/minshell.html
 )
-add_cgame_app(hexatak hexatak)
+add_cgame_app(hexatak hexatak
+        TITLE "Hexatak"
+        DESCRIPTION "Hexagonal Tak-inspired puzzle game."
+)
+
+get_property(CGAME_APP_TARGETS GLOBAL PROPERTY CGAME_APP_TARGETS)
 
 add_custom_target(all_apps)
-add_dependencies(all_apps ${CGAME_APP_TARGETS})
+
+if (CGAME_APP_TARGETS)
+    add_dependencies(all_apps ${CGAME_APP_TARGETS})
+endif()
+
+if (CGAME_WEB)
+    cgame_generate_web_index()
+    add_dependencies(all_apps web_index)
+endif()
 
 # Testing
 if (BUILD_TESTING)
