@@ -74,4 +74,12 @@ typedef struct {
     i32 editor_selected_required_value; // 2, 4, 8, etc.
     i32 editor_placement_stack[16];
     i32 editor_placement_stack_count;
+
+    // Audio assets
+    Sound snd_click;
+    Sound snd_move;
+    Sound snd_merge;
+    Sound snd_win;
+    Sound snd_reset;
+    Sound snd_undo;
 } GameState;

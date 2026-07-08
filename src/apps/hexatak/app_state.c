@@ -146,9 +146,11 @@ void GameState_CheckWinCondition(GameState *gs) {
             if (gs->win_path_len > 0) {
                 gs->win_animation_active = true;
                 gs->win_animation_timer = 0.0f;
+                PlaySound(gs->snd_win);
             } else {
                 gs->level_won = true;
                 gs->level_completed[gs->current_level_idx] = true;
+                PlaySound(gs->snd_win);
             }
         }
     } else {

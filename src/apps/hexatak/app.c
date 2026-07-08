@@ -11,13 +11,45 @@
 #include "app_types.h"
 #include "game_loop.h"
 
+static Sound App_LoadSound(const char *file_name) {
+    char path[512];
+    snprintf(path, sizeof(path), "resources/audio/%s", file_name);
+    Sound snd = LoadSound(path);
+    if (!IsSoundValid(snd)) {
+#ifdef ROOT_DIR
+        snprintf(path, sizeof(path), ROOT_DIR "/assets/audio/%s", file_name);
+        snd = LoadSound(path);
+#endif
+    }
+    return snd;
+}
+
+static i32 Board_CountStones(const Board *board) {
+    i32 count = 0;
+    for (i32 i = 0; i < board->count; i++) {
+        count += board->cells[i].count;
+    }
+    return count;
+}
+
 static bool App_Init(void *state) {
     SetExitKey(0);
+    InitAudioDevice();
+    if (!IsAudioDeviceReady()) {
+        TraceLog(LOG_WARNING, "Audio device could not be initialized!");
+    }
     if (!Levels_LoadAll()) {
         // If it fails (e.g. initial setup), we still want to log it
         TraceLog(LOG_WARNING, "levels.txt load failed! Using empty or static levels");
     }
     auto const gs = (GameState *) state;
+    gs->snd_click = App_LoadSound("click.wav");
+    gs->snd_move = App_LoadSound("move.wav");
+    gs->snd_merge = App_LoadSound("merge.wav");
+    gs->snd_win = App_LoadSound("win.wav");
+    gs->snd_reset = App_LoadSound("reset.wav");
+    gs->snd_undo = App_LoadSound("undo.wav");
+
     Level_Load(gs, 0);
     gs->screen = SCREEN_TITLE;
     gs->anim_time = 0.0f;
@@ -134,8 +166,10 @@ static void App_Update(void *state, f32 dt) {
         const Rectangle btn_editor = {260.0f, 465.0f, 200.0f, 50.0f};
         if ((CheckCollisionPointRec(mouse, btn_play) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) ||
             IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+            PlaySound(gs->snd_click);
             gs->screen = SCREEN_LEVEL_SELECT;
         } else if (CheckCollisionPointRec(mouse, btn_editor) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            PlaySound(gs->snd_click);
             gs->screen = SCREEN_LEVEL_EDITOR;
         }
         return;
@@ -143,6 +177,7 @@ static void App_Update(void *state, f32 dt) {
 
     if (gs->screen == SCREEN_LEVEL_EDITOR) {
         if (IsKeyPressed(KEY_ESCAPE)) {
+            PlaySound(gs->snd_click);
             Levels_LoadAll();
             gs->screen = SCREEN_TITLE;
             return;
@@ -164,25 +199,34 @@ static void App_Update(void *state, f32 dt) {
             const Rectangle rect_moves_inc = {140.0f, 395.0f, 40.0f, 26.0f};
 
             if (CheckCollisionPointRec(mouse, rect_tool_stones)) {
+                PlaySound(gs->snd_click);
                 gs->editor_active_tool = 0;
             } else if (CheckCollisionPointRec(mouse, rect_tool_blocked)) {
+                PlaySound(gs->snd_click);
                 gs->editor_active_tool = 1;
             } else if (CheckCollisionPointRec(mouse, rect_tool_required)) {
+                PlaySound(gs->snd_click);
                 gs->editor_active_tool = 2;
             } else if (CheckCollisionPointRec(mouse, rect_tool_goals)) {
+                PlaySound(gs->snd_click);
                 gs->editor_active_tool = 3;
             } else if (CheckCollisionPointRec(mouse, rect_radius)) {
+                PlaySound(gs->snd_click);
                 i32 r = gs->editor_board.radius;
                 r = (r % 3) + 1;
                 Board_Init(&gs->editor_board, r);
             } else if (CheckCollisionPointRec(mouse, rect_side_a)) {
+                PlaySound(gs->snd_click);
                 gs->editor_side_a = (BoardSide) ((gs->editor_side_a + 1) % 6);
             } else if (CheckCollisionPointRec(mouse, rect_side_b)) {
+                PlaySound(gs->snd_click);
                 gs->editor_side_b = (BoardSide) ((gs->editor_side_b + 1) % 6);
             } else if (CheckCollisionPointRec(mouse, rect_moves_dec)) {
+                PlaySound(gs->snd_click);
                 if (gs->editor_move_limit > 1)
                     gs->editor_move_limit--;
             } else if (CheckCollisionPointRec(mouse, rect_moves_inc)) {
+                PlaySound(gs->snd_click);
                 if (gs->editor_move_limit < 99)
                     gs->editor_move_limit++;
             }
@@ -191,6 +235,7 @@ static void App_Update(void *state, f32 dt) {
                 // CLEAR button
                 Rectangle rect_clear = {140.0f, 433.0f, 40.0f, 18.0f};
                 if (CheckCollisionPointRec(mouse, rect_clear)) {
+                    PlaySound(gs->snd_click);
                     gs->editor_placement_stack_count = 0;
                 }
 
@@ -198,6 +243,7 @@ static void App_Update(void *state, f32 dt) {
                 for (i32 v = 0; v < 8; v++) {
                     Rectangle val_rect = {20.0f + (float) v * 21.0f, 505.0f, 19.0f, 19.0f};
                     if (CheckCollisionPointRec(mouse, val_rect)) {
+                        PlaySound(gs->snd_click);
                         if (gs->editor_placement_stack_count < 16) {
                             i32 values_add[] = {1, 2, 3, 4, 8, 16, 32, 64};
                             gs->editor_placement_stack[gs->editor_placement_stack_count++] = values_add[v];
@@ -208,6 +254,7 @@ static void App_Update(void *state, f32 dt) {
                 // Preset 1: 1, 2, 3, 4
                 Rectangle btn_preset_asc = {20.0f, 545.0f, 75.0f, 18.0f};
                 if (CheckCollisionPointRec(mouse, btn_preset_asc)) {
+                    PlaySound(gs->snd_click);
                     gs->editor_placement_stack[0] = 1;
                     gs->editor_placement_stack[1] = 2;
                     gs->editor_placement_stack[2] = 3;
@@ -218,6 +265,7 @@ static void App_Update(void *state, f32 dt) {
                 // Preset 2: 4, 3, 2, 1
                 Rectangle btn_preset_desc = {105.0f, 545.0f, 75.0f, 18.0f};
                 if (CheckCollisionPointRec(mouse, btn_preset_desc)) {
+                    PlaySound(gs->snd_click);
                     gs->editor_placement_stack[0] = 4;
                     gs->editor_placement_stack[1] = 3;
                     gs->editor_placement_stack[2] = 2;
@@ -228,6 +276,7 @@ static void App_Update(void *state, f32 dt) {
                 for (i32 v = 1; v < 7; v++) {
                     Rectangle val_rect = {20.0f + (float) (v - 1) * 27.0f, 465.0f, 25.0f, 25.0f};
                     if (CheckCollisionPointRec(mouse, val_rect)) {
+                        PlaySound(gs->snd_click);
                         i32 values[] = {1, 2, 4, 8, 16, 32, 64};
                         gs->editor_selected_required_value = values[v];
                     }
@@ -239,6 +288,7 @@ static void App_Update(void *state, f32 dt) {
             const Rectangle btn_menu = {20.0f, 655.0f, 160.0f, 35.0f};
 
             if (CheckCollisionPointRec(mouse, btn_test)) {
+                PlaySound(gs->snd_click);
                 gs->board = gs->editor_board;
                 gs->move_count = 0;
                 gs->level_won = false;
@@ -260,8 +310,10 @@ static void App_Update(void *state, f32 dt) {
 
                 gs->current_level_idx = 0;
             } else if (CheckCollisionPointRec(mouse, btn_export)) {
+                PlaySound(gs->snd_click);
                 Editor_Export(gs);
             } else if (CheckCollisionPointRec(mouse, btn_menu)) {
+                PlaySound(gs->snd_click);
                 Levels_LoadAll();
                 gs->screen = SCREEN_TITLE;
             }
@@ -273,6 +325,7 @@ static void App_Update(void *state, f32 dt) {
         if (best >= 0) {
             Cell *cell = &gs->editor_board.cells[best];
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                PlaySound(gs->snd_click);
                 if (gs->editor_active_tool == 0) {
                     cell->count = 0;
                     for (i32 s = 0; s < gs->editor_placement_stack_count; s++) {
@@ -320,6 +373,7 @@ static void App_Update(void *state, f32 dt) {
                     }
                 }
             } else if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
+                PlaySound(gs->snd_click);
                 if (gs->editor_active_tool == 3) {
                     float angle = atan2f(mouse.y - origin.y, mouse.x - origin.x);
                     float deg = angle * RAD2DEG;
@@ -358,6 +412,7 @@ static void App_Update(void *state, f32 dt) {
 
     if (gs->screen == SCREEN_LEVEL_SELECT) {
         if (IsKeyPressed(KEY_ESCAPE)) {
+            PlaySound(gs->snd_click);
             gs->screen = SCREEN_TITLE;
             return;
         }
@@ -365,6 +420,7 @@ static void App_Update(void *state, f32 dt) {
         const Vector2 mouse = GetMousePosition();
         const Rectangle btn_back = {50.0f, 650.0f, 120.0f, 40.0f};
         if (CheckCollisionPointRec(mouse, btn_back) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            PlaySound(gs->snd_click);
             gs->screen = SCREEN_TITLE;
             return;
         }
@@ -375,12 +431,14 @@ static void App_Update(void *state, f32 dt) {
         if (gs->level_select_page > 0) {
             const Rectangle btn_prev = {330.0f, 650.0f, 80.0f, 40.0f};
             if (CheckCollisionPointRec(mouse, btn_prev) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                PlaySound(gs->snd_click);
                 gs->level_select_page--;
             }
         }
         if (gs->level_select_page + 1 < TOTAL_PAGES) {
             const Rectangle btn_next = {510.0f, 650.0f, 80.0f, 40.0f};
             if (CheckCollisionPointRec(mouse, btn_next) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                PlaySound(gs->snd_click);
                 gs->level_select_page++;
             }
         }
@@ -409,6 +467,7 @@ static void App_Update(void *state, f32 dt) {
             const Rectangle card_rect = {x, y, CARD_W, CARD_H};
 
             if (CheckCollisionPointRec(mouse, card_rect) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                PlaySound(gs->snd_click);
                 Level_Load(gs, i);
                 gs->screen = SCREEN_GAMEPLAY;
                 return;
@@ -431,6 +490,7 @@ static void App_Update(void *state, f32 dt) {
                 Vector2 mouse = GetMousePosition();
                 if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) ||
                     (CheckCollisionPointRec(mouse, btn_ok) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))) {
+                    PlaySound(gs->snd_click);
                     gs->show_tip = false;
                 }
                 return;
@@ -450,6 +510,7 @@ static void App_Update(void *state, f32 dt) {
             }
 
             if (IsKeyPressed(KEY_ESCAPE)) {
+                PlaySound(gs->snd_click);
                 if (gs->testing_editor_level) {
                     gs->screen = SCREEN_LEVEL_EDITOR;
                     gs->testing_editor_level = false;
@@ -491,6 +552,7 @@ static void App_Update(void *state, f32 dt) {
         }
 
         if (IsKeyPressed(KEY_ESCAPE)) {
+            PlaySound(gs->snd_click);
             if (gs->testing_editor_level) {
                 gs->screen = SCREEN_LEVEL_EDITOR;
                 gs->testing_editor_level = false;
@@ -507,12 +569,14 @@ static void App_Update(void *state, f32 dt) {
         }
 
         if (IsKeyPressed(KEY_R)) {
+            PlaySound(gs->snd_reset);
             Level_Reset(gs);
             return;
         }
 
         if (IsKeyPressed(KEY_U)) {
             if (gs->history.tail != gs->history.head) {
+                PlaySound(gs->snd_undo);
                 History_Push(&gs->redo, &gs->board, gs->move_count);
                 History_Undo(&gs->history, &gs->board, &gs->move_count);
                 GameState_CheckWinCondition(gs);
@@ -525,6 +589,7 @@ static void App_Update(void *state, f32 dt) {
 
         if (IsKeyPressed(KEY_Y)) {
             if (gs->redo.tail != gs->redo.head) {
+                PlaySound(gs->snd_undo);
                 History_Push(&gs->history, &gs->board, gs->move_count);
                 History_Undo(&gs->redo, &gs->board, &gs->move_count);
                 GameState_CheckWinCondition(gs);
@@ -538,6 +603,7 @@ static void App_Update(void *state, f32 dt) {
         if (gs->game_completed) {
             if (IsKeyPressed(KEY_R) || IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_ESCAPE) ||
                 IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                PlaySound(gs->snd_click);
                 if (gs->testing_editor_level) {
                     gs->screen = SCREEN_LEVEL_EDITOR;
                     gs->testing_editor_level = false;
@@ -553,6 +619,7 @@ static void App_Update(void *state, f32 dt) {
 
         if (gs->level_won) {
             if (IsKeyPressed(KEY_SPACE) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                PlaySound(gs->snd_click);
                 if (gs->testing_editor_level) {
                     gs->screen = SCREEN_LEVEL_EDITOR;
                     gs->testing_editor_level = false;
@@ -562,6 +629,15 @@ static void App_Update(void *state, f32 dt) {
                 } else {
                     gs->game_completed = true;
                 }
+            }
+            return;
+        }
+
+        const LevelDesc *desc = &LEVELS[gs->current_level_idx];
+        if (gs->move_count >= desc->move_limit && !gs->win_animation_active) {
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER)) {
+                PlaySound(gs->snd_reset);
+                Level_Reset(gs);
             }
             return;
         }
@@ -578,6 +654,7 @@ static void App_Update(void *state, f32 dt) {
             clicked_ui = true;
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 if (gs->history.tail != gs->history.head) {
+                    PlaySound(gs->snd_undo);
                     History_Push(&gs->redo, &gs->board, gs->move_count);
                     History_Undo(&gs->history, &gs->board, &gs->move_count);
                     GameState_CheckWinCondition(gs);
@@ -590,6 +667,7 @@ static void App_Update(void *state, f32 dt) {
             clicked_ui = true;
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 if (gs->redo.tail != gs->redo.head) {
+                    PlaySound(gs->snd_undo);
                     History_Push(&gs->history, &gs->board, gs->move_count);
                     History_Undo(&gs->redo, &gs->board, &gs->move_count);
                     GameState_CheckWinCondition(gs);
@@ -601,11 +679,13 @@ static void App_Update(void *state, f32 dt) {
         } else if (CheckCollisionPointRec(mouse, btn_reset)) {
             clicked_ui = true;
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                PlaySound(gs->snd_reset);
                 Level_Reset(gs);
             }
         } else if (CheckCollisionPointRec(mouse, btn_menu)) {
             clicked_ui = true;
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                PlaySound(gs->snd_click);
                 if (gs->testing_editor_level) {
                     gs->screen = SCREEN_LEVEL_EDITOR;
                     gs->testing_editor_level = false;
@@ -680,7 +760,14 @@ static void App_Update(void *state, f32 dt) {
                         Board temp = gs->board;
                         if (Board_SpreadStack(&temp, mv.from_index, mv.dir, mv.distance)) {
                             History_Push(&gs->history, &gs->board, gs->move_count);
+                            i32 stones_before = Board_CountStones(&gs->board);
                             Board_ApplyMove(&gs->board, mv);
+                            i32 stones_after = Board_CountStones(&gs->board);
+                            if (stones_after < stones_before) {
+                                PlaySound(gs->snd_merge);
+                            } else {
+                                PlaySound(gs->snd_move);
+                            }
                             gs->move_count++;
                             gs->redo.head = 0;
                             gs->redo.tail = 0;
@@ -748,7 +835,14 @@ static void App_Update(void *state, f32 dt) {
                         Board temp = gs->board;
                         if (Board_MoveStackOne(&temp, mv.from_index, mv.dir)) {
                             History_Push(&gs->history, &gs->board, gs->move_count);
+                            i32 stones_before = Board_CountStones(&gs->board);
                             Board_ApplyMove(&gs->board, mv);
+                            i32 stones_after = Board_CountStones(&gs->board);
+                            if (stones_after < stones_before) {
+                                PlaySound(gs->snd_merge);
+                            } else {
+                                PlaySound(gs->snd_move);
+                            }
                             gs->move_count++;
                             gs->redo.head = 0;
                             gs->redo.tail = 0;
@@ -1046,6 +1140,14 @@ static void App_Draw(void *state, f32 alpha) {
 
 static void App_Deinit(void *state) {
     auto const gs = (GameState *) state;
+    UnloadSound(gs->snd_click);
+    UnloadSound(gs->snd_move);
+    UnloadSound(gs->snd_merge);
+    UnloadSound(gs->snd_win);
+    UnloadSound(gs->snd_reset);
+    UnloadSound(gs->snd_undo);
+    CloseAudioDevice();
+
     free(gs->history.items);
     free(gs->redo.items);
 }
