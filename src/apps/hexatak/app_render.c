@@ -1,136 +1,8 @@
 #include "app_render.h"
 #include <math.h>
 #include <stdio.h>
-#include <string.h>
 #include "app_state.h"
-
-i32 Utils_MeasureTextWrappedHeight(const Font font, const char *text, const i32 max_width, const i32 font_size, const i32 line_spacing) {
-    if (!text)
-        return 0;
-
-    i32 y_offset = 0;
-    const char *ptr = text;
-
-    while (*ptr != '\0') {
-        while (*ptr == ' ' || *ptr == '\n') {
-            if (*ptr == '\n') {
-                y_offset += font_size + line_spacing;
-            }
-            ptr++;
-        }
-        if (*ptr == '\0')
-            break;
-
-        const char *line_start = ptr;
-        const char *last_space = nullptr;
-        const char *scan = ptr;
-
-        while (*scan != '\0' && *scan != '\n') {
-            if (*scan == ' ') {
-                last_space = scan;
-            }
-
-            size_t len = (size_t) (scan - line_start) + 1;
-            char temp[256];
-            if (len >= sizeof(temp))
-                len = sizeof(temp) - 1;
-            memcpy(temp, line_start, len);
-            temp[len] = '\0';
-
-            if (App_MeasureText(font, temp, font_size) > max_width) {
-                break;
-            }
-            scan++;
-        }
-
-        const char *line_end = scan;
-        if (*scan != '\0' && *scan != '\n') {
-            if (last_space && last_space > line_start) {
-                line_end = last_space;
-                ptr = last_space + 1;
-            } else {
-                line_end = scan;
-                ptr = scan;
-            }
-        } else {
-            ptr = scan;
-        }
-
-        const i32 len = (i32) (line_end - line_start);
-        if (len > 0) {
-            y_offset += font_size + line_spacing;
-        }
-    }
-    return y_offset;
-}
-
-void Utils_DrawTextWrappedCentered(const Font font, const char *text, const i32 center_x, const i32 start_y, const i32 max_width,
-                                   const i32 font_size, const i32 line_spacing, const Color color) {
-    if (!text)
-        return;
-
-    const char *ptr = text;
-    i32 y = start_y;
-
-    while (*ptr != '\0') {
-        while (*ptr == ' ' || *ptr == '\n') {
-            if (*ptr == '\n') {
-                y += font_size + line_spacing;
-            }
-            ptr++;
-        }
-        if (*ptr == '\0')
-            break;
-
-        const char *line_start = ptr;
-        const char *last_space = nullptr;
-        const char *scan = ptr;
-
-        while (*scan != '\0' && *scan != '\n') {
-            if (*scan == ' ') {
-                last_space = scan;
-            }
-
-            size_t len = (size_t) (scan - line_start) + 1;
-            char temp[256];
-            if (len >= sizeof(temp))
-                len = sizeof(temp) - 1;
-            memcpy(temp, line_start, len);
-            temp[len] = '\0';
-
-            if (App_MeasureText(font, temp, font_size) > max_width) {
-                break;
-            }
-            scan++;
-        }
-
-        const char *line_end = scan;
-        if (*scan != '\0' && *scan != '\n') {
-            if (last_space && last_space > line_start) {
-                line_end = last_space;
-                ptr = last_space + 1;
-            } else {
-                line_end = scan;
-                ptr = scan;
-            }
-        } else {
-            ptr = scan;
-        }
-
-        size_t len = (size_t) (line_end - line_start);
-        if (len > 0) {
-            char draw_buf[256];
-            if (len >= sizeof(draw_buf))
-                len = sizeof(draw_buf) - 1;
-            memcpy(draw_buf, line_start, len);
-            draw_buf[len] = '\0';
-
-            const i32 tw = App_MeasureText(font, draw_buf, font_size);
-            App_DrawText(font, draw_buf, center_x - (tw / 2), y, font_size, color);
-            y += font_size + line_spacing;
-        }
-    }
-}
+#include "utils/draw.h"
 
 static const char *Utils_GetSideName(const BoardSide side) {
     switch (side) {
@@ -213,30 +85,12 @@ void Render_DrawStoneStack(const Font font, const Cell *cell, const Vector2 cent
         char val_str[16];
         snprintf(val_str, sizeof(val_str), "%d", cell->stones[i].value);
         constexpr i32 FONT_SZ = UI_FONT_STONE;
-        const i32 tw = App_MeasureText(font, val_str, FONT_SZ);
+        const i32 tw = CGame_MeasureText(font, val_str, FONT_SZ);
         const i32 text_x = (i32) (stone_center.x - ((float) tw / 2.0f));
         const i32 text_y = (i32) (stone_center.y - ((float) FONT_SZ / 2.0f));
 
-        App_DrawText(font, val_str, text_x, text_y, FONT_SZ, (Color) {17, 17, 27, (unsigned char) alpha});
+        CGame_DrawText(font, val_str, text_x, text_y, FONT_SZ, (Color) {17, 17, 27, (unsigned char) alpha});
     }
-}
-
-void Render_DrawButton(const Font font, const Rectangle rect, const char *text, const Color bg, const Color text_col,
-                       const bool hovered) {
-    DrawRectangleRec(rect, bg);
-    DrawRectangleLinesEx(rect, 2.0f, hovered ? (Color) {249, 226, 175, 255} : (Color) {88, 91, 112, 255});
-
-    i32 font_size = UI_FONT_BUTTON;
-    i32 tw = App_MeasureText(font, text, font_size);
-    while (font_size > 8 && tw > (i32)rect.width - 12) {
-        font_size--;
-        tw = App_MeasureText(font, text, font_size);
-    }
-
-    const i32 text_x = (i32) (rect.x + (rect.width / 2.0f) - ((float) tw / 2.0f));
-    const i32 text_y = (i32) (rect.y + (rect.height / 2.0f) - ((float) font_size / 2.0f));
-
-    App_DrawText(font, text, text_x, text_y, font_size, text_col);
 }
 
 void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
@@ -449,8 +303,8 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
             char req_str[16];
             snprintf(req_str, sizeof(req_str), "%d", cell->required_value);
             constexpr i32 REQ_FONT_SZ = UI_FONT_BADGE;
-            i32 req_tw = App_MeasureText(gs->font_ibm, req_str, REQ_FONT_SZ);
-            App_DrawText(gs->font_ibm, req_str, (i32) (badge_center.x - (float) req_tw / 2.0f),
+            i32 req_tw = CGame_MeasureText(gs->font_ibm, req_str, REQ_FONT_SZ);
+            CGame_DrawText(gs->font_ibm, req_str, (i32) (badge_center.x - (float) req_tw / 2.0f),
                      (i32) (badge_center.y - (float) REQ_FONT_SZ / 2.0f), REQ_FONT_SZ, req_col);
 
             const Cell *disp_cell = draw_preview ? &gs->preview_board.cells[i] : cell;
@@ -463,7 +317,7 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
                     float warn_r = 7.0f;
                     DrawCircleV(warn_center, warn_r, (Color) {243, 139, 168, 255});
                     DrawCircleLinesV(warn_center, warn_r, (Color) {17, 17, 27, 255});
-                    App_DrawText(gs->font_ibm, "!", (i32) (warn_center.x - 3.0f), (i32) (warn_center.y - 6.0f), 12,
+                    CGame_DrawText(gs->font_ibm, "!", (i32) (warn_center.x - 3.0f), (i32) (warn_center.y - 6.0f), 12,
                              (Color) {17, 17, 27, 255});
                 }
             }
@@ -496,20 +350,20 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
 void Render_DrawUI(const GameState *gs) {
     const LevelDesc *desc = &LEVELS[gs->current_level_idx];
 
-    App_DrawText(gs->font_roboto, "HEXATAK", 20, 15, 34, (Color) {250, 179, 135, 255});
-    App_DrawTextScaled(gs->font_ibm, desc->name, 20, 52, 22, 500, (Color) {205, 214, 244, 255});
-    App_DrawTextScaled(gs->font_ibm, desc->description, 20, 80, UI_FONT_SMALL, 500, (Color) {166, 173, 200, 255});
+    CGame_DrawText(gs->font_roboto, "HEXATAK", 20, 15, 34, (Color) {250, 179, 135, 255});
+    CGame_DrawTextScaled(gs->font_ibm, desc->name, 20, 52, 22, 500, (Color) {205, 214, 244, 255});
+    CGame_DrawTextScaled(gs->font_ibm, desc->description, 20, 80, UI_FONT_SMALL, 500, (Color) {166, 173, 200, 255});
 
     char move_str[64];
     snprintf(move_str, sizeof(move_str), "Moves: %d / %d", gs->move_count, desc->move_limit);
     const Color move_col =
             (gs->move_count > desc->move_limit) ? (Color) {243, 139, 168, 255} : (Color) {166, 227, 161, 255};
-    App_DrawText(gs->font_ibm, move_str, 528, 20, 22, move_col);
+    CGame_DrawText(gs->font_ibm, move_str, 528, 20, 22, move_col);
 
     char legend_str[128];
     snprintf(legend_str, sizeof(legend_str), "Connect %s to %s", Utils_GetSideName(desc->side_a),
              Utils_GetSideName(desc->side_b));
-    App_DrawText(gs->font_ibm, legend_str, 20, 106, UI_FONT_HELP, (Color) {166, 173, 200, 255});
+    CGame_DrawText(gs->font_ibm, legend_str, 20, 106, UI_FONT_HELP, (Color) {166, 173, 200, 255});
 
     DrawRectangle(20, 128, 150, 6, (Color) {137, 180, 250, 255});
     DrawRectangle(180, 128, 150, 6, (Color) {250, 179, 135, 255});
@@ -520,14 +374,14 @@ void Render_DrawUI(const GameState *gs) {
     const Rectangle btn_reset = {370.0f, 650.0f, 120.0f, 40.0f};
     const Rectangle btn_menu = {510.0f, 650.0f, 120.0f, 40.0f};
 
-    Render_DrawButton(gs->font_ibm, btn_undo, "UNDO (U)", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255},
-                      CheckCollisionPointRec(mouse, btn_undo));
-    Render_DrawButton(gs->font_ibm, btn_redo, "REDO (Y)", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255},
-                      CheckCollisionPointRec(mouse, btn_redo));
-    Render_DrawButton(gs->font_ibm, btn_reset, "RESET (R)", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255},
-                      CheckCollisionPointRec(mouse, btn_reset));
-    Render_DrawButton(gs->font_ibm, btn_menu, gs->testing_editor_level ? "EDITOR (Esc)" : "MENU (Esc)", (Color) {49, 50, 68, 255},
-                      (Color) {205, 214, 244, 255}, CheckCollisionPointRec(mouse, btn_menu));
+    CGame_DrawButton(gs->font_ibm, btn_undo, "UNDO (U)", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255},
+                      CheckCollisionPointRec(mouse, btn_undo), UI_FONT_BUTTON);
+    CGame_DrawButton(gs->font_ibm, btn_redo, "REDO (Y)", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255},
+                      CheckCollisionPointRec(mouse, btn_redo), UI_FONT_BUTTON);
+    CGame_DrawButton(gs->font_ibm, btn_reset, "RESET (R)", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255},
+                      CheckCollisionPointRec(mouse, btn_reset), UI_FONT_BUTTON);
+    CGame_DrawButton(gs->font_ibm, btn_menu, gs->testing_editor_level ? "EDITOR (Esc)" : "MENU (Esc)", (Color) {49, 50, 68, 255},
+                      (Color) {205, 214, 244, 255}, CheckCollisionPointRec(mouse, btn_menu), UI_FONT_BUTTON);
 
     // Centered Instructions Text
     const char *instr = "Click tower to select | Drag tower to spread";
@@ -537,9 +391,9 @@ void Render_DrawUI(const GameState *gs) {
         instr = "Release to SPREAD";
     }
 
-    const i32 instr_tw = App_MeasureText(gs->font_ibm, instr, UI_FONT_BODY);
+    const i32 instr_tw = CGame_MeasureText(gs->font_ibm, instr, UI_FONT_BODY);
     const i32 instr_x = 360 - (instr_tw / 2);
-    App_DrawText(gs->font_ibm, instr, instr_x, 608, UI_FONT_BODY, (Color) {203, 166, 247, 255});
+    CGame_DrawText(gs->font_ibm, instr, instr_x, 608, UI_FONT_BODY, (Color) {203, 166, 247, 255});
 }
 
 void Render_DrawEditorUI(const GameState *gs) {
@@ -550,11 +404,11 @@ void Render_DrawEditorUI(const GameState *gs) {
     DrawLine(200, 0, 200, 720, (Color) {88, 91, 112, 255});
 
     // Editor Title
-    App_DrawTextScaled(gs->font_ibm, "LEVEL EDITOR", 20, 25, 24, 160, (Color) {250, 179, 135, 255}); // Peach
-    App_DrawTextScaled(gs->font_ibm, "Build your custom level", 20, 57, UI_FONT_BADGE, 160, (Color) {166, 173, 200, 255});
+    CGame_DrawTextScaled(gs->font_ibm, "LEVEL EDITOR", 20, 25, 24, 160, (Color) {250, 179, 135, 255}); // Peach
+    CGame_DrawTextScaled(gs->font_ibm, "Build your custom level", 20, 57, UI_FONT_BADGE, 160, (Color) {166, 173, 200, 255});
 
     // Active Tool selection
-    App_DrawTextScaled(gs->font_ibm, "ACTIVE TOOL", 20, 95, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
+    CGame_DrawTextScaled(gs->font_ibm, "ACTIVE TOOL", 20, 95, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
 
     const Rectangle rect_tool_stones = {20.0f, 120.0f, 160.0f, 26.0f};
     const Rectangle rect_tool_blocked = {20.0f, 150.0f, 160.0f, 26.0f};
@@ -566,55 +420,55 @@ void Render_DrawEditorUI(const GameState *gs) {
     const Color inactive_bg = (Color) {49, 50, 68, 255};
     const Color inactive_fg = (Color) {205, 214, 244, 255};
 
-    Render_DrawButton(gs->font_ibm, rect_tool_stones, "STONES TOOL", (gs->editor_active_tool == 0) ? active_bg : inactive_bg,
+    CGame_DrawButton(gs->font_ibm, rect_tool_stones, "STONES TOOL", (gs->editor_active_tool == 0) ? active_bg : inactive_bg,
                       (gs->editor_active_tool == 0) ? active_fg : inactive_fg,
-                      CheckCollisionPointRec(mouse, rect_tool_stones));
+                      CheckCollisionPointRec(mouse, rect_tool_stones), UI_FONT_BUTTON);
 
-    Render_DrawButton(gs->font_ibm, rect_tool_blocked, "BLOCKED TOOL", (gs->editor_active_tool == 1) ? active_bg : inactive_bg,
+    CGame_DrawButton(gs->font_ibm, rect_tool_blocked, "BLOCKED TOOL", (gs->editor_active_tool == 1) ? active_bg : inactive_bg,
                       (gs->editor_active_tool == 1) ? active_fg : inactive_fg,
-                      CheckCollisionPointRec(mouse, rect_tool_blocked));
+                      CheckCollisionPointRec(mouse, rect_tool_blocked), UI_FONT_BUTTON);
 
-    Render_DrawButton(gs->font_ibm, rect_tool_required, "REQUIRED TOOL", (gs->editor_active_tool == 2) ? active_bg : inactive_bg,
+    CGame_DrawButton(gs->font_ibm, rect_tool_required, "REQUIRED TOOL", (gs->editor_active_tool == 2) ? active_bg : inactive_bg,
                       (gs->editor_active_tool == 2) ? active_fg : inactive_fg,
-                      CheckCollisionPointRec(mouse, rect_tool_required));
+                      CheckCollisionPointRec(mouse, rect_tool_required), UI_FONT_BUTTON);
 
-    Render_DrawButton(gs->font_ibm, rect_tool_goals, "GOAL EDGES TOOL", (gs->editor_active_tool == 3) ? active_bg : inactive_bg,
+    CGame_DrawButton(gs->font_ibm, rect_tool_goals, "GOAL EDGES TOOL", (gs->editor_active_tool == 3) ? active_bg : inactive_bg,
                       (gs->editor_active_tool == 3) ? active_fg : inactive_fg,
-                      CheckCollisionPointRec(mouse, rect_tool_goals));
+                      CheckCollisionPointRec(mouse, rect_tool_goals), UI_FONT_BUTTON);
 
     // Properties
-    App_DrawTextScaled(gs->font_ibm, "PROPERTIES", 20, 255, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
+    CGame_DrawTextScaled(gs->font_ibm, "PROPERTIES", 20, 255, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
 
     const Rectangle rect_radius = {20.0f, 275.0f, 160.0f, 26.0f};
     char rad_str[32];
     snprintf(rad_str, sizeof(rad_str), "RADIUS: %d", gs->editor_board.radius);
-    Render_DrawButton(gs->font_ibm, rect_radius, rad_str, inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, rect_radius));
+    CGame_DrawButton(gs->font_ibm, rect_radius, rad_str, inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, rect_radius), UI_FONT_BUTTON);
 
     const Rectangle rect_side_a = {20.0f, 305.0f, 160.0f, 26.0f};
     char side_a_str[64];
     snprintf(side_a_str, sizeof(side_a_str), "SIDE A: %s", Utils_GetSideString(gs->editor_side_a));
-    Render_DrawButton(gs->font_ibm, rect_side_a, side_a_str, inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, rect_side_a));
+    CGame_DrawButton(gs->font_ibm, rect_side_a, side_a_str, inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, rect_side_a), UI_FONT_BUTTON);
 
     const Rectangle rect_side_b = {20.0f, 335.0f, 160.0f, 26.0f};
     char side_b_str[64];
     snprintf(side_b_str, sizeof(side_b_str), "SIDE B: %s", Utils_GetSideString(gs->editor_side_b));
-    Render_DrawButton(gs->font_ibm, rect_side_b, side_b_str, inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, rect_side_b));
+    CGame_DrawButton(gs->font_ibm, rect_side_b, side_b_str, inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, rect_side_b), UI_FONT_BUTTON);
 
     // Move Limit dec/inc
-    App_DrawTextScaled(gs->font_ibm, "MOVE LIMIT", 20, 375, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
+    CGame_DrawTextScaled(gs->font_ibm, "MOVE LIMIT", 20, 375, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
     const Rectangle rect_moves_dec = {20.0f, 395.0f, 40.0f, 26.0f};
     const Rectangle rect_moves_inc = {140.0f, 395.0f, 40.0f, 26.0f};
-    Render_DrawButton(gs->font_ibm, rect_moves_dec, "-", inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, rect_moves_dec));
-    Render_DrawButton(gs->font_ibm, rect_moves_inc, "+", inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, rect_moves_inc));
+    CGame_DrawButton(gs->font_ibm, rect_moves_dec, "-", inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, rect_moves_dec), UI_FONT_BUTTON);
+    CGame_DrawButton(gs->font_ibm, rect_moves_inc, "+", inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, rect_moves_inc), UI_FONT_BUTTON);
 
     char limit_str[16];
     snprintf(limit_str, sizeof(limit_str), "%d", gs->editor_move_limit);
-    App_DrawText(gs->font_ibm, limit_str, 95 - (App_MeasureText(gs->font_ibm, limit_str, UI_FONT_BODY) / 2), 399, UI_FONT_BODY,
+    CGame_DrawText(gs->font_ibm, limit_str, 95 - (CGame_MeasureText(gs->font_ibm, limit_str, UI_FONT_BODY) / 2), 399, UI_FONT_BODY,
              (Color) {205, 214, 244, 255});
 
     // Palette display depending on tool
     if (gs->editor_active_tool == 0) {
-        App_DrawText(gs->font_ibm, "PLACEMENT STACK", 20, 435, UI_FONT_HELP, (Color) {166, 173, 200, 255});
+        CGame_DrawText(gs->font_ibm, "PLACEMENT STACK", 20, 435, UI_FONT_HELP, (Color) {166, 173, 200, 255});
 
         // Draw the current stack horizontally
         float start_x = 20.0f;
@@ -625,17 +479,17 @@ void Render_DrawEditorUI(const GameState *gs) {
             DrawRectangleLinesEx(stone_rect, 1.0f, (Color) {17, 17, 27, 255});
             char val_lbl[8];
             snprintf(val_lbl, sizeof(val_lbl), "%d", gs->editor_placement_stack[s]);
-            App_DrawText(gs->font_ibm, val_lbl,
-                     (i32) (stone_rect.x + (stone_rect.width / 2.0f) - (float) App_MeasureText(gs->font_ibm, val_lbl, 11) / 2.0f),
+            CGame_DrawText(gs->font_ibm, val_lbl,
+                     (i32) (stone_rect.x + (stone_rect.width / 2.0f) - (float) CGame_MeasureText(gs->font_ibm, val_lbl, 11) / 2.0f),
                      (i32) (stone_rect.y + 4.0f), 11, (Color) {17, 17, 27, 255});
         }
 
         // "CLEAR" button
         Rectangle rect_clear = {140.0f, 433.0f, 40.0f, 18.0f};
-        Render_DrawButton(gs->font_ibm, rect_clear, "CLR", inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, rect_clear));
+        CGame_DrawButton(gs->font_ibm, rect_clear, "CLR", inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, rect_clear), UI_FONT_BUTTON);
 
         // "ADD" values (1, 2, 3, 4, 8, 16, 32, 64)
-        App_DrawTextScaled(gs->font_ibm, "ADD TO STACK", 20, 485, UI_FONT_SMALL, 160, (Color) {166, 173, 200, 255});
+        CGame_DrawTextScaled(gs->font_ibm, "ADD TO STACK", 20, 485, UI_FONT_SMALL, 160, (Color) {166, 173, 200, 255});
         i32 values[] = {1, 2, 3, 4, 8, 16, 32, 64};
         for (i32 v = 0; v < 8; v++) {
             Rectangle val_rect = {20.0f + (float) v * 21.0f, 505.0f, 19.0f, 19.0f};
@@ -644,20 +498,20 @@ void Render_DrawEditorUI(const GameState *gs) {
             DrawRectangleLinesEx(val_rect, 1.0f, (Color) {17, 17, 27, 255});
             char val_lbl[8];
             snprintf(val_lbl, sizeof(val_lbl), "%d", values[v]);
-            App_DrawText(gs->font_ibm, val_lbl, (i32) (val_rect.x + (val_rect.width / 2.0f) - (float) App_MeasureText(gs->font_ibm, val_lbl, 10) / 2.0f),
+            CGame_DrawText(gs->font_ibm, val_lbl, (i32) (val_rect.x + (val_rect.width / 2.0f) - (float) CGame_MeasureText(gs->font_ibm, val_lbl, 10) / 2.0f),
                      (i32) (val_rect.y + 5.0f), 10, (Color) {17, 17, 27, 255});
         }
 
         // Presets
-        App_DrawTextScaled(gs->font_ibm, "PRESETS", 20, 530, UI_FONT_SMALL, 160, (Color) {166, 173, 200, 255});
+        CGame_DrawTextScaled(gs->font_ibm, "PRESETS", 20, 530, UI_FONT_SMALL, 160, (Color) {166, 173, 200, 255});
         Rectangle btn_preset_asc = {20.0f, 545.0f, 75.0f, 18.0f};
         Rectangle btn_preset_desc = {105.0f, 545.0f, 75.0f, 18.0f};
-        Render_DrawButton(gs->font_ibm, btn_preset_asc, "1,2,3,4", inactive_bg, inactive_fg,
-                          CheckCollisionPointRec(mouse, btn_preset_asc));
-        Render_DrawButton(gs->font_ibm, btn_preset_desc, "4,3,2,1", inactive_bg, inactive_fg,
-                          CheckCollisionPointRec(mouse, btn_preset_desc));
+        CGame_DrawButton(gs->font_ibm, btn_preset_asc, "1,2,3,4", inactive_bg, inactive_fg,
+                          CheckCollisionPointRec(mouse, btn_preset_asc), UI_FONT_BUTTON);
+        CGame_DrawButton(gs->font_ibm, btn_preset_desc, "4,3,2,1", inactive_bg, inactive_fg,
+                          CheckCollisionPointRec(mouse, btn_preset_desc), UI_FONT_BUTTON);
     } else if (gs->editor_active_tool == 2) {
-        App_DrawTextScaled(gs->font_ibm, "REQUIRED VALUE", 20, 440, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
+        CGame_DrawTextScaled(gs->font_ibm, "REQUIRED VALUE", 20, 440, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
         i32 values[] = {2, 4, 8, 16, 32, 64};
         for (i32 v = 0; v < 6; v++) {
             Rectangle val_rect = {20.0f + (float) v * 27.0f, 465.0f, 25.0f, 25.0f};
@@ -668,7 +522,7 @@ void Render_DrawEditorUI(const GameState *gs) {
                                  is_selected ? (Color) {249, 226, 175, 255} : (Color) {17, 17, 27, 255});
             char val_lbl[8];
             snprintf(val_lbl, sizeof(val_lbl), "%d", values[v]);
-            App_DrawText(gs->font_ibm, val_lbl, (i32) (val_rect.x + (val_rect.width / 2.0f) - (float) App_MeasureText(gs->font_ibm, val_lbl, 11) / 2.0f),
+            CGame_DrawText(gs->font_ibm, val_lbl, (i32) (val_rect.x + (val_rect.width / 2.0f) - (float) CGame_MeasureText(gs->font_ibm, val_lbl, 11) / 2.0f),
                      (i32) (val_rect.y + 7.0f), 11, (Color) {17, 17, 27, 255});
         }
     }
@@ -678,18 +532,18 @@ void Render_DrawEditorUI(const GameState *gs) {
     const Rectangle btn_export = {20.0f, 620.0f, 160.0f, 35.0f};
     const Rectangle btn_menu = {20.0f, 665.0f, 160.0f, 35.0f};
 
-    Render_DrawButton(gs->font_ibm, btn_test, "TEST LEVEL", (Color) {166, 227, 161, 255}, (Color) {30, 30, 46, 255},
-                      CheckCollisionPointRec(mouse, btn_test));
-    Render_DrawButton(gs->font_ibm, btn_export, "EXPORT", (Color) {203, 166, 247, 255}, (Color) {30, 30, 46, 255},
-                      CheckCollisionPointRec(mouse, btn_export));
-    Render_DrawButton(gs->font_ibm, btn_menu, "MAIN MENU", inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, btn_menu));
+    CGame_DrawButton(gs->font_ibm, btn_test, "TEST LEVEL", (Color) {166, 227, 161, 255}, (Color) {30, 30, 46, 255},
+                      CheckCollisionPointRec(mouse, btn_test), UI_FONT_BUTTON);
+    CGame_DrawButton(gs->font_ibm, btn_export, "EXPORT", (Color) {203, 166, 247, 255}, (Color) {30, 30, 46, 255},
+                      CheckCollisionPointRec(mouse, btn_export), UI_FONT_BUTTON);
+    CGame_DrawButton(gs->font_ibm, btn_menu, "MAIN MENU", inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, btn_menu), UI_FONT_BUTTON);
 
     // Display Help Text
     if (gs->editor_active_tool == 3) {
-        App_DrawTextScaled(gs->font_ibm, "L-Click: Set Goal Side A", 230, 20, UI_FONT_HELP, 450, (Color) {166, 173, 200, 255});
-        App_DrawTextScaled(gs->font_ibm, "R-Click: Set Goal Side B", 230, 42, UI_FONT_HELP, 450, (Color) {166, 173, 200, 255});
+        CGame_DrawTextScaled(gs->font_ibm, "L-Click: Set Goal Side A", 230, 20, UI_FONT_HELP, 450, (Color) {166, 173, 200, 255});
+        CGame_DrawTextScaled(gs->font_ibm, "R-Click: Set Goal Side B", 230, 42, UI_FONT_HELP, 450, (Color) {166, 173, 200, 255});
     } else {
-        App_DrawTextScaled(gs->font_ibm, "L-Click: Place Stone/Block/Req", 230, 20, UI_FONT_HELP, 450, (Color) {166, 173, 200, 255});
-        App_DrawTextScaled(gs->font_ibm, "R-Click: Clear Stack/Block/Req", 230, 42, UI_FONT_HELP, 450, (Color) {166, 173, 200, 255});
+        CGame_DrawTextScaled(gs->font_ibm, "L-Click: Place Stone/Block/Req", 230, 20, UI_FONT_HELP, 450, (Color) {166, 173, 200, 255});
+        CGame_DrawTextScaled(gs->font_ibm, "R-Click: Clear Stack/Block/Req", 230, 42, UI_FONT_HELP, 450, (Color) {166, 173, 200, 255});
     }
 }

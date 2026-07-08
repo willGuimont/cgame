@@ -52,11 +52,13 @@ add_library(cgame
         src/cgame/utils/dynamic_array.h
         src/cgame/utils/string_view.h
         src/cgame/utils/vectori.h
+        src/cgame/utils/draw.h
         src/cgame/world.h
         src/cgame/entity.c
         src/cgame/game_loop.c
         src/cgame/stb_impl.c
         src/cgame/utils/arena.c
+        src/cgame/utils/draw.c
         src/cgame/world.c
         src/cgame/utils/bitset.h
         src/cgame/hex.c

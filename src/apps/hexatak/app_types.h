@@ -2,6 +2,7 @@
 
 #include "game.h"
 #include "raylib.h"
+#include "utils/draw.h"
 
 constexpr i32 MAX_HISTORY = 256;
 
@@ -88,7 +89,3 @@ typedef struct {
     Font font_roboto;
 } GameState;
 
-// Text wrappers
-void App_DrawText(Font font, const char *text, int pos_x, int pos_y, int font_size, Color color);
-int App_MeasureText(Font font, const char *text, int font_size);
-void App_DrawTextScaled(Font font, const char *text, int pos_x, int pos_y, int base_font_size, int max_width, Color color);
