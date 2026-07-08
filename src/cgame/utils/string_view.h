@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <limits.h>
 #include <string.h>
+#include "common.h"
 
 typedef struct {
     const char *data;

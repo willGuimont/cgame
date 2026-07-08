@@ -94,31 +94,35 @@ void Level_Reset(GameState *gs) {
     gs->redo.head = 0;
     gs->redo.tail = 0;
 
-    const LevelDesc *desc = &LEVELS[gs->current_level_idx];
-    Board_Init(&gs->board, desc->radius);
+    if (gs->testing_editor_level) {
+        gs->board = gs->editor_board;
+    } else {
+        const LevelDesc *desc = &LEVELS[gs->current_level_idx];
+        Board_Init(&gs->board, desc->radius);
 
-    for (i32 i = 0; i < desc->blocked_count; i++) {
-        const i32 idx = Board_FindCellIndex(&gs->board, desc->blocked_hexes[i]);
-        if (idx >= 0) {
-            gs->board.cells[idx].blocked = true;
-        }
-    }
-
-    for (i32 i = 0; i < desc->initial_stack_count; i++) {
-        const i32 idx = Board_FindCellIndex(&gs->board, desc->initial_stacks[i].hex);
-        if (idx >= 0) {
-            Cell *cell = &gs->board.cells[idx];
-            cell->count = desc->initial_stacks[i].count;
-            for (i32 s = 0; s < cell->count; s++) {
-                cell->stones[s].value = desc->initial_stacks[i].stone_values[s];
+        for (int i = 0; i < desc->blocked_count; i++) {
+            const int idx = Board_FindCellIndex(&gs->board, desc->blocked_hexes[i]);
+            if (idx >= 0) {
+                gs->board.cells[idx].blocked = true;
             }
         }
-    }
 
-    for (i32 i = 0; i < desc->required_count; i++) {
-        const i32 idx = Board_FindCellIndex(&gs->board, desc->required_hexes[i].hex);
-        if (idx >= 0) {
-            gs->board.cells[idx].required_value = desc->required_hexes[i].required_value;
+        for (int i = 0; i < desc->initial_stack_count; i++) {
+            const int idx = Board_FindCellIndex(&gs->board, desc->initial_stacks[i].hex);
+            if (idx >= 0) {
+                Cell *cell = &gs->board.cells[idx];
+                cell->count = desc->initial_stacks[i].count;
+                for (int s = 0; s < cell->count; s++) {
+                    cell->stones[s].value = desc->initial_stacks[i].stone_values[s];
+                }
+            }
+        }
+
+        for (int i = 0; i < desc->required_count; i++) {
+            const int idx = Board_FindCellIndex(&gs->board, desc->required_hexes[i].hex);
+            if (idx >= 0) {
+                gs->board.cells[idx].required_value = desc->required_hexes[i].required_value;
+            }
         }
     }
 

@@ -294,7 +294,7 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
         }
     }
 
-    // Pass 2: Draw cell fills, borders, previews and stone stacks
+    // Pass 2: Draw cell fills, borders, and required ring outlines
     for (i32 i = 0; i < board->count; i++) {
         const Cell *cell = &board->cells[i];
 
@@ -368,6 +368,47 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
             ring_col.a = 60;
             DrawCircleLinesV(center, size * 0.55f, ring_col);
             DrawCircleLinesV(center, size * 0.35f, (Color) {ring_col.r, ring_col.g, ring_col.b, 30});
+        }
+    }
+
+    // Pass 3: Draw all stone stacks, previews, required badges and warning badges on top of everything
+    for (i32 i = 0; i < board->count; i++) {
+        const Cell *cell = &board->cells[i];
+
+        const HexLayout layout = {
+                .orientation = HEX_ORIENTATION_POINTY, .size = size, .origin = (HexPoint) {origin.x, origin.y}};
+        const HexPoint hp = Hex_ToPixel(layout, cell->hex);
+        const Vector2 center = {hp.x, hp.y};
+
+        bool is_active_path = false;
+        float pulse = 0.0f;
+        if (!is_editor && gs->win_animation_active) {
+            i32 cell_idx_in_path = -1;
+            for (i32 p = 0; p < gs->win_path_len; p++) {
+                if (gs->win_path[p] == i) {
+                    cell_idx_in_path = p;
+                    break;
+                }
+            }
+            if (cell_idx_in_path >= 0) {
+                float cell_duration = 0.15f;
+                float cell_activation_time = (float) cell_idx_in_path * cell_duration;
+                if (gs->win_animation_timer >= cell_activation_time) {
+                    is_active_path = true;
+                    float active_time = gs->win_animation_timer - cell_activation_time;
+                    pulse = (expf(-active_time * 5.0f) * 0.5f) + (0.15f * sinf(active_time * 8.0f));
+                    if (pulse < -0.15f)
+                        pulse = -0.15f;
+                }
+            }
+        } else if (!is_editor && gs->level_won) {
+            for (i32 p = 0; p < gs->win_path_len; p++) {
+                if (gs->win_path[p] == i) {
+                    is_active_path = true;
+                    pulse = 0.15f * sinf(gs->anim_time * 5.0f);
+                    break;
+                }
+            }
         }
 
         bool draw_preview = false;

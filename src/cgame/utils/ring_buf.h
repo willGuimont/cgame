@@ -3,6 +3,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include "common.h"
 
 typedef struct {
     i32 *items;
