@@ -89,5 +89,6 @@ typedef struct {
 } GameState;
 
 // Text wrappers
-void App_DrawText(Font font, const char *text, int posX, int posY, int fontSize, Color color);
+void App_DrawText(Font font, const char *text, int pos_x, int pos_y, int font_size, Color color);
 int App_MeasureText(Font font, const char *text, int font_size);
+void App_DrawTextScaled(Font font, const char *text, int pos_x, int pos_y, int base_font_size, int max_width, Color color);

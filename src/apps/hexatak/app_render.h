@@ -3,14 +3,14 @@
 #include "app_types.h"
 
 enum {
-    UI_FONT_BADGE = 13 ,
-    UI_FONT_BODY = 18 ,
-    UI_FONT_BUTTON = 18 ,
-    UI_FONT_HELP = 16 ,
-    UI_FONT_SMALL = 15 ,
-    UI_FONT_STONE = 16 ,
-    UI_FONT_TIP = 18 ,
-    UI_LINE_TIP = 7 ,
+    UI_FONT_BADGE = 19,
+    UI_FONT_BODY = 25,
+    UI_FONT_BUTTON = 25,
+    UI_FONT_HELP = 21,
+    UI_FONT_SMALL = 21,
+    UI_FONT_STONE = 23,
+    UI_FONT_TIP = 25,
+    UI_LINE_TIP = 9,
 };
 
 i32 Utils_MeasureTextWrappedHeight(Font font, const char *text, i32 max_width, i32 font_size, i32 line_spacing);

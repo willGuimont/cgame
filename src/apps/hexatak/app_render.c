@@ -226,12 +226,17 @@ void Render_DrawButton(const Font font, const Rectangle rect, const char *text, 
     DrawRectangleRec(rect, bg);
     DrawRectangleLinesEx(rect, 2.0f, hovered ? (Color) {249, 226, 175, 255} : (Color) {88, 91, 112, 255});
 
-    constexpr i32 FONT_SZ = UI_FONT_BUTTON;
-    const i32 tw = App_MeasureText(font, text, FONT_SZ);
-    const i32 text_x = (i32) (rect.x + (rect.width / 2.0f) - ((float) tw / 2.0f));
-    const i32 text_y = (i32) (rect.y + (rect.height / 2.0f) - ((float) FONT_SZ / 2.0f));
+    i32 font_size = UI_FONT_BUTTON;
+    i32 tw = App_MeasureText(font, text, font_size);
+    while (font_size > 8 && tw > (i32)rect.width - 12) {
+        font_size--;
+        tw = App_MeasureText(font, text, font_size);
+    }
 
-    App_DrawText(font, text, text_x, text_y, FONT_SZ, text_col);
+    const i32 text_x = (i32) (rect.x + (rect.width / 2.0f) - ((float) tw / 2.0f));
+    const i32 text_y = (i32) (rect.y + (rect.height / 2.0f) - ((float) font_size / 2.0f));
+
+    App_DrawText(font, text, text_x, text_y, font_size, text_col);
 }
 
 void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
@@ -492,8 +497,8 @@ void Render_DrawUI(const GameState *gs) {
     const LevelDesc *desc = &LEVELS[gs->current_level_idx];
 
     App_DrawText(gs->font_roboto, "HEXATAK", 20, 15, 34, (Color) {250, 179, 135, 255});
-    App_DrawText(gs->font_ibm, desc->name, 20, 52, 22, (Color) {205, 214, 244, 255});
-    App_DrawText(gs->font_ibm, desc->description, 20, 80, UI_FONT_SMALL, (Color) {166, 173, 200, 255});
+    App_DrawTextScaled(gs->font_ibm, desc->name, 20, 52, 22, 500, (Color) {205, 214, 244, 255});
+    App_DrawTextScaled(gs->font_ibm, desc->description, 20, 80, UI_FONT_SMALL, 500, (Color) {166, 173, 200, 255});
 
     char move_str[64];
     snprintf(move_str, sizeof(move_str), "Moves: %d / %d", gs->move_count, desc->move_limit);
@@ -545,11 +550,11 @@ void Render_DrawEditorUI(const GameState *gs) {
     DrawLine(200, 0, 200, 720, (Color) {88, 91, 112, 255});
 
     // Editor Title
-    App_DrawText(gs->font_ibm, "LEVEL EDITOR", 20, 25, 24, (Color) {250, 179, 135, 255}); // Peach
-    App_DrawText(gs->font_ibm, "Build your custom level", 20, 57, UI_FONT_BADGE, (Color) {166, 173, 200, 255});
+    App_DrawTextScaled(gs->font_ibm, "LEVEL EDITOR", 20, 25, 24, 160, (Color) {250, 179, 135, 255}); // Peach
+    App_DrawTextScaled(gs->font_ibm, "Build your custom level", 20, 57, UI_FONT_BADGE, 160, (Color) {166, 173, 200, 255});
 
     // Active Tool selection
-    App_DrawText(gs->font_ibm, "ACTIVE TOOL", 20, 95, UI_FONT_HELP, (Color) {166, 173, 200, 255});
+    App_DrawTextScaled(gs->font_ibm, "ACTIVE TOOL", 20, 95, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
 
     const Rectangle rect_tool_stones = {20.0f, 120.0f, 160.0f, 26.0f};
     const Rectangle rect_tool_blocked = {20.0f, 150.0f, 160.0f, 26.0f};
@@ -578,7 +583,7 @@ void Render_DrawEditorUI(const GameState *gs) {
                       CheckCollisionPointRec(mouse, rect_tool_goals));
 
     // Properties
-    App_DrawText(gs->font_ibm, "PROPERTIES", 20, 255, UI_FONT_HELP, (Color) {166, 173, 200, 255});
+    App_DrawTextScaled(gs->font_ibm, "PROPERTIES", 20, 255, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
 
     const Rectangle rect_radius = {20.0f, 275.0f, 160.0f, 26.0f};
     char rad_str[32];
@@ -596,7 +601,7 @@ void Render_DrawEditorUI(const GameState *gs) {
     Render_DrawButton(gs->font_ibm, rect_side_b, side_b_str, inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, rect_side_b));
 
     // Move Limit dec/inc
-    App_DrawText(gs->font_ibm, "MOVE LIMIT", 20, 375, UI_FONT_HELP, (Color) {166, 173, 200, 255});
+    App_DrawTextScaled(gs->font_ibm, "MOVE LIMIT", 20, 375, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
     const Rectangle rect_moves_dec = {20.0f, 395.0f, 40.0f, 26.0f};
     const Rectangle rect_moves_inc = {140.0f, 395.0f, 40.0f, 26.0f};
     Render_DrawButton(gs->font_ibm, rect_moves_dec, "-", inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, rect_moves_dec));
@@ -630,7 +635,7 @@ void Render_DrawEditorUI(const GameState *gs) {
         Render_DrawButton(gs->font_ibm, rect_clear, "CLR", inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, rect_clear));
 
         // "ADD" values (1, 2, 3, 4, 8, 16, 32, 64)
-        App_DrawText(gs->font_ibm, "ADD TO STACK", 20, 485, UI_FONT_SMALL, (Color) {166, 173, 200, 255});
+        App_DrawTextScaled(gs->font_ibm, "ADD TO STACK", 20, 485, UI_FONT_SMALL, 160, (Color) {166, 173, 200, 255});
         i32 values[] = {1, 2, 3, 4, 8, 16, 32, 64};
         for (i32 v = 0; v < 8; v++) {
             Rectangle val_rect = {20.0f + (float) v * 21.0f, 505.0f, 19.0f, 19.0f};
@@ -644,7 +649,7 @@ void Render_DrawEditorUI(const GameState *gs) {
         }
 
         // Presets
-        App_DrawText(gs->font_ibm, "PRESETS", 20, 530, UI_FONT_SMALL, (Color) {166, 173, 200, 255});
+        App_DrawTextScaled(gs->font_ibm, "PRESETS", 20, 530, UI_FONT_SMALL, 160, (Color) {166, 173, 200, 255});
         Rectangle btn_preset_asc = {20.0f, 545.0f, 75.0f, 18.0f};
         Rectangle btn_preset_desc = {105.0f, 545.0f, 75.0f, 18.0f};
         Render_DrawButton(gs->font_ibm, btn_preset_asc, "1,2,3,4", inactive_bg, inactive_fg,
@@ -652,7 +657,7 @@ void Render_DrawEditorUI(const GameState *gs) {
         Render_DrawButton(gs->font_ibm, btn_preset_desc, "4,3,2,1", inactive_bg, inactive_fg,
                           CheckCollisionPointRec(mouse, btn_preset_desc));
     } else if (gs->editor_active_tool == 2) {
-        App_DrawText(gs->font_ibm, "REQUIRED VALUE", 20, 440, UI_FONT_HELP, (Color) {166, 173, 200, 255});
+        App_DrawTextScaled(gs->font_ibm, "REQUIRED VALUE", 20, 440, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
         i32 values[] = {2, 4, 8, 16, 32, 64};
         for (i32 v = 0; v < 6; v++) {
             Rectangle val_rect = {20.0f + (float) v * 27.0f, 465.0f, 25.0f, 25.0f};
@@ -681,10 +686,10 @@ void Render_DrawEditorUI(const GameState *gs) {
 
     // Display Help Text
     if (gs->editor_active_tool == 3) {
-        App_DrawText(gs->font_ibm, "L-Click: Set Goal Side A", 230, 20, UI_FONT_HELP, (Color) {166, 173, 200, 255});
-        App_DrawText(gs->font_ibm, "R-Click: Set Goal Side B", 230, 42, UI_FONT_HELP, (Color) {166, 173, 200, 255});
+        App_DrawTextScaled(gs->font_ibm, "L-Click: Set Goal Side A", 230, 20, UI_FONT_HELP, 450, (Color) {166, 173, 200, 255});
+        App_DrawTextScaled(gs->font_ibm, "R-Click: Set Goal Side B", 230, 42, UI_FONT_HELP, 450, (Color) {166, 173, 200, 255});
     } else {
-        App_DrawText(gs->font_ibm, "L-Click: Place Stone/Block/Req", 230, 20, UI_FONT_HELP, (Color) {166, 173, 200, 255});
-        App_DrawText(gs->font_ibm, "R-Click: Clear Stack/Block/Req", 230, 42, UI_FONT_HELP, (Color) {166, 173, 200, 255});
+        App_DrawTextScaled(gs->font_ibm, "L-Click: Place Stone/Block/Req", 230, 20, UI_FONT_HELP, 450, (Color) {166, 173, 200, 255});
+        App_DrawTextScaled(gs->font_ibm, "R-Click: Clear Stack/Block/Req", 230, 42, UI_FONT_HELP, 450, (Color) {166, 173, 200, 255});
     }
 }

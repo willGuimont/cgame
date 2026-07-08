@@ -58,6 +58,17 @@ int App_MeasureText(const Font font, const char *text, const int font_size) {
     return MeasureText(text, font_size);
 }
 
+void App_DrawTextScaled(const Font font, const char *text, const int pos_x, const int pos_y, const int base_font_size,
+                        const int max_width, const Color color) {
+    i32 font_size = base_font_size;
+    i32 tw = App_MeasureText(font, text, font_size);
+    while (font_size > 8 && tw > max_width) {
+        font_size--;
+        tw = App_MeasureText(font, text, font_size);
+    }
+    App_DrawText(font, text, pos_x, pos_y, font_size, color);
+}
+
 static i32 Board_CountStones(const Board *board) {
     i32 count = 0;
     for (i32 i = 0; i < board->count; i++) {
@@ -1016,7 +1027,8 @@ static void App_Draw(void *state, f32 alpha) {
             snprintf(lvl_num_str, sizeof(lvl_num_str), "LEVEL %d", i + 1);
             App_DrawText(gs->font_ibm, lvl_num_str, (i32) (x + 15), (i32) (y + 10), UI_FONT_HELP,
                          (Color) {166, 173, 200, 255});
-            App_DrawText(gs->font_ibm, LEVELS[i].name, (i32) (x + 15), (i32) (y + 34), UI_FONT_BODY,
+            float max_w = gs->level_completed[i] ? (CARD_W - 105.0f) : (CARD_W - 30.0f);
+            App_DrawTextScaled(gs->font_ibm, LEVELS[i].name, (i32) (x + 15), (i32) (y + 34), UI_FONT_BODY, (i32) max_w,
                          (Color) {205, 214, 244, 255});
 
             if (gs->level_completed[i]) {
