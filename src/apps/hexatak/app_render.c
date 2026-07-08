@@ -86,9 +86,9 @@ void Render_DrawStoneStack(const Font font, const Cell *cell, const Vector2 cent
         DrawCircleLinesV(stone_center, final_radius, outline);
 
         if (i == cell->count - 1 && cell->required_value > 0 && cell->stones[i].value != cell->required_value) {
-            DrawCircleLinesV(stone_center, final_radius + 2.0f, (Color) {243, 139, 168, (unsigned char) alpha});
+            DrawCircleLinesV(stone_center, final_radius + 1.0f, (Color) {243, 139, 168, (unsigned char) (alpha * 6 / 10)});
             DrawCircleLinesV(stone_center, final_radius + 3.0f,
-                             (Color) {243, 139, 168, (unsigned char) (alpha * 6 / 10)});
+                             (Color) {243, 139, 168, (unsigned char) (alpha * 35 / 100)});
         }
 
         char val_str[16];
@@ -306,30 +306,33 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
 
         if (cell->required_value > 0) {
             Color req_col = Utils_GetStoneColor(cell->required_value);
-            Vector2 badge_center = {center.x, center.y + size * 0.70f};
-            float badge_r = 11.0f;
+            Vector2 badge_center = {center.x + size * 0.44f, center.y + size * 0.50f};
+            float badge_r = fminf(13.0f, fmaxf(10.0f, size * 0.32f));
 
-            DrawCircleV(badge_center, badge_r, (Color) {30, 30, 46, 255});
+            DrawCircleV(badge_center, badge_r, (Color) {30, 30, 46, 230});
             DrawCircleLinesV(badge_center, badge_r, req_col);
 
             char req_str[16];
             snprintf(req_str, sizeof(req_str), "%d", cell->required_value);
-            constexpr i32 REQ_FONT_SZ = UI_FONT_BADGE;
-            i32 req_tw = CGame_MeasureText(gs->font_ibm, req_str, REQ_FONT_SZ);
+            const i32 req_font_sz = (i32) fminf((float) UI_FONT_BADGE, fmaxf(14.0f, badge_r * 1.15f));
+            i32 req_tw = CGame_MeasureText(gs->font_ibm, req_str, req_font_sz);
             CGame_DrawText(gs->font_ibm, req_str, (i32) (badge_center.x - (float) req_tw / 2.0f),
-                     (i32) (badge_center.y - (float) REQ_FONT_SZ / 2.0f), REQ_FONT_SZ, req_col);
+                     (i32) (badge_center.y - (float) req_font_sz / 2.0f), req_font_sz, req_col);
 
             const Cell *disp_cell = draw_preview ? &gs->preview_board.cells[i] : cell;
             if (disp_cell->count > 0) {
                 const i32 top_val = disp_cell->stones[disp_cell->count - 1].value;
                 if (top_val != cell->required_value) {
-                    Render_DrawHex(center, size - 2.0f, (Color) {0, 0, 0, 0}, (Color) {243, 139, 168, 200});
+                    Render_DrawHex(center, size - 3.0f, (Color) {0, 0, 0, 0}, (Color) {243, 139, 168, 100});
 
-                    Vector2 warn_center = {badge_center.x + 13.0f, badge_center.y};
-                    float warn_r = 7.0f;
-                    DrawCircleV(warn_center, warn_r, (Color) {243, 139, 168, 255});
+                    Vector2 warn_center = {badge_center.x + badge_r * 0.85f, badge_center.y - badge_r * 0.85f};
+                    float warn_r = fmaxf(5.0f, badge_r * 0.55f);
+                    DrawCircleV(warn_center, warn_r, (Color) {243, 139, 168, 230});
                     DrawCircleLinesV(warn_center, warn_r, (Color) {17, 17, 27, 255});
-                    CGame_DrawText(gs->font_ibm, "!", (i32) (warn_center.x - 3.0f), (i32) (warn_center.y - 6.0f), 12,
+                    const i32 warn_font_sz = (i32) fmaxf(9.0f, warn_r * 1.5f);
+                    const i32 warn_tw = CGame_MeasureText(gs->font_ibm, "!", warn_font_sz);
+                    CGame_DrawText(gs->font_ibm, "!", (i32) (warn_center.x - (float) warn_tw / 2.0f),
+                             (i32) (warn_center.y - (float) warn_font_sz / 2.0f), warn_font_sz,
                              (Color) {17, 17, 27, 255});
                 }
             }

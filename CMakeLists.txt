@@ -100,7 +100,7 @@ set(CGAME_APP_TARGETS)
 
 function(add_cgame_app target_name app_dir)
     set(options)
-    set(one_value_args TITLE DESCRIPTION)
+    set(one_value_args TITLE DESCRIPTION WEB_DIR)
     set(multi_value_args)
     cmake_parse_arguments(APP "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
@@ -112,9 +112,16 @@ function(add_cgame_app target_name app_dir)
         set(APP_DESCRIPTION "")
     endif ()
 
+    if (NOT APP_WEB_DIR)
+        set(APP_WEB_DIR "${CMAKE_SOURCE_DIR}/web/${target_name}")
+    elseif (NOT IS_ABSOLUTE "${APP_WEB_DIR}")
+        set(APP_WEB_DIR "${CMAKE_SOURCE_DIR}/${APP_WEB_DIR}")
+    endif ()
+
     set_property(GLOBAL APPEND PROPERTY CGAME_APP_TARGETS "${target_name}")
     set_property(GLOBAL PROPERTY "CGAME_APP_${target_name}_TITLE" "${APP_TITLE}")
     set_property(GLOBAL PROPERTY "CGAME_APP_${target_name}_DESCRIPTION" "${APP_DESCRIPTION}")
+    set_property(GLOBAL PROPERTY "CGAME_APP_${target_name}_WEB_DIR" "${APP_WEB_DIR}")
 
     target_include_directories(${target_name}
             PRIVATE
@@ -151,17 +158,34 @@ function(add_cgame_app target_name app_dir)
     )
 
     if (CGAME_WEB)
-        set_target_properties(${target_name} PROPERTIES SUFFIX ".html")
+        set(app_web_output_dir "${CMAKE_BINARY_DIR}/${target_name}")
+        set(app_shell_file "${APP_WEB_DIR}/minshell.html")
+
+        if (NOT EXISTS "${app_shell_file}")
+            message(FATAL_ERROR "Missing web shell for ${target_name}: ${app_shell_file}")
+        endif ()
+
+        set_target_properties(${target_name} PROPERTIES
+                OUTPUT_NAME "index"
+                RUNTIME_OUTPUT_DIRECTORY "${app_web_output_dir}"
+                SUFFIX ".html"
+        )
 
         target_link_options(${target_name} PRIVATE
                 "-sUSE_GLFW=3"
                 "-sWASM=1"
                 "-sTOTAL_MEMORY=67108864"
-                "--shell-file" "${CMAKE_SOURCE_DIR}/web/minshell.html"
+                "--shell-file" "${app_shell_file}"
         )
 
         set_target_properties(${target_name} PROPERTIES
-                LINK_DEPENDS "${CMAKE_SOURCE_DIR}/web/minshell.html"
+                LINK_DEPENDS "${app_shell_file}"
+        )
+
+        file(COPY "${APP_WEB_DIR}/"
+                DESTINATION "${app_web_output_dir}"
+                PATTERN "minshell.html" EXCLUDE
+                PATTERN "index.html.in" EXCLUDE
         )
 
         file(GLOB_RECURSE CGAME_ASSET_FILES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/assets/*")
@@ -188,12 +212,34 @@ function(cgame_generate_web_index)
     get_property(apps GLOBAL PROPERTY CGAME_APP_TARGETS)
 
     set(CGAME_WEB_APP_CARDS "")
+    set(CGAME_WEB_INDEX_TEMPLATE "${CMAKE_SOURCE_DIR}/web/index.html.in")
+    set(CGAME_WEB_INDEX_FAVICON "")
 
-    configure_file(
-            ${CMAKE_SOURCE_DIR}/web/favicon.svg
-            ${CMAKE_BINARY_DIR}/favicon.svg
-            COPYONLY
-    )
+    if (NOT EXISTS "${CGAME_WEB_INDEX_TEMPLATE}")
+        foreach (app IN LISTS apps)
+            get_property(web_dir GLOBAL PROPERTY "CGAME_APP_${app}_WEB_DIR")
+            if (EXISTS "${web_dir}/index.html.in")
+                set(CGAME_WEB_INDEX_TEMPLATE "${web_dir}/index.html.in")
+                break()
+            endif ()
+        endforeach()
+    endif ()
+
+    foreach (app IN LISTS apps)
+        get_property(web_dir GLOBAL PROPERTY "CGAME_APP_${app}_WEB_DIR")
+        if (EXISTS "${web_dir}/favicon.svg")
+            set(CGAME_WEB_INDEX_FAVICON "${web_dir}/favicon.svg")
+            break()
+        endif ()
+    endforeach()
+
+    if (CGAME_WEB_INDEX_FAVICON)
+        configure_file(
+                "${CGAME_WEB_INDEX_FAVICON}"
+                "${CMAKE_BINARY_DIR}/favicon.svg"
+                COPYONLY
+        )
+    endif ()
 
     foreach (app IN LISTS apps)
         get_property(title GLOBAL PROPERTY "CGAME_APP_${app}_TITLE")
@@ -204,7 +250,7 @@ function(cgame_generate_web_index)
         endif()
 
         string(APPEND CGAME_WEB_APP_CARDS
-                "        <a class=\"card\" href=\"${app}.html\">\n"
+                "        <a class=\"card\" href=\"${app}/\">\n"
                 "            <h2>${title}</h2>\n"
         )
 
@@ -215,13 +261,17 @@ function(cgame_generate_web_index)
         endif()
 
         string(APPEND CGAME_WEB_APP_CARDS
-                "            <code>${app}.html</code>\n"
+                "            <code>${app}/</code>\n"
                 "        </a>\n"
         )
     endforeach()
 
+    if (NOT EXISTS "${CGAME_WEB_INDEX_TEMPLATE}")
+        message(FATAL_ERROR "Missing web index template. Expected ${CGAME_WEB_INDEX_TEMPLATE} or an app WEB_DIR index.html.in")
+    endif ()
+
     configure_file(
-            ${CMAKE_SOURCE_DIR}/web/index.html.in
+            "${CGAME_WEB_INDEX_TEMPLATE}"
             ${CMAKE_BINARY_DIR}/index.html
             @ONLY
     )
@@ -244,11 +294,12 @@ add_executable(hexatak
         src/apps/hexatak/game.h
         src/apps/hexatak/game.c
         src/cgame/hex.h
-        web/minshell.html
+        web/hexatak/minshell.html
 )
 add_cgame_app(hexatak hexatak
         TITLE "Hexatak"
         DESCRIPTION "Hexagonal Tak-inspired puzzle game."
+        WEB_DIR "web/hexatak"
 )
 
 get_property(CGAME_APP_TARGETS GLOBAL PROPERTY CGAME_APP_TARGETS)

@@ -117,7 +117,7 @@ static bool App_Init(void *state) {
     // Initialize editor variables
     gs->editor_side_a = SIDE_Q_NEG;
     gs->editor_side_b = SIDE_Q_POS;
-    gs->editor_move_limit = 2;
+    gs->editor_move_limit = 0;
     gs->editor_active_tool = 0;
     gs->editor_selected_stone_value = 1;
     gs->editor_selected_required_value = 2;

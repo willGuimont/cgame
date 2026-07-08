@@ -35,12 +35,14 @@ echo "==> Staging site..."
 find "$WORKTREE_DIR" -mindepth 1 -not -path '*/.git*' -delete 2>/dev/null || true
 
 cp "$BUILD_DIR"/index.html "$WORKTREE_DIR"/
-cp "$BUILD_DIR"/*.html "$WORKTREE_DIR"/
-cp "$BUILD_DIR"/*.js "$WORKTREE_DIR"/
-cp "$BUILD_DIR"/*.wasm "$WORKTREE_DIR"/
-cp "$BUILD_DIR"/*.data "$WORKTREE_DIR"/ 2>/dev/null || true
-cp "$BUILD_DIR"/*.worker.js "$WORKTREE_DIR"/ 2>/dev/null || true
 cp "$BUILD_DIR"/favicon.* "$WORKTREE_DIR"/ 2>/dev/null || true
+
+for app_index in "$BUILD_DIR"/*/index.html; do
+  app_dir="$(dirname "$app_index")"
+  app_name="$(basename "$app_dir")"
+  rm -rf "$WORKTREE_DIR/$app_name"
+  cp -R "$app_dir" "$WORKTREE_DIR/$app_name"
+done
 
 echo "==> Committing and pushing..."
 

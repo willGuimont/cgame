@@ -17,4 +17,10 @@ emcmake cmake \
 cmake --build "$BUILD_DIR" --target "$TARGET" --parallel
 
 echo "==> Web build complete."
-echo "==> Open: $BUILD_DIR/index.html"
+if [[ "$TARGET" == "all_apps" ]]; then
+  echo "==> Open: $BUILD_DIR/index.html"
+elif [[ -f "$BUILD_DIR/$TARGET/index.html" ]]; then
+  echo "==> Open: $BUILD_DIR/$TARGET/index.html"
+else
+  echo "==> Open: $BUILD_DIR/index.html"
+fi
