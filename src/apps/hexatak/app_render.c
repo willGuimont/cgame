@@ -43,6 +43,15 @@ static Color Utils_GetStoneColor(const i32 value) {
     }
 }
 
+static const char *Utils_GetMoveLimitString(const i32 move_limit, char *buf, const size_t size) {
+    if (move_limit == 0) {
+        return "∞";
+    }
+
+    snprintf(buf, size, "%d", move_limit);
+    return buf;
+}
+
 void Render_DrawHex(const Vector2 center, const float size, const Color fill_color, const Color outline_color) {
     DrawPoly(center, 6, size, 30.0f, fill_color);
     if (outline_color.a > 0) {
@@ -355,9 +364,12 @@ void Render_DrawUI(const GameState *gs) {
     CGame_DrawTextScaled(gs->font_ibm, desc->description, 20, 80, UI_FONT_SMALL, 500, (Color) {166, 173, 200, 255});
 
     char move_str[64];
-    snprintf(move_str, sizeof(move_str), "Moves: %d / %d", gs->move_count, desc->move_limit);
-    const Color move_col =
-            (gs->move_count > desc->move_limit) ? (Color) {243, 139, 168, 255} : (Color) {166, 227, 161, 255};
+    char move_limit_str[16];
+    const char *move_limit_label = Utils_GetMoveLimitString(desc->move_limit, move_limit_str, sizeof(move_limit_str));
+    snprintf(move_str, sizeof(move_str), "Moves: %d / %s", gs->move_count, move_limit_label);
+    const Color move_col = (desc->move_limit > 0 && gs->move_count > desc->move_limit)
+                                   ? (Color) {243, 139, 168, 255}
+                                   : (Color) {166, 227, 161, 255};
     CGame_DrawText(gs->font_ibm, move_str, 528, 20, 22, move_col);
 
     char legend_str[128];
@@ -462,9 +474,10 @@ void Render_DrawEditorUI(const GameState *gs) {
     CGame_DrawButton(gs->font_ibm, rect_moves_inc, "+", inactive_bg, inactive_fg, CheckCollisionPointRec(mouse, rect_moves_inc), UI_FONT_BUTTON);
 
     char limit_str[16];
-    snprintf(limit_str, sizeof(limit_str), "%d", gs->editor_move_limit);
-    CGame_DrawText(gs->font_ibm, limit_str, 95 - (CGame_MeasureText(gs->font_ibm, limit_str, UI_FONT_BODY) / 2), 399, UI_FONT_BODY,
-             (Color) {205, 214, 244, 255});
+    const char *limit_label = Utils_GetMoveLimitString(gs->editor_move_limit, limit_str, sizeof(limit_str));
+    CGame_DrawText(gs->font_ibm, limit_label,
+                   95 - (CGame_MeasureText(gs->font_ibm, limit_label, UI_FONT_BODY) / 2), 399, UI_FONT_BODY,
+                   (Color) {205, 214, 244, 255});
 
     // Palette display depending on tool
     if (gs->editor_active_tool == 0) {

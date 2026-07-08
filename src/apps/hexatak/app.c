@@ -28,11 +28,18 @@ static Sound App_LoadSound(const char *file_name) {
 static Font App_LoadFont(const char *file_name) {
     char path[512];
     snprintf(path, sizeof(path), "resources/font/%s", file_name);
-    Font font = LoadFontEx(path, 64, NULL, 0);
+
+    int codepoints[128];
+    for (int i = 0; i < 95; i++) {
+        codepoints[i] = 32 + i;
+    }
+    codepoints[95] = 0x221E; // Infinity symbol (∞)
+
+    Font font = LoadFontEx(path, 64, codepoints, 96);
     if (font.texture.id == 0) {
 #ifdef ROOT_DIR
         snprintf(path, sizeof(path), ROOT_DIR "/assets/font/%s", file_name);
-        font = LoadFontEx(path, 64, NULL, 0);
+        font = LoadFontEx(path, 64, codepoints, 96);
 #endif
     }
     if (font.texture.id > 0) {
@@ -271,7 +278,7 @@ static void App_Update(void *state, f32 dt) {
                 gs->editor_side_b = (BoardSide) ((gs->editor_side_b + 1) % 6);
             } else if (CheckCollisionPointRec(mouse, rect_moves_dec)) {
                 PlaySound(gs->snd_click);
-                if (gs->editor_move_limit > 1)
+                if (gs->editor_move_limit > 0)
                     gs->editor_move_limit--;
             } else if (CheckCollisionPointRec(mouse, rect_moves_inc)) {
                 PlaySound(gs->snd_click);
@@ -667,7 +674,7 @@ static void App_Update(void *state, f32 dt) {
         }
 
         const LevelDesc *desc = &LEVELS[gs->current_level_idx];
-        if (gs->move_count >= desc->move_limit && !gs->win_animation_active) {
+        if (desc->move_limit > 0 && gs->move_count >= desc->move_limit && !gs->win_animation_active) {
             const Vector2 mouse = GetMousePosition();
             const Rectangle btn_undo = {90.0f, 650.0f, 120.0f, 40.0f};
             if (CheckCollisionPointRec(mouse, btn_undo) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -898,6 +905,9 @@ static void App_Update(void *state, f32 dt) {
                             gs->input.selected_index = -1;
                         }
                     }
+                } else if (hovered_idx == gs->input.selected_index) {
+                    gs->input.mode = INPUT_DRAGGING;
+                    gs->has_preview = false;
                 } else {
                     gs->input.mode = INPUT_IDLE;
                     gs->input.selected_index = -1;
@@ -1102,7 +1112,7 @@ static void App_Draw(void *state, f32 alpha) {
                                                                              : "Press SPACE or CLICK to finish";
             const i32 tw3 = CGame_MeasureText(gs->font_ibm, next_msg, 20);
             CGame_DrawText(gs->font_ibm, next_msg, 360 - (tw3 / 2), 380, 20, (Color) {166, 173, 200, 255});
-        } else if (gs->move_count >= desc->move_limit && !gs->win_animation_active) {
+        } else if (desc->move_limit > 0 && gs->move_count >= desc->move_limit && !gs->win_animation_active) {
             DrawRectangle(0, 0, 720, 720, (Color) {17, 17, 27, 200});
 
             constexpr i32 FONT_SZ_TITLE = 36;
