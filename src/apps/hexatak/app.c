@@ -284,8 +284,8 @@ static void Editor_Export(const GameState *gs) {
 
     for (i32 i = 0; i < gs->editor_board.count; i++) {
         const Cell *cell = &gs->editor_board.cells[i];
-        if (cell->required_value > 0) {
-            fprintf(f, "required: %d,%d:%d\n", cell->hex.q, cell->hex.r, cell->required_value);
+        if (Cell_HasRequiredValue(cell)) {
+            fprintf(f, "required: %d,%d:%d\n", cell->hex.q, cell->hex.r, Cell_GetDisplayedRequiredValue(cell));
         }
     }
 
@@ -329,8 +329,8 @@ static void Editor_Export(const GameState *gs) {
     }
     for (i32 i = 0; i < gs->editor_board.count; i++) {
         const Cell *cell = &gs->editor_board.cells[i];
-        if (cell->required_value > 0)
-            printf("required: %d,%d:%d\n", cell->hex.q, cell->hex.r, cell->required_value);
+        if (Cell_HasRequiredValue(cell))
+            printf("required: %d,%d:%d\n", cell->hex.q, cell->hex.r, Cell_GetDisplayedRequiredValue(cell));
     }
     for (i32 i = 0; i < gs->editor_board.count; i++) {
         const Cell *cell = &gs->editor_board.cells[i];
@@ -606,8 +606,8 @@ static void App_Update(void *state, f32 dt) {
                     gs->editor_placement_stack_count = 4;
                 }
             } else if (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_VALUE) {
-                i32 values[] = {1, 2, 4, 8, 16, 32, 64};
-                for (i32 v = 0; v < 7; v++) {
+                i32 values[] = {0, 1, 2, 4, 8, 16, 32, 64};
+                for (i32 v = 0; v < 8; v++) {
                     Rectangle val_rect = {20.0f + (float) v * 23.0f, 465.0f, 21.0f, 25.0f};
                     if (CheckCollisionPointRec(mouse, val_rect)) {
                         PlaySound(gs->snd_click);
@@ -688,10 +688,13 @@ static void App_Update(void *state, f32 dt) {
                         cell->required_height = 0;
                     }
                 } else if (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_VALUE) {
-                    if (cell->required_value == gs->editor_selected_required_value) {
+                    const i32 selected_required_value = gs->editor_selected_required_value == 0
+                                                                ? REQUIRED_VALUE_OPEN_ONLY
+                                                                : gs->editor_selected_required_value;
+                    if (cell->required_value == selected_required_value) {
                         cell->required_value = 0;
                     } else {
-                        cell->required_value = gs->editor_selected_required_value;
+                        cell->required_value = selected_required_value;
                         cell->blocked = false;
                     }
                 } else if (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_HEIGHT) {

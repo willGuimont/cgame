@@ -6,6 +6,7 @@
 
 constexpr i32 MAX_CELLS = 64;
 constexpr i32 MAX_STACK = 16;
+constexpr i32 REQUIRED_VALUE_OPEN_ONLY = -1;
 
 typedef struct {
     i32 value;
@@ -22,6 +23,7 @@ typedef struct {
 
 typedef struct {
     Cell cells[MAX_CELLS];
+    i32 neighbors[MAX_CELLS][6];
     i32 count;
     i32 radius;
 } Board;
@@ -75,7 +77,7 @@ typedef struct {
     i32 required_height_count;
 } LevelDesc;
 
-constexpr i32 LEVEL_COUNT = 23;
+constexpr i32 LEVEL_COUNT = 25;
 extern LevelDesc LEVELS[LEVEL_COUNT];
 bool Levels_LoadAll(void);
 bool Levels_LoadFromStream(FILE *f, LevelDesc *levels, i32 max_levels);
@@ -99,6 +101,9 @@ bool Board_ApplyMove(Board *board, Move move);
 
 // Win Condition & Helpers
 bool Hex_OnSide(Hex h, i32 radius, BoardSide side);
+bool Cell_HasRequiredValue(const Cell *cell);
+bool Cell_IsOpenOnlyGate(const Cell *cell);
+i32 Cell_GetDisplayedRequiredValue(const Cell *cell);
 bool Cell_IsRoad(const Cell *cell);
 bool Board_HasConnection(const Board *board, BoardSide a, BoardSide b);
 i32 Board_FindConnectionPath(const Board *board, BoardSide a, BoardSide b, i32 *path_out, i32 max_path_len);

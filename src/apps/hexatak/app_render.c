@@ -24,6 +24,8 @@ static const char *Utils_GetSideName(const BoardSide side) {
 
 static Color Utils_GetStoneColor(const i32 value) {
     switch (value) {
+        case 0:
+            return (Color) {49, 50, 68, 255}; // Slate
         case 1:
             return (Color) {137, 180, 250, 255}; // Light Blue
         case 2:
@@ -188,8 +190,8 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
             border = (Color) {249, 226, 175, 255};
         } else if (is_active_path) {
             border = (Color) {166, 227, 161, 255};
-        } else if (cell->required_value > 0) {
-            border = Utils_GetStoneColor(cell->required_value);
+        } else if (Cell_HasRequiredValue(cell)) {
+            border = Utils_GetStoneColor(Cell_GetDisplayedRequiredValue(cell));
             border.a = 180;
         } else if (cell->required_height > 0) {
             border = Utils_GetGateColor();
@@ -202,8 +204,8 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
         }
         Render_DrawHex(center, size, fill, border);
 
-        if (cell->required_value > 0) {
-            Color req_col = Utils_GetStoneColor(cell->required_value);
+        if (Cell_HasRequiredValue(cell)) {
+            Color req_col = Utils_GetStoneColor(Cell_GetDisplayedRequiredValue(cell));
             Color ring_col = req_col;
             ring_col.a = 60;
             DrawCircleLinesV(center, size * 0.55f, ring_col);
@@ -288,8 +290,9 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
             Render_DrawStoneStack(gs->font_ibm, cell, center, size, 255, is_active_path, pulse, false);
         }
 
-        if (cell->required_value > 0) {
-            Color req_col = Utils_GetStoneColor(cell->required_value);
+        if (Cell_HasRequiredValue(cell)) {
+            const i32 displayed_required_value = Cell_GetDisplayedRequiredValue(cell);
+            Color req_col = Utils_GetStoneColor(displayed_required_value);
             Vector2 badge_center = {center.x + size * 0.38f, center.y + size * 0.44f};
             float badge_r = fminf(18.0f, fmaxf(14.0f, size * 0.42f));
 
@@ -298,14 +301,14 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
             DrawCircleLinesV(badge_center, badge_r - 2.0f, (Color) {req_col.r, req_col.g, req_col.b, 120});
 
             char req_str[16];
-            snprintf(req_str, sizeof(req_str), "%d", cell->required_value);
+            snprintf(req_str, sizeof(req_str), "%d", displayed_required_value);
             const i32 req_font_sz = (i32) fminf(20.0f, fmaxf(16.0f, badge_r * 1.05f));
             i32 req_tw = CGame_MeasureText(gs->font_ibm, req_str, req_font_sz);
             CGame_DrawText(gs->font_ibm, req_str, (i32) (badge_center.x - (float) req_tw / 2.0f),
                            (i32) (badge_center.y - (float) req_font_sz / 2.0f), req_font_sz, req_col);
 
             const Cell *disp_cell = draw_preview ? &gs->preview_board.cells[i] : cell;
-            if (disp_cell->count > 0) {
+            if (!Cell_IsOpenOnlyGate(cell) && disp_cell->count > 0) {
                 const i32 top_val = disp_cell->stones[disp_cell->count - 1].value;
                 if (top_val != cell->required_value) {
                     Render_DrawHex(center, size - 3.0f, (Color) {0, 0, 0, 0}, (Color) {243, 139, 168, 100});
@@ -582,8 +585,8 @@ void Render_DrawEditorUI(const GameState *gs) {
                          CheckCollisionPointRec(mouse, btn_preset_desc), UI_FONT_BUTTON);
     } else if (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_VALUE) {
         CGame_DrawTextScaled(gs->font_ibm, "REQUIRED VALUE", 20, 440, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
-        i32 values[] = {1, 2, 4, 8, 16, 32, 64};
-        for (i32 v = 0; v < 7; v++) {
+        i32 values[] = {0, 1, 2, 4, 8, 16, 32, 64};
+        for (i32 v = 0; v < 8; v++) {
             Rectangle val_rect = {20.0f + (float) v * 23.0f, 465.0f, 22.0f, 27.0f};
             Color col = Utils_GetStoneColor(values[v]);
             bool is_selected = (gs->editor_selected_required_value == values[v]);

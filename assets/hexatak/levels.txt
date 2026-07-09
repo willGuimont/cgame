@@ -1,6 +1,6 @@
 name: The Gap
 desc: Move one stone to complete the road.
-tip: Click a stone to select it, then click a target tile to move it. A continuous chain of occupied tiles from WEST to EAST completes the level.
+tip: Click a stone to select it, then click a target tile to move it.
 radius: 1
 side_a: Q_NEG
 side_b: Q_POS
@@ -11,7 +11,7 @@ stack: 1,0:1:1
 
 name: Winding Road
 desc: Build a road that bends.
-tip: A road is any continuous chain of occupied tiles between the highlighted sides. It does not need to be straight. Black cells block stones.
+tip: A road is any continuous chain of occupied tiles between the highlighted sides.
 radius: 2
 side_a: Q_NEG
 side_b: Q_POS
@@ -58,7 +58,7 @@ stack: 1,0:1:1
 
 name: Spanning the Gap
 desc: Spread a tower into a road.
-tip: Drag from a stack to spread it. Spreading drops one stone on each tile along the chosen direction.
+tip: Click and drag from a stack to spread it. Spreading drops one stone on each tile along the chosen direction.
 radius: 2
 side_a: Q_NEG
 side_b: Q_POS
@@ -89,7 +89,7 @@ stack: 3,-3:1:1
 
 name: Bridge Building
 desc: Build a taller stack before crossing.
-tip: Moving a tower onto another tower stacks them together. Taller stacks can spread across more tiles.
+tip: Moving a tower onto another tower stacks them together.
 radius: 2
 side_a: Q_NEG
 side_b: Q_POS
@@ -102,77 +102,117 @@ stack: 0,-1:2:2,8
 stack: 2,0:1:1
 
 name: The Split
-desc: Keep part of the tower behind.
-tip: After a spread, stones that were not moved remain on the starting tile.
 radius: 2
 side_a: Q_NEG
 side_b: Q_POS
-move_limit: 3
+move_limit: 2
 stack: -2,0:1:1
 stack: 0,0:4:1,2,4,8
 stack: 2,0:1:1
 blocked: -1,1
 blocked: 1,-1
 
-name: Two Tolls
-desc: Open a road through value and height gates.
-tip: A value gate checks the top stone. A height gate checks stack height. Both must be active for the road to count.
-radius: 3
+name: Resonance Cascade
+desc: Trigger a chain of merges.
+tip: When matching values touch, they keep merging until no adjacent pair can combine. A single move can change more than one stone.
+radius: 1
 side_a: Q_NEG
 side_b: Q_POS
-move_limit: 3
+move_limit: 2
 blocked: -1,1
-blocked: 0,1
-blocked: 1,-2
-blocked: 1,0
-required: 0,0:4
-required_height: -1,0:3
-stack: -3,0:1:1
-stack: -2,0:1:1
-stack: -1,-1:2:2,4
+blocked: 1,-1
+required: 0,0:8
 stack: -1,0:1:1
-stack: 0,-1:2:1,2
-stack: 0,0:1:1
-stack: 1,-1:1:1
-stack: 2,0:1:1
-stack: 3,0:1:1
+stack: 0,-1:2:1,4
+stack: 0,1:2:2,1
+stack: 1,0:1:1
 
-name: Exact Toll
-desc: The bridge wants the exact value.
-tip: Higher is not always better. A value gate requires the exact value shown.
+name: False Bridge
+desc: Route around a dead gate.
+tip: A value gate marked 0 can hold stones, but it never counts as part of the road. The connection must go around it.
 radius: 2
 side_a: Q_NEG
 side_b: Q_POS
-move_limit: 4
+move_limit: 3
+blocked: 0,1
+blocked: 0,2
+required: 0,0:0
+stack: -2,0:1:1
+stack: -1,0:1:1
+stack: -1,1:2:1,2
+stack: 1,0:1:1
+stack: 2,0:1:1
+
+name: Exact Tolls
+desc: The bridge wants the exact values and height.
+radius: 2
+side_a: Q_NEG
+side_b: Q_POS
+move_limit: 5
 blocked: -1,1
 blocked: 0,1
+blocked: 2,-2
 blocked: 2,-1
 required: 0,0:2
 required_height: 1,0:2
 stack: -2,0:1:1
-stack: -1,-1:1:1
+stack: -1,-1:1:4
 stack: -1,0:1:1
 stack: 0,-1:1:1
-stack: 1,-1:1:4
+stack: 1,-2:1:1
+stack: 1,1:1:1
 stack: 2,0:1:1
 
-name: Merge Cost
-desc: Merging can shorten the road.
-tip: Merging creates stronger stones, but it can also reduce the number of occupied tiles.
-radius: 2
+name: 2 Tolls 4 Skools
+radius: 3
+side_a: Q_NEG
+side_b: Q_POS
+move_limit: 5
+blocked: -3,2
+blocked: -2,3
+blocked: -1,1
+blocked: -1,2
+blocked: -1,3
+blocked: 0,1
+blocked: 1,-3
+blocked: 1,-2
+blocked: 1,2
+blocked: 2,-3
+required: 0,-1:0
+required: 0,0:4
+required: 1,-1:0
+required_height: -1,0:4
+stack: -3,0:1:1
+stack: -2,0:1:1
+stack: -2,1:1:2
+stack: -1,-1:2:1,2
+stack: 0,-1:1:1
+stack: 0,0:1:1
+stack: 1,-1:1:1
+stack: 1,0:1:1
+stack: 2,-1:1:2
+stack: 2,0:1:1
+stack: 3,0:1:1
+
+name: Covered Value
+desc: The top stone decides.
+tip: A value gate only sees the top stone. Covered stones do not satisfy it.
+radius: 3
 side_a: Q_NEG
 side_b: Q_POS
 move_limit: 4
-required: 0,0:4
+required: 0,0:8
+required_height: 1,0:2
+stack: -3,0:1:1
 stack: -2,0:1:1
-stack: -1,0:2:1,2
-stack: -1,-1:1:2
-stack: 0,-1:1:2
-stack: 1,0:2:1,2
+stack: -1,0:1:1
+stack: 0,0:2:8,1
+stack: 1,-1:1:2
 stack: 2,0:1:1
+stack: 3,0:1:1
 blocked: 0,1
 
-name: Diagonal Run
+name: TODO
 desc: Connect along another axis.
 tip: Hex tiles have six directions. A valid road can follow any of them.
 radius: 2
@@ -293,23 +333,6 @@ stack: 3,0:1:1
 blocked: 1,0
 blocked: 0,1
 
-name: Covered Value
-desc: The top stone decides.
-tip: A value gate only sees the top stone. Covered stones do not satisfy it.
-radius: 3
-side_a: Q_NEG
-side_b: Q_POS
-move_limit: 4
-required: 0,0:8
-required_height: 1,0:2
-stack: -3,0:1:1
-stack: -2,0:1:1
-stack: -1,0:1:1
-stack: 0,0:2:8,1
-stack: 1,-1:1:2
-stack: 2,0:1:1
-stack: 3,0:1:1
-blocked: 0,1
 
 name: Outer Ring
 desc: Avoid the sealed center.

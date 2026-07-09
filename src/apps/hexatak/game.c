@@ -91,6 +91,15 @@ bool Cell_AppendMerge(Cell *src, Cell *dst) {
 }
 
 // Board initialization & lookup
+static void Board_InitNeighbors(Board *board) {
+    for (i32 i = 0; i < board->count; i++) {
+        for (i32 dir = 0; dir < 6; dir++) {
+            const Hex nh = Hex_Add(board->cells[i].hex, Hex_Direction(dir));
+            board->neighbors[i][dir] = Board_FindCellIndex(board, nh);
+        }
+    }
+}
+
 void Board_Init(Board *board, const i32 radius) {
     board->count = 0;
     board->radius = radius;
@@ -110,6 +119,8 @@ void Board_Init(Board *board, const i32 radius) {
             cell->required_height = 0;
         }
     }
+
+    Board_InitNeighbors(board);
 }
 
 i32 Board_FindCellIndex(const Board *board, const Hex h) {
@@ -132,10 +143,7 @@ bool Board_MoveStackOne(Board *board, const i32 from_index, const i32 dir) {
     if (from->count == 0)
         return false;
 
-    const Hex delta = Hex_Direction(dir);
-    const Hex to_hex = Hex_Add(from->hex, delta);
-
-    const i32 to_index = Board_FindCellIndex(board, to_hex);
+    const i32 to_index = board->neighbors[from_index][dir];
     if (to_index < 0)
         return false;
 
@@ -166,14 +174,11 @@ bool Board_SpreadStack(Board *board, const i32 from_index, const i32 dir, const 
     if (distance > from->count)
         return false;
 
-    const Hex delta = Hex_Direction(dir);
     i32 path_indices[MAX_STACK];
-    Hex cursor = from->hex;
+    i32 cursor_index = from_index;
 
     for (i32 step = 0; step < distance; step++) {
-        cursor = Hex_Add(cursor, delta);
-
-        const i32 idx = Board_FindCellIndex(board, cursor);
+        const i32 idx = board->neighbors[cursor_index][dir];
         if (idx < 0)
             return false;
 
@@ -182,6 +187,7 @@ bool Board_SpreadStack(Board *board, const i32 from_index, const i32 dir, const 
             return false;
 
         path_indices[step] = idx;
+        cursor_index = idx;
     }
 
     Board next = *board;
@@ -238,10 +244,24 @@ bool Hex_OnSide(const Hex h, const i32 radius, const BoardSide side) {
     return false;
 }
 
+bool Cell_HasRequiredValue(const Cell *cell) { return cell && cell->required_value != 0; }
+
+bool Cell_IsOpenOnlyGate(const Cell *cell) { return cell && cell->required_value == REQUIRED_VALUE_OPEN_ONLY; }
+
+i32 Cell_GetDisplayedRequiredValue(const Cell *cell) {
+    if (!Cell_HasRequiredValue(cell))
+        return 0;
+    if (Cell_IsOpenOnlyGate(cell))
+        return 0;
+    return cell->required_value;
+}
+
 bool Cell_IsRoad(const Cell *cell) {
     if (cell->blocked)
         return false;
     if (cell->count <= 0)
+        return false;
+    if (Cell_IsOpenOnlyGate(cell))
         return false;
     if (cell->required_value > 0) {
         if (cell->stones[cell->count - 1].value != cell->required_value) {
@@ -283,10 +303,7 @@ bool Board_HasConnection(const Board *board, const BoardSide a, const BoardSide 
         }
 
         for (i32 dir = 0; dir < 6; dir++) {
-            const Hex d = Hex_Direction(dir);
-            const Hex nh = Hex_Add(cell->hex, d);
-
-            const i32 ni = Board_FindCellIndex(board, nh);
+            const i32 ni = board->neighbors[idx][dir];
             if (ni < 0)
                 continue;
             if (visited[ni])
@@ -338,10 +355,7 @@ i32 Board_FindConnectionPath(const Board *board, const BoardSide a, const BoardS
         }
 
         for (i32 dir = 0; dir < 6; dir++) {
-            const Hex d = Hex_Direction(dir);
-            const Hex nh = Hex_Add(cell->hex, d);
-
-            const i32 ni = Board_FindCellIndex(board, nh);
+            const i32 ni = board->neighbors[idx][dir];
             if (ni < 0)
                 continue;
             if (visited[ni])
@@ -434,7 +448,9 @@ static bool Levels_IsValidDesc(const LevelDesc *desc) {
         }
     }
     for (i32 i = 0; i < desc->required_count; i++) {
-        if (!Hex_IsInBound(desc->required_hexes[i].hex, desc->radius) || desc->required_hexes[i].required_value <= 0) {
+        if (!Hex_IsInBound(desc->required_hexes[i].hex, desc->radius) ||
+            (desc->required_hexes[i].required_value < 0 &&
+             desc->required_hexes[i].required_value != REQUIRED_VALUE_OPEN_ONLY)) {
             return false;
         }
     }
@@ -557,7 +573,8 @@ bool Levels_LoadFromStream(FILE *f, LevelDesc *levels, i32 max_levels) {
                     }
                     const i32 r_idx = levels[current_idx].required_count++;
                     levels[current_idx].required_hexes[r_idx].hex = (Hex) {q, r};
-                    levels[current_idx].required_hexes[r_idx].required_value = req_val;
+                    levels[current_idx].required_hexes[r_idx].required_value =
+                            req_val == 0 ? REQUIRED_VALUE_OPEN_ONLY : req_val;
                 }
             } else if (strcmp(key, "required_height") == 0) {
                 i32 q = 0, r = 0, req_height = 0;

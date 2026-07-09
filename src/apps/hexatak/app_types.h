@@ -84,7 +84,7 @@ typedef struct {
     // Editor active tools
     EditorTool editor_active_tool;
     i32 editor_selected_stone_value; // 1, 2, 4, 8, etc.
-    i32 editor_selected_required_value; // 2, 4, 8, etc.
+    i32 editor_selected_required_value; // 0, 1, 2, 4, 8, etc.
     i32 editor_selected_required_height;
     i32 editor_placement_stack[16];
     i32 editor_placement_stack_count;
