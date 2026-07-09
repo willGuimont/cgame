@@ -237,6 +237,20 @@ stack: 3,0:1:1
 blocked: -1,0
 blocked: 0,0
 
+name: The Long Run
+desc: Span a larger board.
+tip: Tall stacks are compact roads. Spreading them turns height into distance.
+radius: 3
+side_a: Q_NEG
+side_b: Q_POS
+move_limit: 3
+stack: -3,0:1:1
+stack: -1,-2:5:1,2,4,8,16
+stack: 3,0:1:1
+blocked: -1,0
+blocked: 0,1
+blocked: 1,-1
+
 name: Height Causeway
 desc: Raise two bridge tiles.
 tip: A road through height gates must keep every required stack tall enough.
@@ -255,6 +269,25 @@ stack: 2,0:1:1
 stack: 3,0:1:1
 blocked: -1,0
 blocked: 0,0
+
+name: Diagonal Toll
+desc: Gates on a vertical road.
+tip: Different gates can test different properties of the same road.
+radius: 3
+side_a: R_NEG
+side_b: R_POS
+move_limit: 4
+required: 0,0:4
+required_height: 0,1:2
+stack: 0,-3:1:1
+stack: 0,-2:1:1
+stack: 0,-1:1:1
+stack: -1,0:1:2
+stack: 1,0:1:2
+stack: 0,2:1:1
+stack: 0,3:1:1
+blocked: -1,1
+blocked: 1,-1
 
 name: Interface Contact
 desc: Merge through stack contact.

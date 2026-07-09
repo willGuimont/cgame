@@ -91,6 +91,7 @@ void Level_Load(GameState *gs, const i32 level_idx) {
     gs->has_preview = false;
     gs->esc_timer = 0.0f;
     gs->show_tip = (desc->tip != nullptr);
+    gs->tip_waiting_for_mouse_release = gs->show_tip && IsMouseButtonDown(MOUSE_BUTTON_LEFT);
     gs->win_animation_active = false;
     gs->win_animation_timer = 0.0f;
     gs->win_path_len = 0;

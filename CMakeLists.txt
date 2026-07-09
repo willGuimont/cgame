@@ -299,6 +299,8 @@ add_executable(hexatak
         src/apps/hexatak/app_render.c
         src/apps/hexatak/game.h
         src/apps/hexatak/game.c
+        src/apps/hexatak/solver.h
+        src/apps/hexatak/solver.c
         src/cgame/hex.h
         web/hexatak/minshell.html
 )

@@ -60,10 +60,12 @@ typedef struct {
     // Screen navigation
     ScreenState screen;
     bool level_completed[LEVEL_COUNT];
+    bool level_impossible[LEVEL_COUNT];
     float anim_time;
     i32 level_select_page;
     float esc_timer;
     bool show_tip;
+    bool tip_waiting_for_mouse_release;
     bool win_animation_active;
     float win_animation_timer;
     i32 win_path[MAX_CELLS];
@@ -75,6 +77,9 @@ typedef struct {
     BoardSide editor_side_b;
     i32 editor_move_limit;
     bool testing_editor_level;
+    char *editor_name;
+    char *editor_description;
+    char *editor_tip;
 
     // Editor active tools
     EditorTool editor_active_tool;

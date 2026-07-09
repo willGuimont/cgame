@@ -75,7 +75,7 @@ typedef struct {
     i32 required_height_count;
 } LevelDesc;
 
-constexpr i32 LEVEL_COUNT = 19;
+constexpr i32 LEVEL_COUNT = 23;
 extern LevelDesc LEVELS[LEVEL_COUNT];
 bool Levels_LoadAll(void);
 bool Levels_LoadFromStream(FILE *f, LevelDesc *levels, i32 max_levels);

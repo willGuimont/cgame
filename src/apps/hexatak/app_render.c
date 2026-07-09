@@ -290,15 +290,16 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
 
         if (cell->required_value > 0) {
             Color req_col = Utils_GetStoneColor(cell->required_value);
-            Vector2 badge_center = {center.x + size * 0.44f, center.y + size * 0.50f};
-            float badge_r = fminf(13.0f, fmaxf(10.0f, size * 0.32f));
+            Vector2 badge_center = {center.x + size * 0.38f, center.y + size * 0.44f};
+            float badge_r = fminf(18.0f, fmaxf(14.0f, size * 0.42f));
 
             DrawCircleV(badge_center, badge_r, (Color) {30, 30, 46, 230});
             DrawCircleLinesV(badge_center, badge_r, req_col);
+            DrawCircleLinesV(badge_center, badge_r - 2.0f, (Color) {req_col.r, req_col.g, req_col.b, 120});
 
             char req_str[16];
             snprintf(req_str, sizeof(req_str), "%d", cell->required_value);
-            const i32 req_font_sz = (i32) fminf((float) UI_FONT_BADGE, fmaxf(14.0f, badge_r * 1.15f));
+            const i32 req_font_sz = (i32) fminf(20.0f, fmaxf(16.0f, badge_r * 1.05f));
             i32 req_tw = CGame_MeasureText(gs->font_ibm, req_str, req_font_sz);
             CGame_DrawText(gs->font_ibm, req_str, (i32) (badge_center.x - (float) req_tw / 2.0f),
                            (i32) (badge_center.y - (float) req_font_sz / 2.0f), req_font_sz, req_col);
@@ -324,15 +325,17 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
 
         if (cell->required_height > 0) {
             Color height_col = Utils_GetGateColor();
-            Vector2 badge_center = {center.x - size * 0.44f, center.y + size * 0.50f};
-            float badge_r = fminf(14.0f, fmaxf(11.0f, size * 0.34f));
+            Vector2 badge_center = {center.x - size * 0.38f, center.y + size * 0.44f};
+            float badge_r = fminf(19.0f, fmaxf(15.0f, size * 0.44f));
 
             DrawPoly(badge_center, 4, badge_r, 45.0f, (Color) {30, 30, 46, 235});
             DrawPolyLinesEx(badge_center, 4, badge_r, 45.0f, 2.0f, height_col);
+            DrawPolyLinesEx(badge_center, 4, badge_r - 2.5f, 45.0f, 1.0f,
+                            (Color) {height_col.r, height_col.g, height_col.b, 120});
 
             char height_str[16];
             snprintf(height_str, sizeof(height_str), "H%d", cell->required_height);
-            const i32 HEIGHT_FONT_SZ = (i32) fminf((float) UI_FONT_BADGE, fmaxf(14.0f, badge_r * 1.05f));
+            const i32 HEIGHT_FONT_SZ = (i32) fminf(19.0f, fmaxf(16.0f, badge_r * 0.95f));
             const i32 height_tw = CGame_MeasureText(gs->font_ibm, height_str, HEIGHT_FONT_SZ);
             CGame_DrawText(gs->font_ibm, height_str, (i32) (badge_center.x - (float) height_tw / 2.0f),
                            (i32) (badge_center.y - (float) HEIGHT_FONT_SZ / 2.0f), HEIGHT_FONT_SZ, height_col);
@@ -415,7 +418,17 @@ void Render_DrawUI(const GameState *gs) {
     const Rectangle btn_redo = {230.0f, 650.0f, 120.0f, 40.0f};
     const Rectangle btn_reset = {370.0f, 650.0f, 120.0f, 40.0f};
     const Rectangle btn_menu = {510.0f, 650.0f, 120.0f, 40.0f};
+#ifndef NDEBUG
+    const Rectangle btn_solve = {20.0f, 650.0f, 60.0f, 40.0f};
+    const Rectangle btn_open_editor = {20.0f, 600.0f, 150.0f, 40.0f};
+#endif
 
+#ifndef NDEBUG
+    CGame_DrawButton(gs->font_ibm, btn_open_editor, "OPEN IN EDITOR", (Color) {250, 179, 135, 255},
+                     (Color) {30, 30, 46, 255}, CheckCollisionPointRec(mouse, btn_open_editor), UI_FONT_BUTTON);
+    CGame_DrawButton(gs->font_ibm, btn_solve, "SOLVE", (Color) {148, 226, 213, 255}, (Color) {30, 30, 46, 255},
+                     CheckCollisionPointRec(mouse, btn_solve), UI_FONT_BUTTON);
+#endif
     CGame_DrawButton(gs->font_ibm, btn_undo, "UNDO (U)", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255},
                      CheckCollisionPointRec(mouse, btn_undo), UI_FONT_BUTTON);
     CGame_DrawButton(gs->font_ibm, btn_redo, "REDO (Y)", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255},
@@ -571,7 +584,7 @@ void Render_DrawEditorUI(const GameState *gs) {
         CGame_DrawTextScaled(gs->font_ibm, "REQUIRED VALUE", 20, 440, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
         i32 values[] = {1, 2, 4, 8, 16, 32, 64};
         for (i32 v = 0; v < 7; v++) {
-            Rectangle val_rect = {20.0f + (float) v * 23.0f, 465.0f, 21.0f, 25.0f};
+            Rectangle val_rect = {20.0f + (float) v * 23.0f, 465.0f, 22.0f, 27.0f};
             Color col = Utils_GetStoneColor(values[v]);
             bool is_selected = (gs->editor_selected_required_value == values[v]);
             DrawRectangleRec(val_rect, col);
@@ -579,27 +592,28 @@ void Render_DrawEditorUI(const GameState *gs) {
                                  is_selected ? (Color) {249, 226, 175, 255} : (Color) {17, 17, 27, 255});
             char val_lbl[8];
             snprintf(val_lbl, sizeof(val_lbl), "%d", values[v]);
+            const i32 val_font_sz = values[v] >= 16 ? 12 : 13;
             CGame_DrawText(gs->font_ibm, val_lbl,
                            (i32) (val_rect.x + (val_rect.width / 2.0f) -
-                                  (float) CGame_MeasureText(gs->font_ibm, val_lbl, 11) / 2.0f),
-                           (i32) (val_rect.y + 7.0f), 11, (Color) {17, 17, 27, 255});
+                                  (float) CGame_MeasureText(gs->font_ibm, val_lbl, val_font_sz) / 2.0f),
+                           (i32) (val_rect.y + 7.0f), val_font_sz, (Color) {17, 17, 27, 255});
         }
     } else if (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_HEIGHT) {
         CGame_DrawTextScaled(gs->font_ibm, "REQUIRED HEIGHT", 20, 440, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
         Color height_col = Utils_GetGateColor();
         for (i32 v = 0; v < 6; v++) {
             const i32 height = v + 1;
-            Rectangle val_rect = {20.0f + (float) v * 27.0f, 465.0f, 25.0f, 25.0f};
+            Rectangle val_rect = {20.0f + (float) v * 29.0f, 465.0f, 27.0f, 27.0f};
             Vector2 badge_center = {val_rect.x + val_rect.width / 2.0f, val_rect.y + val_rect.height / 2.0f};
             bool is_selected = (gs->editor_selected_required_height == height);
-            DrawPoly(badge_center, 4, 13.0f, 45.0f, (Color) {30, 30, 46, 255});
-            DrawPolyLinesEx(badge_center, 4, 13.0f, 45.0f, is_selected ? 2.0f : 1.0f,
+            DrawPoly(badge_center, 4, 14.5f, 45.0f, (Color) {30, 30, 46, 255});
+            DrawPolyLinesEx(badge_center, 4, 14.5f, 45.0f, is_selected ? 2.0f : 1.0f,
                             is_selected ? (Color) {249, 226, 175, 255} : height_col);
             char val_lbl[8];
             snprintf(val_lbl, sizeof(val_lbl), "H%d", height);
             CGame_DrawText(gs->font_ibm, val_lbl,
-                           (i32) (badge_center.x - (float) CGame_MeasureText(gs->font_ibm, val_lbl, 11) / 2.0f),
-                           (i32) (badge_center.y - 5.5f), 11, height_col);
+                           (i32) (badge_center.x - (float) CGame_MeasureText(gs->font_ibm, val_lbl, 12) / 2.0f),
+                           (i32) (badge_center.y - 6.0f), 12, height_col);
         }
     }
 

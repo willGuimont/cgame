@@ -378,7 +378,7 @@ i32 Board_FindConnectionPath(const Board *board, const BoardSide a, const BoardS
 
 // Levels
 LevelDesc LEVELS[LEVEL_COUNT];
-constexpr i32 LEVEL_ENTRY_LIMIT = 16;
+constexpr i32 LEVEL_ENTRY_LIMIT = 25;
 
 static void Parsing_TrimString(char *str) {
     size_t l = strlen(str);
@@ -421,10 +421,10 @@ static bool Levels_IsValidDesc(const LevelDesc *desc) {
     if (desc->radius < 0 || Hex_SpiralCount(desc->radius) > MAX_CELLS) {
         return false;
     }
-    if (desc->blocked_count < 0 || desc->blocked_count > LEVEL_ENTRY_LIMIT ||
-        desc->required_count < 0 || desc->required_count > LEVEL_ENTRY_LIMIT ||
-        desc->required_height_count < 0 || desc->required_height_count > LEVEL_ENTRY_LIMIT ||
-        desc->initial_stack_count < 0 || desc->initial_stack_count > LEVEL_ENTRY_LIMIT) {
+    if (desc->blocked_count < 0 || desc->blocked_count > LEVEL_ENTRY_LIMIT || desc->required_count < 0 ||
+        desc->required_count > LEVEL_ENTRY_LIMIT || desc->required_height_count < 0 ||
+        desc->required_height_count > LEVEL_ENTRY_LIMIT || desc->initial_stack_count < 0 ||
+        desc->initial_stack_count > LEVEL_ENTRY_LIMIT) {
         return false;
     }
 

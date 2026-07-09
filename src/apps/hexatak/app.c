@@ -11,7 +11,25 @@
 #include "app_state.h"
 #include "app_types.h"
 #include "game_loop.h"
+#include "solver.h"
 #include "utils/draw.h"
+
+static const char *Editor_GetName(const GameState *gs) { return gs->editor_name ? gs->editor_name : "Custom Level"; }
+
+static const char *Editor_GetDescription(const GameState *gs) {
+    return gs->editor_description ? gs->editor_description : "A custom level built in the Level Editor.";
+}
+
+static const char *Editor_GetTip(const GameState *gs) { return gs->editor_tip ? gs->editor_tip : ""; }
+
+static void Editor_SetMetadata(GameState *gs, const char *name, const char *description, const char *tip) {
+    free(gs->editor_name);
+    free(gs->editor_description);
+    free(gs->editor_tip);
+    gs->editor_name = strdup(name ? name : "Custom Level");
+    gs->editor_description = strdup(description ? description : "A custom level built in the Level Editor.");
+    gs->editor_tip = strdup(tip ? tip : "");
+}
 
 static Sound App_LoadSound(const char *file_name) {
     char path[512];
@@ -85,6 +103,107 @@ static bool App_RedoMove(GameState *gs) {
     return true;
 }
 
+#ifndef NDEBUG
+static Board App_BuildBoardFromLevelDesc(const LevelDesc *desc) {
+    Board board;
+    Board_Init(&board, desc->radius);
+
+    for (i32 i = 0; i < desc->blocked_count; i++) {
+        const i32 idx = Board_FindCellIndex(&board, desc->blocked_hexes[i]);
+        if (idx >= 0) {
+            board.cells[idx].blocked = true;
+        }
+    }
+    for (i32 i = 0; i < desc->initial_stack_count; i++) {
+        const i32 idx = Board_FindCellIndex(&board, desc->initial_stacks[i].hex);
+        if (idx >= 0) {
+            Cell *cell = &board.cells[idx];
+            cell->count = desc->initial_stacks[i].count;
+            for (i32 s = 0; s < cell->count; s++) {
+                cell->stones[s].value = desc->initial_stacks[i].stone_values[s];
+            }
+        }
+    }
+    for (i32 i = 0; i < desc->required_count; i++) {
+        const i32 idx = Board_FindCellIndex(&board, desc->required_hexes[i].hex);
+        if (idx >= 0) {
+            board.cells[idx].required_value = desc->required_hexes[i].required_value;
+        }
+    }
+    for (i32 i = 0; i < desc->required_height_count; i++) {
+        const i32 idx = Board_FindCellIndex(&board, desc->required_height_hexes[i].hex);
+        if (idx >= 0) {
+            board.cells[idx].required_height = desc->required_height_hexes[i].required_height;
+        }
+    }
+
+    return board;
+}
+
+static void App_ReportSolver(const GameState *gs) {
+    const LevelDesc *desc = &LEVELS[gs->current_level_idx];
+    const Board start = gs->testing_editor_level ? gs->editor_board : App_BuildBoardFromLevelDesc(desc);
+    const i32 max_moves = desc->move_limit > 0 ? desc->move_limit : 8;
+    SolverResult result;
+    if (!Solver_CountSolutions(&start, desc->side_a, desc->side_b, max_moves, &result)) {
+        printf("\n=== SOLVER ===\nFailed to run solver.\n==============\n\n");
+        return;
+    }
+
+    printf("\n=== SOLVER: %s ===\n", desc->name ? desc->name : "Untitled");
+    printf("Start: level initial board, max moves: %d%s\n", result.max_moves,
+           desc->move_limit > 0 ? "" : " (debug cap)");
+    printf("Explored states: %d%s\n", result.explored_states, result.truncated ? " (truncated)" : "");
+    for (i32 moves = 0; moves <= result.max_moves; moves++) {
+        printf("moves %d: %lld solution%s\n", moves, result.solutions_by_moves[moves],
+               result.solutions_by_moves[moves] == 1 ? "" : "s");
+    }
+    printf("==================\n\n");
+}
+
+static void App_ReportAllSolvability(GameState *gs) {
+    printf("\n=== SOLVER: ALL LEVELS ===\n");
+
+    i32 impossible_count = 0;
+    for (i32 level_idx = 0; level_idx < LEVEL_COUNT; level_idx++) {
+        const LevelDesc *desc = &LEVELS[level_idx];
+        const Board start = App_BuildBoardFromLevelDesc(desc);
+        const i32 max_moves = desc->move_limit > 0 ? desc->move_limit : 8;
+
+        SolverResult result;
+        gs->level_impossible[level_idx] = false;
+        if (!Solver_CountSolutions(&start, desc->side_a, desc->side_b, max_moves, &result)) {
+            gs->level_impossible[level_idx] = true;
+            impossible_count++;
+            printf("\nLEVEL %d: %s\n", level_idx + 1, desc->name ? desc->name : "Untitled");
+            printf("solver failed\n");
+            continue;
+        }
+
+        long long total_solutions = 0;
+        printf("\nLEVEL %d: %s\n", level_idx + 1, desc->name ? desc->name : "Untitled");
+        printf("max moves: %d%s, explored states: %d%s\n", result.max_moves, desc->move_limit > 0 ? "" : " (debug cap)",
+               result.explored_states, result.truncated ? " (truncated)" : "");
+        for (i32 moves = 0; moves <= result.max_moves; moves++) {
+            total_solutions += result.solutions_by_moves[moves];
+            printf("moves %d: %lld solution%s\n", moves, result.solutions_by_moves[moves],
+                   result.solutions_by_moves[moves] == 1 ? "" : "s");
+        }
+
+        if (total_solutions == 0) {
+            gs->level_impossible[level_idx] = true;
+            impossible_count++;
+            printf("status: IMPOSSIBLE\n");
+        } else {
+            printf("status: solvable (%lld total)\n", total_solutions);
+        }
+    }
+
+    printf("\nSummary: %d impossible / %d levels\n", impossible_count, LEVEL_COUNT);
+    printf("==========================\n\n");
+}
+#endif
+
 static bool App_Init(void *state) {
     SetExitKey(0);
     InitAudioDevice();
@@ -113,6 +232,7 @@ static bool App_Init(void *state) {
     gs->level_select_page = 0;
     for (i32 i = 0; i < LEVEL_COUNT; i++) {
         gs->level_completed[i] = false;
+        gs->level_impossible[i] = false;
     }
 
     // Initialize editor variables
@@ -126,6 +246,7 @@ static bool App_Init(void *state) {
     gs->testing_editor_level = false;
     gs->editor_placement_stack[0] = 1;
     gs->editor_placement_stack_count = 1;
+    Editor_SetMetadata(gs, "Custom Level", "A custom level built in the Level Editor.", "");
     Board_Init(&gs->editor_board, 2);
 
     return true;
@@ -144,8 +265,11 @@ static void Editor_Export(const GameState *gs) {
     }
 
     fprintf(f, "# Hexatak Custom Level\n");
-    fprintf(f, "name: Custom Level\n");
-    fprintf(f, "desc: A custom level built in the Level Editor.\n");
+    fprintf(f, "name: %s\n", Editor_GetName(gs));
+    fprintf(f, "desc: %s\n", Editor_GetDescription(gs));
+    if (Editor_GetTip(gs)[0] != '\0') {
+        fprintf(f, "tip: %s\n", Editor_GetTip(gs));
+    }
     fprintf(f, "radius: %d\n", gs->editor_board.radius);
     fprintf(f, "side_a: %s\n", Utils_GetSideString(gs->editor_side_a));
     fprintf(f, "side_b: %s\n", Utils_GetSideString(gs->editor_side_b));
@@ -189,8 +313,11 @@ static void Editor_Export(const GameState *gs) {
     fclose(f);
 
     printf("\n=== EXPORTED LEVEL ===\n");
-    printf("name: Custom Level\n");
-    printf("desc: A custom level built in the Level Editor.\n");
+    printf("name: %s\n", Editor_GetName(gs));
+    printf("desc: %s\n", Editor_GetDescription(gs));
+    if (Editor_GetTip(gs)[0] != '\0') {
+        printf("tip: %s\n", Editor_GetTip(gs));
+    }
     printf("radius: %d\n", gs->editor_board.radius);
     printf("side_a: %s\n", Utils_GetSideString(gs->editor_side_a));
     printf("side_b: %s\n", Utils_GetSideString(gs->editor_side_b));
@@ -243,6 +370,7 @@ static void Editor_ApplyLevelDesc(GameState *gs, const LevelDesc *desc) {
     gs->editor_side_a = desc->side_a;
     gs->editor_side_b = desc->side_b;
     gs->editor_move_limit = desc->move_limit;
+    Editor_SetMetadata(gs, desc->name, desc->description, desc->tip);
 
     for (i32 i = 0; i < desc->blocked_count; i++) {
         const i32 idx = Board_FindCellIndex(&gs->editor_board, desc->blocked_hexes[i]);
@@ -521,9 +649,9 @@ static void App_Update(void *state, f32 dt) {
                 LEVELS[0].side_a = gs->editor_side_a;
                 LEVELS[0].side_b = gs->editor_side_b;
                 LEVELS[0].move_limit = gs->editor_move_limit;
-                LEVELS[0].name = strdup("Test Level");
-                LEVELS[0].description = strdup("Testing custom editor level.");
-                LEVELS[0].tip = strdup("");
+                LEVELS[0].name = strdup(Editor_GetName(gs));
+                LEVELS[0].description = strdup(Editor_GetDescription(gs));
+                LEVELS[0].tip = strdup(Editor_GetTip(gs));
 
                 gs->current_level_idx = 0;
             } else if (CheckCollisionPointRec(mouse, btn_export)) {
@@ -607,6 +735,16 @@ static void App_Update(void *state, f32 dt) {
             if (!Levels_LoadAll()) {
                 TraceLog(LOG_ERROR, "Failed to reload levels.txt");
             }
+            for (i32 i = 0; i < LEVEL_COUNT; i++) {
+                gs->level_impossible[i] = false;
+            }
+            return;
+        }
+
+        const Rectangle btn_check_all = {285.0f, 600.0f, 150.0f, 36.0f};
+        if (CheckCollisionPointRec(mouse, btn_check_all) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            PlaySound(gs->snd_click);
+            App_ReportAllSolvability(gs);
             return;
         }
 #endif
@@ -675,10 +813,15 @@ static void App_Update(void *state, f32 dt) {
                 Rectangle btn_ok = {300.0f, popup_y + (float) total_height - 70.0f, 120.0f, 40.0f};
 
                 Vector2 mouse = GetMousePosition();
-                if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) ||
-                    (CheckCollisionPointRec(mouse, btn_ok) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))) {
+                if (!IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+                    gs->tip_waiting_for_mouse_release = false;
+                }
+                const bool ok_clicked = !gs->tip_waiting_for_mouse_release && CheckCollisionPointRec(mouse, btn_ok) &&
+                                        IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+                if (IsKeyPressed(KEY_SPACE) || IsKeyPressed(KEY_ENTER) || ok_clicked) {
                     PlaySound(gs->snd_click);
                     gs->show_tip = false;
+                    gs->tip_waiting_for_mouse_release = false;
                 }
                 return;
             }
@@ -825,10 +968,39 @@ static void App_Update(void *state, f32 dt) {
         const Rectangle btn_redo = {230.0f, 650.0f, 120.0f, 40.0f};
         const Rectangle btn_reset = {370.0f, 650.0f, 120.0f, 40.0f};
         const Rectangle btn_menu = {510.0f, 650.0f, 120.0f, 40.0f};
+#ifndef NDEBUG
+        const Rectangle btn_solve = {20.0f, 650.0f, 60.0f, 40.0f};
+        const Rectangle btn_open_editor = {20.0f, 600.0f, 150.0f, 40.0f};
+#endif
 
         bool clicked_ui = false;
 
-        if (CheckCollisionPointRec(mouse, btn_undo)) {
+#ifndef NDEBUG
+        if (CheckCollisionPointRec(mouse, btn_open_editor)) {
+            clicked_ui = true;
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                PlaySound(gs->snd_click);
+                if (!gs->testing_editor_level) {
+                    Editor_ApplyLevelDesc(gs, &LEVELS[gs->current_level_idx]);
+                }
+                gs->testing_editor_level = false;
+                gs->show_tip = false;
+                gs->level_won = false;
+                gs->game_completed = false;
+                gs->win_animation_active = false;
+                gs->has_preview = false;
+                gs->input.mode = INPUT_IDLE;
+                gs->input.selected_index = -1;
+                gs->screen = SCREEN_LEVEL_EDITOR;
+            }
+        } else if (CheckCollisionPointRec(mouse, btn_solve)) {
+            clicked_ui = true;
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                App_ReportSolver(gs);
+            }
+        } else
+#endif
+                if (CheckCollisionPointRec(mouse, btn_undo)) {
             clicked_ui = true;
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 App_UndoMove(gs);
@@ -1145,11 +1317,18 @@ static void App_Draw(void *state, f32 alpha) {
             snprintf(lvl_num_str, sizeof(lvl_num_str), "LEVEL %d", i + 1);
             CGame_DrawText(gs->font_ibm, lvl_num_str, (i32) (x + 15), (i32) (y + 10), UI_FONT_HELP,
                            (Color) {166, 173, 200, 255});
-            float max_w = gs->level_completed[i] ? (CARD_W - 105.0f) : (CARD_W - 30.0f);
+            const bool show_status_badge = gs->level_impossible[i] || gs->level_completed[i];
+            float max_w = show_status_badge ? (CARD_W - 105.0f) : (CARD_W - 30.0f);
             CGame_DrawTextScaled(gs->font_ibm, LEVELS[i].name, (i32) (x + 15), (i32) (y + 34), UI_FONT_BODY,
                                  (i32) max_w, (Color) {205, 214, 244, 255});
 
-            if (gs->level_completed[i]) {
+            if (gs->level_impossible[i]) {
+                DrawRectangle((i32) (x + CARD_W - 95), (i32) (y + 12), 80, 18, (Color) {243, 139, 168, 45});
+                DrawRectangleLines((i32) (x + CARD_W - 95), (i32) (y + 12), 80, 18, (Color) {243, 139, 168, 255});
+                i32 tw = CGame_MeasureText(gs->font_ibm, "IMPOSSIBLE", 9);
+                CGame_DrawText(gs->font_ibm, "IMPOSSIBLE", (i32) (x + CARD_W - 95.0f + 40.0f) - (tw / 2),
+                               (i32) (y + 16.0f), 9, (Color) {243, 139, 168, 255});
+            } else if (gs->level_completed[i]) {
                 DrawRectangle((i32) (x + CARD_W - 85), (i32) (y + 12), 70, 18, (Color) {166, 227, 161, 40});
                 DrawRectangleLines((i32) (x + CARD_W - 85), (i32) (y + 12), 70, 18, (Color) {166, 227, 161, 255});
                 i32 tw = CGame_MeasureText(gs->font_ibm, "SOLVED", 10);
@@ -1167,8 +1346,13 @@ static void App_Draw(void *state, f32 alpha) {
 #ifndef NDEBUG
         Rectangle btn_reload = {190.0f, 650.0f, 120.0f, 40.0f};
         bool reload_hovered = CheckCollisionPointRec(mouse, btn_reload);
-        CGame_DrawButton(gs->font_ibm, btn_reload, "RELOAD", (Color) {148, 226, 213, 255},
-                         (Color) {30, 30, 46, 255}, reload_hovered, UI_FONT_BUTTON);
+        CGame_DrawButton(gs->font_ibm, btn_reload, "RELOAD", (Color) {148, 226, 213, 255}, (Color) {30, 30, 46, 255},
+                         reload_hovered, UI_FONT_BUTTON);
+
+        Rectangle btn_check_all = {285.0f, 600.0f, 150.0f, 36.0f};
+        bool check_all_hovered = CheckCollisionPointRec(mouse, btn_check_all);
+        CGame_DrawButton(gs->font_ibm, btn_check_all, "CHECK ALL", (Color) {250, 179, 135, 255},
+                         (Color) {30, 30, 46, 255}, check_all_hovered, UI_FONT_BUTTON);
 #endif
 
         // Pagination buttons and page indicator

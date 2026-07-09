@@ -107,15 +107,6 @@ The player must drop the correct stone on the gate. Spreading too far or in the 
 Teaches: spread order matters because stones are placed sequentially.
 Similar to 
 ```
-name: The Split
-desc: Spread the central tower to bridge both sides.
-tip: Click and drag from the center stack to spread the stones across the board. When you spread a stack, it places stones of matching heights in sequence. You want to connect the WEST (Left) side to the EAST (Right) side. Pay attention to the move limit!
-radius: 2
-side_a: Q_NEG
-side_b: Q_POS
-move_limit: 2
-stack: -2,0:1:1
-stack: 0,0:4:1,1,2,4
 ```
 But add gates to force order of split.
 
