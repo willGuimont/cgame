@@ -16,6 +16,8 @@ Stone *Cell_Top(Cell *cell) {
 }
 
 bool Cell_Push(Cell *cell, const Stone stone) {
+    if (cell->fixed_bridge)
+        return false;
     if (cell->count >= MAX_STACK)
         return false;
     cell->stones[cell->count++] = stone;
@@ -115,6 +117,7 @@ void Board_Init(Board *board, const i32 radius) {
             cell->hex = h;
             cell->count = 0;
             cell->blocked = false;
+            cell->fixed_bridge = false;
             cell->required_value = 0;
             cell->required_height = 0;
         }
@@ -148,7 +151,7 @@ bool Board_MoveStackOne(Board *board, const i32 from_index, const i32 dir) {
         return false;
 
     const Cell *to = &board->cells[to_index];
-    if (to->blocked)
+    if (to->blocked || to->fixed_bridge)
         return false;
 
     Board next = *board;
@@ -183,7 +186,7 @@ bool Board_SpreadStack(Board *board, const i32 from_index, const i32 dir, const 
             return false;
 
         const Cell *cell = &board->cells[idx];
-        if (cell->blocked)
+        if (cell->blocked || cell->fixed_bridge)
             return false;
 
         path_indices[step] = idx;
@@ -259,6 +262,8 @@ i32 Cell_GetDisplayedRequiredValue(const Cell *cell) {
 bool Cell_IsRoad(const Cell *cell) {
     if (cell->blocked)
         return false;
+    if (cell->fixed_bridge)
+        return true;
     if (cell->count <= 0)
         return false;
     if (Cell_IsOpenOnlyGate(cell))
@@ -392,7 +397,6 @@ i32 Board_FindConnectionPath(const Board *board, const BoardSide a, const BoardS
 
 // Levels
 LevelDesc LEVELS[LEVEL_COUNT];
-constexpr i32 LEVEL_ENTRY_LIMIT = 25;
 
 static void Parsing_TrimString(char *str) {
     size_t l = strlen(str);
@@ -435,15 +439,20 @@ static bool Levels_IsValidDesc(const LevelDesc *desc) {
     if (desc->radius < 0 || Hex_SpiralCount(desc->radius) > MAX_CELLS) {
         return false;
     }
-    if (desc->blocked_count < 0 || desc->blocked_count > LEVEL_ENTRY_LIMIT || desc->required_count < 0 ||
-        desc->required_count > LEVEL_ENTRY_LIMIT || desc->required_height_count < 0 ||
-        desc->required_height_count > LEVEL_ENTRY_LIMIT || desc->initial_stack_count < 0 ||
+    if (desc->blocked_count < 0 || desc->blocked_count > LEVEL_ENTRY_LIMIT || desc->fixed_count < 0 ||
+        desc->fixed_count > LEVEL_ENTRY_LIMIT || desc->required_count < 0 || desc->required_count > LEVEL_ENTRY_LIMIT ||
+        desc->required_height_count < 0 || desc->required_height_count > LEVEL_ENTRY_LIMIT || desc->initial_stack_count < 0 ||
         desc->initial_stack_count > LEVEL_ENTRY_LIMIT) {
         return false;
     }
 
     for (i32 i = 0; i < desc->blocked_count; i++) {
         if (!Hex_IsInBound(desc->blocked_hexes[i], desc->radius)) {
+            return false;
+        }
+    }
+    for (i32 i = 0; i < desc->fixed_count; i++) {
+        if (!Hex_IsInBound(desc->fixed_hexes[i], desc->radius)) {
             return false;
         }
     }
@@ -564,6 +573,16 @@ bool Levels_LoadFromStream(FILE *f, LevelDesc *levels, i32 max_levels) {
                     }
                     const i32 b_idx = levels[current_idx].blocked_count++;
                     levels[current_idx].blocked_hexes[b_idx] = (Hex) {q, r};
+                }
+            } else if (strcmp(key, "fixed") == 0) {
+                i32 q = 0;
+                i32 r = 0;
+                if (sscanf(val, "%d,%d", &q, &r) == 2) {
+                    if (levels[current_idx].fixed_count >= LEVEL_ENTRY_LIMIT) {
+                        return Levels_Fail(levels, max_levels);
+                    }
+                    const i32 f_idx = levels[current_idx].fixed_count++;
+                    levels[current_idx].fixed_hexes[f_idx] = (Hex) {q, r};
                 }
             } else if (strcmp(key, "required") == 0) {
                 i32 q = 0, r = 0, req_val = 0;

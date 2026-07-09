@@ -6,6 +6,7 @@
 
 constexpr i32 MAX_CELLS = 64;
 constexpr i32 MAX_STACK = 16;
+constexpr i32 LEVEL_ENTRY_LIMIT = 64;
 constexpr i32 REQUIRED_VALUE_OPEN_ONLY = -1;
 
 typedef struct {
@@ -17,6 +18,7 @@ typedef struct {
     Stone stones[MAX_STACK];
     i32 count;
     bool blocked;
+    bool fixed_bridge;
     i32 required_value;
     i32 required_height;
 } Cell;
@@ -61,19 +63,21 @@ typedef struct {
         Hex hex;
         i32 count;
         i32 stone_values[MAX_STACK];
-    } initial_stacks[16];
+    } initial_stacks[LEVEL_ENTRY_LIMIT];
     i32 initial_stack_count;
-    Hex blocked_hexes[16];
+    Hex blocked_hexes[LEVEL_ENTRY_LIMIT];
     i32 blocked_count;
+    Hex fixed_hexes[LEVEL_ENTRY_LIMIT];
+    i32 fixed_count;
     struct {
         Hex hex;
         i32 required_value;
-    } required_hexes[16];
+    } required_hexes[LEVEL_ENTRY_LIMIT];
     i32 required_count;
     struct {
         Hex hex;
         i32 required_height;
-    } required_height_hexes[16];
+    } required_height_hexes[LEVEL_ENTRY_LIMIT];
     i32 required_height_count;
 } LevelDesc;
 

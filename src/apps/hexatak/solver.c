@@ -37,6 +37,7 @@ static uint64_t Solver_HashBoard(const Board *board) {
         hash = Solver_HashBytes(hash, &cell->hex, sizeof(cell->hex));
         hash = Solver_HashBytes(hash, &cell->count, sizeof(cell->count));
         hash = Solver_HashBytes(hash, &cell->blocked, sizeof(cell->blocked));
+        hash = Solver_HashBytes(hash, &cell->fixed_bridge, sizeof(cell->fixed_bridge));
         hash = Solver_HashBytes(hash, &cell->required_value, sizeof(cell->required_value));
         hash = Solver_HashBytes(hash, &cell->required_height, sizeof(cell->required_height));
         for (i32 s = 0; s < cell->count; s++) {
@@ -54,6 +55,7 @@ static bool Solver_BoardEquals(const Board *a, const Board *b) {
         const Cell *ca = &a->cells[i];
         const Cell *cb = &b->cells[i];
         if (!Hex_Equals(ca->hex, cb->hex) || ca->count != cb->count || ca->blocked != cb->blocked ||
+            ca->fixed_bridge != cb->fixed_bridge ||
             ca->required_value != cb->required_value || ca->required_height != cb->required_height) {
             return false;
         }

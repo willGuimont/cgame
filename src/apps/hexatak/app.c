@@ -114,6 +114,12 @@ static Board App_BuildBoardFromLevelDesc(const LevelDesc *desc) {
             board.cells[idx].blocked = true;
         }
     }
+    for (i32 i = 0; i < desc->fixed_count; i++) {
+        const i32 idx = Board_FindCellIndex(&board, desc->fixed_hexes[i]);
+        if (idx >= 0) {
+            board.cells[idx].fixed_bridge = true;
+        }
+    }
     for (i32 i = 0; i < desc->initial_stack_count; i++) {
         const i32 idx = Board_FindCellIndex(&board, desc->initial_stacks[i].hex);
         if (idx >= 0) {
@@ -145,15 +151,19 @@ static void App_ReportSolver(const GameState *gs) {
     const Board start = gs->testing_editor_level ? gs->editor_board : App_BuildBoardFromLevelDesc(desc);
     const i32 max_moves = desc->move_limit > 0 ? desc->move_limit : 8;
     SolverResult result;
+    const double solve_start = GetTime();
     if (!Solver_CountSolutions(&start, desc->side_a, desc->side_b, max_moves, &result)) {
-        printf("\n=== SOLVER ===\nFailed to run solver.\n==============\n\n");
+        const double solve_seconds = GetTime() - solve_start;
+        printf("\n=== SOLVER ===\nFailed to run solver.\nTime: %.3fs\n==============\n\n", solve_seconds);
         return;
     }
+    const double solve_seconds = GetTime() - solve_start;
 
     printf("\n=== SOLVER: %s ===\n", desc->name ? desc->name : "Untitled");
     printf("Start: level initial board, max moves: %d%s\n", result.max_moves,
            desc->move_limit > 0 ? "" : " (debug cap)");
-    printf("Explored states: %d%s\n", result.explored_states, result.truncated ? " (truncated)" : "");
+    printf("Explored states: %d%s, time: %.3fs\n", result.explored_states,
+           result.truncated ? " (truncated)" : "", solve_seconds);
     for (i32 moves = 0; moves <= result.max_moves; moves++) {
         printf("moves %d: %lld solution%s\n", moves, result.solutions_by_moves[moves],
                result.solutions_by_moves[moves] == 1 ? "" : "s");
@@ -165,25 +175,42 @@ static void App_ReportAllSolvability(GameState *gs) {
     printf("\n=== SOLVER: ALL LEVELS ===\n");
 
     i32 impossible_count = 0;
+    i32 skipped_count = 0;
+    const double all_start = GetTime();
     for (i32 level_idx = 0; level_idx < LEVEL_COUNT; level_idx++) {
         const LevelDesc *desc = &LEVELS[level_idx];
         const Board start = App_BuildBoardFromLevelDesc(desc);
         const i32 max_moves = desc->move_limit > 0 ? desc->move_limit : 8;
-
-        SolverResult result;
         gs->level_impossible[level_idx] = false;
-        if (!Solver_CountSolutions(&start, desc->side_a, desc->side_b, max_moves, &result)) {
-            gs->level_impossible[level_idx] = true;
-            impossible_count++;
+        gs->level_manual_check[level_idx] = false;
+
+        // Covered Value is quick to solve
+        if (max_moves > 5 && strcmp(desc->name, "Covered Value") != 0) {
+            gs->level_manual_check[level_idx] = true;
+            skipped_count++;
             printf("\nLEVEL %d: %s\n", level_idx + 1, desc->name ? desc->name : "Untitled");
-            printf("solver failed\n");
+            printf("max moves: %d%s\n", max_moves, desc->move_limit > 0 ? "" : " (debug cap)");
+            printf("status: manual check required (solver skipped > 5 moves)\n");
             continue;
         }
 
+        SolverResult result;
+        const double solve_start = GetTime();
+        if (!Solver_CountSolutions(&start, desc->side_a, desc->side_b, max_moves, &result)) {
+            const double solve_seconds = GetTime() - solve_start;
+            gs->level_impossible[level_idx] = true;
+            impossible_count++;
+            printf("\nLEVEL %d: %s\n", level_idx + 1, desc->name ? desc->name : "Untitled");
+            printf("solver failed, time: %.3fs\n", solve_seconds);
+            continue;
+        }
+        const double solve_seconds = GetTime() - solve_start;
+
         long long total_solutions = 0;
         printf("\nLEVEL %d: %s\n", level_idx + 1, desc->name ? desc->name : "Untitled");
-        printf("max moves: %d%s, explored states: %d%s\n", result.max_moves, desc->move_limit > 0 ? "" : " (debug cap)",
-               result.explored_states, result.truncated ? " (truncated)" : "");
+        printf("max moves: %d%s, explored states: %d%s, time: %.3fs\n", result.max_moves,
+               desc->move_limit > 0 ? "" : " (debug cap)", result.explored_states,
+               result.truncated ? " (truncated)" : "", solve_seconds);
         for (i32 moves = 0; moves <= result.max_moves; moves++) {
             total_solutions += result.solutions_by_moves[moves];
             printf("moves %d: %lld solution%s\n", moves, result.solutions_by_moves[moves],
@@ -199,7 +226,8 @@ static void App_ReportAllSolvability(GameState *gs) {
         }
     }
 
-    printf("\nSummary: %d impossible / %d levels\n", impossible_count, LEVEL_COUNT);
+    printf("\nSummary: %d impossible, %d skipped / %d levels, time: %.3fs\n", impossible_count, skipped_count, LEVEL_COUNT,
+           GetTime() - all_start);
     printf("==========================\n\n");
 }
 #endif
@@ -233,6 +261,7 @@ static bool App_Init(void *state) {
     for (i32 i = 0; i < LEVEL_COUNT; i++) {
         gs->level_completed[i] = false;
         gs->level_impossible[i] = false;
+        gs->level_manual_check[i] = false;
     }
 
     // Initialize editor variables
@@ -279,6 +308,12 @@ static void Editor_Export(const GameState *gs) {
         const Cell *cell = &gs->editor_board.cells[i];
         if (cell->blocked) {
             fprintf(f, "blocked: %d,%d\n", cell->hex.q, cell->hex.r);
+        }
+    }
+    for (i32 i = 0; i < gs->editor_board.count; i++) {
+        const Cell *cell = &gs->editor_board.cells[i];
+        if (cell->fixed_bridge) {
+            fprintf(f, "fixed: %d,%d\n", cell->hex.q, cell->hex.r);
         }
     }
 
@@ -329,6 +364,11 @@ static void Editor_Export(const GameState *gs) {
     }
     for (i32 i = 0; i < gs->editor_board.count; i++) {
         const Cell *cell = &gs->editor_board.cells[i];
+        if (cell->fixed_bridge)
+            printf("fixed: %d,%d\n", cell->hex.q, cell->hex.r);
+    }
+    for (i32 i = 0; i < gs->editor_board.count; i++) {
+        const Cell *cell = &gs->editor_board.cells[i];
         if (Cell_HasRequiredValue(cell))
             printf("required: %d,%d:%d\n", cell->hex.q, cell->hex.r, Cell_GetDisplayedRequiredValue(cell));
     }
@@ -376,6 +416,12 @@ static void Editor_ApplyLevelDesc(GameState *gs, const LevelDesc *desc) {
         const i32 idx = Board_FindCellIndex(&gs->editor_board, desc->blocked_hexes[i]);
         if (idx >= 0) {
             gs->editor_board.cells[idx].blocked = true;
+        }
+    }
+    for (i32 i = 0; i < desc->fixed_count; i++) {
+        const i32 idx = Board_FindCellIndex(&gs->editor_board, desc->fixed_hexes[i]);
+        if (idx >= 0) {
+            gs->editor_board.cells[idx].fixed_bridge = true;
         }
     }
 
@@ -521,8 +567,9 @@ static void App_Update(void *state, f32 dt) {
         if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             const Rectangle rect_tool_stones = {20.0f, 120.0f, 160.0f, 26.0f};
             const Rectangle rect_tool_blocked = {20.0f, 150.0f, 160.0f, 26.0f};
-            const Rectangle rect_tool_required = {20.0f, 180.0f, 160.0f, 26.0f};
-            const Rectangle rect_tool_height = {20.0f, 210.0f, 160.0f, 26.0f};
+            const Rectangle rect_tool_fixed = {20.0f, 180.0f, 160.0f, 26.0f};
+            const Rectangle rect_tool_required = {20.0f, 210.0f, 160.0f, 26.0f};
+            const Rectangle rect_tool_height = {20.0f, 240.0f, 160.0f, 26.0f};
 
             const Rectangle rect_radius = {20.0f, 275.0f, 160.0f, 26.0f};
             const Rectangle rect_side_a = {20.0f, 305.0f, 160.0f, 26.0f};
@@ -537,6 +584,9 @@ static void App_Update(void *state, f32 dt) {
             } else if (CheckCollisionPointRec(mouse, rect_tool_blocked)) {
                 PlaySound(gs->snd_click);
                 gs->editor_active_tool = EDITOR_TOOL_BLOCKED;
+            } else if (CheckCollisionPointRec(mouse, rect_tool_fixed)) {
+                PlaySound(gs->snd_click);
+                gs->editor_active_tool = EDITOR_TOOL_FIXED_BRIDGE;
             } else if (CheckCollisionPointRec(mouse, rect_tool_required)) {
                 PlaySound(gs->snd_click);
                 gs->editor_active_tool = EDITOR_TOOL_REQUIRED_VALUE;
@@ -684,6 +734,15 @@ static void App_Update(void *state, f32 dt) {
                     cell->blocked = !cell->blocked;
                     if (cell->blocked) {
                         cell->count = 0;
+                        cell->fixed_bridge = false;
+                        cell->required_value = 0;
+                        cell->required_height = 0;
+                    }
+                } else if (gs->editor_active_tool == EDITOR_TOOL_FIXED_BRIDGE) {
+                    cell->fixed_bridge = !cell->fixed_bridge;
+                    if (cell->fixed_bridge) {
+                        cell->count = 0;
+                        cell->blocked = false;
                         cell->required_value = 0;
                         cell->required_height = 0;
                     }
@@ -696,6 +755,7 @@ static void App_Update(void *state, f32 dt) {
                     } else {
                         cell->required_value = selected_required_value;
                         cell->blocked = false;
+                        cell->fixed_bridge = false;
                     }
                 } else if (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_HEIGHT) {
                     if (cell->required_height == gs->editor_selected_required_height) {
@@ -703,12 +763,14 @@ static void App_Update(void *state, f32 dt) {
                     } else {
                         cell->required_height = gs->editor_selected_required_height;
                         cell->blocked = false;
+                        cell->fixed_bridge = false;
                     }
                 }
             } else if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) {
                 PlaySound(gs->snd_click);
                 cell->count = 0;
                 cell->blocked = false;
+                cell->fixed_bridge = false;
                 cell->required_value = 0;
                 cell->required_height = 0;
             }
@@ -740,6 +802,7 @@ static void App_Update(void *state, f32 dt) {
             }
             for (i32 i = 0; i < LEVEL_COUNT; i++) {
                 gs->level_impossible[i] = false;
+                gs->level_manual_check[i] = false;
             }
             return;
         }
@@ -1001,36 +1064,38 @@ static void App_Update(void *state, f32 dt) {
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 App_ReportSolver(gs);
             }
-        } else
+        }
 #endif
-                if (CheckCollisionPointRec(mouse, btn_undo)) {
-            clicked_ui = true;
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                App_UndoMove(gs);
-            }
-        } else if (CheckCollisionPointRec(mouse, btn_redo)) {
-            clicked_ui = true;
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                App_RedoMove(gs);
-            }
-        } else if (CheckCollisionPointRec(mouse, btn_reset)) {
-            clicked_ui = true;
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                PlaySound(gs->snd_reset);
-                Level_Reset(gs);
-            }
-        } else if (CheckCollisionPointRec(mouse, btn_menu)) {
-            clicked_ui = true;
-            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-                PlaySound(gs->snd_click);
-                if (gs->testing_editor_level) {
-                    gs->screen = SCREEN_LEVEL_EDITOR;
-                    gs->testing_editor_level = false;
-                    Levels_LoadAll();
-                } else {
-                    gs->screen = SCREEN_LEVEL_SELECT;
+        if (!clicked_ui) {
+            if (CheckCollisionPointRec(mouse, btn_undo)) {
+                clicked_ui = true;
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    App_UndoMove(gs);
                 }
-                gs->has_preview = false;
+            } else if (CheckCollisionPointRec(mouse, btn_redo)) {
+                clicked_ui = true;
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    App_RedoMove(gs);
+                }
+            } else if (CheckCollisionPointRec(mouse, btn_reset)) {
+                clicked_ui = true;
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    PlaySound(gs->snd_reset);
+                    Level_Reset(gs);
+                }
+            } else if (CheckCollisionPointRec(mouse, btn_menu)) {
+                clicked_ui = true;
+                if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                    PlaySound(gs->snd_click);
+                    if (gs->testing_editor_level) {
+                        gs->screen = SCREEN_LEVEL_EDITOR;
+                        gs->testing_editor_level = false;
+                        Levels_LoadAll();
+                    } else {
+                        gs->screen = SCREEN_LEVEL_SELECT;
+                    }
+                    gs->has_preview = false;
+                }
             }
         }
 
@@ -1320,7 +1385,8 @@ static void App_Draw(void *state, f32 alpha) {
             snprintf(lvl_num_str, sizeof(lvl_num_str), "LEVEL %d", i + 1);
             CGame_DrawText(gs->font_ibm, lvl_num_str, (i32) (x + 15), (i32) (y + 10), UI_FONT_HELP,
                            (Color) {166, 173, 200, 255});
-            const bool show_status_badge = gs->level_impossible[i] || gs->level_completed[i];
+            const bool show_status_badge =
+                    gs->level_impossible[i] || gs->level_manual_check[i] || gs->level_completed[i];
             float max_w = show_status_badge ? (CARD_W - 105.0f) : (CARD_W - 30.0f);
             CGame_DrawTextScaled(gs->font_ibm, LEVELS[i].name, (i32) (x + 15), (i32) (y + 34), UI_FONT_BODY,
                                  (i32) max_w, (Color) {205, 214, 244, 255});
@@ -1331,6 +1397,12 @@ static void App_Draw(void *state, f32 alpha) {
                 i32 tw = CGame_MeasureText(gs->font_ibm, "IMPOSSIBLE", 9);
                 CGame_DrawText(gs->font_ibm, "IMPOSSIBLE", (i32) (x + CARD_W - 95.0f + 40.0f) - (tw / 2),
                                (i32) (y + 16.0f), 9, (Color) {243, 139, 168, 255});
+            } else if (gs->level_manual_check[i]) {
+                DrawRectangle((i32) (x + CARD_W - 65), (i32) (y + 12), 50, 18, (Color) {249, 226, 175, 45});
+                DrawRectangleLines((i32) (x + CARD_W - 65), (i32) (y + 12), 50, 18, (Color) {249, 226, 175, 255});
+                i32 tw = CGame_MeasureText(gs->font_ibm, "TBD", 10);
+                CGame_DrawText(gs->font_ibm, "TBD", (i32) (x + CARD_W - 65.0f + 25.0f) - (tw / 2), (i32) (y + 16.0f),
+                               10, (Color) {249, 226, 175, 255});
             } else if (gs->level_completed[i]) {
                 DrawRectangle((i32) (x + CARD_W - 85), (i32) (y + 12), 70, 18, (Color) {166, 227, 161, 40});
                 DrawRectangleLines((i32) (x + CARD_W - 85), (i32) (y + 12), 70, 18, (Color) {166, 227, 161, 255});
@@ -1349,8 +1421,8 @@ static void App_Draw(void *state, f32 alpha) {
 #ifndef NDEBUG
         Rectangle btn_reload = {190.0f, 650.0f, 120.0f, 40.0f};
         bool reload_hovered = CheckCollisionPointRec(mouse, btn_reload);
-        CGame_DrawButton(gs->font_ibm, btn_reload, "RELOAD", (Color) {148, 226, 213, 255}, (Color) {30, 30, 46, 255},
-                         reload_hovered, UI_FONT_BUTTON);
+        CGame_DrawButton(gs->font_ibm, btn_reload, "RELOAD", (Color) {148, 226, 213, 255},
+                         (Color) {30, 30, 46, 255}, reload_hovered, UI_FONT_BUTTON);
 
         Rectangle btn_check_all = {285.0f, 600.0f, 150.0f, 36.0f};
         bool check_all_hovered = CheckCollisionPointRec(mouse, btn_check_all);

@@ -25,7 +25,7 @@ static const char *Utils_GetSideName(const BoardSide side) {
 static Color Utils_GetStoneColor(const i32 value) {
     switch (value) {
         case 0:
-            return (Color) {49, 50, 68, 255}; // Slate
+            return (Color) {180, 190, 254, 255}; // Lavender
         case 1:
             return (Color) {137, 180, 250, 255}; // Light Blue
         case 2:
@@ -47,6 +47,10 @@ static Color Utils_GetStoneColor(const i32 value) {
 
 static Color Utils_GetGateColor(void) {
     return (Color) {148, 226, 213, 255}; // Teal
+}
+
+static Color Utils_GetFixedBridgeColor(void) {
+    return (Color) {249, 226, 175, 255}; // Yellow
 }
 
 static const char *Utils_GetMoveLimitString(const i32 move_limit, char *buf, const size_t size) {
@@ -107,6 +111,27 @@ void Render_DrawStoneStack(const Font font, const Cell *cell, const Vector2 cent
 
         CGame_DrawText(font, val_str, text_x, text_y, FONT_SZ, (Color) {17, 17, 27, (unsigned char) alpha});
     }
+}
+
+static void Render_DrawFixedBridge(const Font font, const Vector2 center, const float size, const i32 alpha,
+                                   const bool active, const float pulse) {
+    (void) font;
+    const Color bridge_col = Utils_GetFixedBridgeColor();
+    const float base_radius = size * 0.55f;
+    float final_radius = base_radius;
+    if (active) {
+        final_radius = base_radius * (1.0f + (0.15f * pulse));
+        const Color glow_color =
+                (Color) {bridge_col.r, bridge_col.g, bridge_col.b,
+                         (unsigned char) (((float) alpha * 0.35f) + ((float) alpha * 0.25f * pulse))};
+        DrawCircleV(center, final_radius * 1.3f, glow_color);
+    }
+
+    DrawCircleV(center, final_radius, (Color) {bridge_col.r, bridge_col.g, bridge_col.b, (unsigned char) alpha});
+    DrawCircleLinesV(center, final_radius, (Color) {17, 17, 27, (unsigned char) alpha});
+    const Color inner_fill = (Color) {30, 30, 46, (unsigned char) alpha};
+    DrawCircleV(center, final_radius * 0.5f, inner_fill);
+    DrawCircleLinesV(center, final_radius * 0.5f, (Color) {17, 17, 27, (unsigned char) alpha});
 }
 
 void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
@@ -183,6 +208,8 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
         if (cell->blocked) {
             fill = (Color) {17, 17, 27, 255};
             border = (Color) {49, 50, 68, 255};
+        } else if (cell->fixed_bridge) {
+            border = Utils_GetFixedBridgeColor();
         } else if (is_editor && hovered_idx == i) {
             border = (Color) {249, 226, 175, 255};
         } else if (!is_editor && (gs->input.mode == INPUT_SELECTED || gs->input.mode == INPUT_DRAGGING) &&
@@ -222,6 +249,7 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
                     (Rectangle) {center.x - size * 0.22f, center.y - size * 0.22f, size * 0.44f, size * 0.44f}, 1.0f,
                     (Color) {height_col.r, height_col.g, height_col.b, 45});
         }
+
     }
 
     // Pass 3: Draw all stone stacks, previews, required badges and warning badges on top of everything
@@ -288,6 +316,10 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
             Render_DrawHex(center, size - 2.0f, (Color) {166, 227, 161, 40}, (Color) {166, 227, 161, 120});
         } else if (!is_selected_stack) {
             Render_DrawStoneStack(gs->font_ibm, cell, center, size, 255, is_active_path, pulse, false);
+        }
+
+        if (cell->fixed_bridge) {
+            Render_DrawFixedBridge(gs->font_ibm, center, size, 255, is_active_path, pulse);
         }
 
         if (Cell_HasRequiredValue(cell)) {
@@ -472,8 +504,9 @@ void Render_DrawEditorUI(const GameState *gs) {
 
     const Rectangle rect_tool_stones = {20.0f, 120.0f, 160.0f, 26.0f};
     const Rectangle rect_tool_blocked = {20.0f, 150.0f, 160.0f, 26.0f};
-    const Rectangle rect_tool_required = {20.0f, 180.0f, 160.0f, 26.0f};
-    const Rectangle rect_tool_height = {20.0f, 210.0f, 160.0f, 26.0f};
+    const Rectangle rect_tool_fixed = {20.0f, 180.0f, 160.0f, 26.0f};
+    const Rectangle rect_tool_required = {20.0f, 210.0f, 160.0f, 26.0f};
+    const Rectangle rect_tool_height = {20.0f, 240.0f, 160.0f, 26.0f};
 
     const Color active_bg = (Color) {137, 180, 250, 255}; // Light Blue
     const Color active_fg = (Color) {30, 30, 46, 255};
@@ -490,6 +523,11 @@ void Render_DrawEditorUI(const GameState *gs) {
                      (gs->editor_active_tool == EDITOR_TOOL_BLOCKED) ? active_fg : inactive_fg,
                      CheckCollisionPointRec(mouse, rect_tool_blocked), UI_FONT_BUTTON);
 
+    CGame_DrawButton(gs->font_ibm, rect_tool_fixed, "FIXED BRIDGE TOOL",
+                     (gs->editor_active_tool == EDITOR_TOOL_FIXED_BRIDGE) ? active_bg : inactive_bg,
+                     (gs->editor_active_tool == EDITOR_TOOL_FIXED_BRIDGE) ? active_fg : inactive_fg,
+                     CheckCollisionPointRec(mouse, rect_tool_fixed), UI_FONT_BUTTON);
+
     CGame_DrawButton(gs->font_ibm, rect_tool_required, "VALUE GATE TOOL",
                      (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_VALUE) ? active_bg : inactive_bg,
                      (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_VALUE) ? active_fg : inactive_fg,
@@ -501,7 +539,7 @@ void Render_DrawEditorUI(const GameState *gs) {
                      CheckCollisionPointRec(mouse, rect_tool_height), UI_FONT_BUTTON);
 
     // Properties
-    CGame_DrawTextScaled(gs->font_ibm, "PROPERTIES", 20, 255, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
+    CGame_DrawTextScaled(gs->font_ibm, "PROPERTIES", 20, 270, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
 
     const Rectangle rect_radius = {20.0f, 275.0f, 160.0f, 26.0f};
     char rad_str[32];
@@ -638,6 +676,11 @@ void Render_DrawEditorUI(const GameState *gs) {
     // Display Help Text
     if (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_HEIGHT) {
         CGame_DrawTextScaled(gs->font_ibm, "L-Click: Toggle Height Gate", 230, 20, UI_FONT_HELP, 450,
+                             (Color) {166, 173, 200, 255});
+        CGame_DrawTextScaled(gs->font_ibm, "R-Click: Clear Stack/Block/Gates", 230, 42, UI_FONT_HELP, 450,
+                             (Color) {166, 173, 200, 255});
+    } else if (gs->editor_active_tool == EDITOR_TOOL_FIXED_BRIDGE) {
+        CGame_DrawTextScaled(gs->font_ibm, "L-Click: Toggle Fixed Bridge Cell", 230, 20, UI_FONT_HELP, 450,
                              (Color) {166, 173, 200, 255});
         CGame_DrawTextScaled(gs->font_ibm, "R-Click: Clear Stack/Block/Gates", 230, 42, UI_FONT_HELP, 450,
                              (Color) {166, 173, 200, 255});

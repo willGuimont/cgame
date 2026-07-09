@@ -40,6 +40,7 @@ typedef enum {
 typedef enum {
     EDITOR_TOOL_STONES,
     EDITOR_TOOL_BLOCKED,
+    EDITOR_TOOL_FIXED_BRIDGE,
     EDITOR_TOOL_REQUIRED_VALUE,
     EDITOR_TOOL_REQUIRED_HEIGHT,
 } EditorTool;
@@ -61,6 +62,7 @@ typedef struct {
     ScreenState screen;
     bool level_completed[LEVEL_COUNT];
     bool level_impossible[LEVEL_COUNT];
+    bool level_manual_check[LEVEL_COUNT];
     float anim_time;
     i32 level_select_page;
     float esc_timer;
