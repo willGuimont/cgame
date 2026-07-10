@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Sokoban</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #111827;
+            --panel-border: #334155;
+            --text: #e2e8f0;
+            --muted: #94a3b8;
+            --accent: #f59e0b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background:
+                radial-gradient(circle at top, rgba(245, 158, 11, 0.12), transparent 30%),
+                linear-gradient(180deg, #020617 0%, var(--bg) 100%);
+            color: var(--text);
+            font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+        }
+
+        .shell {
+            width: min(1040px, calc(100vw - 24px));
+            padding: 20px;
+            border: 1px solid var(--panel-border);
+            border-radius: 24px;
+            background: rgba(17, 24, 39, 0.92);
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: clamp(2rem, 4vw, 3rem);
+            letter-spacing: 0.08em;
+            color: var(--accent);
+        }
+
+        p {
+            margin: 0 0 18px;
+            color: var(--muted);
+        }
+
+        canvas.emscripten {
+            display: block;
+            width: min(960px, 100%);
+            height: auto;
+            margin: 0 auto;
+            border-radius: 18px;
+            outline: none;
+            background: #0b1120;
+        }
+
+        #output {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<main class="shell">
+    <h1>Sokoban</h1>
+    <p>Prototype target scaffold following the Hexatak build setup.</p>
+    <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+    <pre id="output"></pre>
+</main>
+<script>
+    var Module = {
+        canvas: (() => document.getElementById("canvas"))(),
+        print: (...args) => console.log(...args),
+        printErr: (...args) => console.error(...args),
+    };
+</script>
+{{{ SCRIPT }}}
+</body>
+</html>

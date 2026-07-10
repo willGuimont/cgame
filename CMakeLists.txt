@@ -339,6 +339,19 @@ add_cgame_app(hexatak-itch hexatak
         EXCLUDE_FROM_INDEX
 )
 
+# Sokoban application
+add_executable(sokoban
+        src/apps/sokoban/main.c
+        src/apps/sokoban/app.c
+        src/apps/sokoban/app.h
+        web/sokoban/minshell.html
+)
+add_cgame_app(sokoban sokoban
+        TITLE "Sokoban"
+        DESCRIPTION "Prototype box-pushing target inspired by the Hexatak app setup."
+        WEB_DIR "web/sokoban"
+)
+
 get_property(CGAME_APP_TARGETS GLOBAL PROPERTY CGAME_APP_TARGETS)
 
 add_custom_target(all_apps)
