@@ -98,4 +98,4 @@ Mouse:
 
 * Web build: https://willguimont.com/cgame/hexatak/
 * Source repository: https://github.com/willGuimont/cgame
-* itch.io Release: not published
+* itch.io Release: https://willguimont.itch.io/hexatak
