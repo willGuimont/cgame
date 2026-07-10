@@ -455,8 +455,7 @@ static bool Parsing_ParseHexValue(const char *str, i32 *q, i32 *r, i32 *value) {
     i32 parsed_r = 0;
     i32 parsed_value = 0;
     i32 n = 0;
-    if (sscanf(str, " %d , %d : %d %n", &parsed_q, &parsed_r, &parsed_value, &n) != 3 ||
-        !Parsing_OnlySpaces(str + n)) {
+    if (sscanf(str, " %d , %d : %d %n", &parsed_q, &parsed_r, &parsed_value, &n) != 3 || !Parsing_OnlySpaces(str + n)) {
         return false;
     }
 
@@ -466,7 +465,8 @@ static bool Parsing_ParseHexValue(const char *str, i32 *q, i32 *r, i32 *value) {
     return true;
 }
 
-static bool Parsing_ParseStackHeader(const char *str, i32 *q, i32 *r, i32 *count, char *values, const size_t values_size) {
+static bool Parsing_ParseStackHeader(const char *str, i32 *q, i32 *r, i32 *count, char *values,
+                                     const size_t values_size) {
     i32 parsed_q = 0;
     i32 parsed_r = 0;
     i32 parsed_count = 0;
@@ -514,8 +514,8 @@ static bool Levels_IsValidDesc(const LevelDesc *desc) {
     }
     if (desc->blocked_count < 0 || desc->blocked_count > LEVEL_ENTRY_LIMIT || desc->fixed_count < 0 ||
         desc->fixed_count > LEVEL_ENTRY_LIMIT || desc->required_count < 0 || desc->required_count > LEVEL_ENTRY_LIMIT ||
-        desc->required_height_count < 0 || desc->required_height_count > LEVEL_ENTRY_LIMIT || desc->initial_stack_count < 0 ||
-        desc->initial_stack_count > LEVEL_ENTRY_LIMIT) {
+        desc->required_height_count < 0 || desc->required_height_count > LEVEL_ENTRY_LIMIT ||
+        desc->initial_stack_count < 0 || desc->initial_stack_count > LEVEL_ENTRY_LIMIT) {
         return false;
     }
 
@@ -712,8 +712,7 @@ bool Levels_LoadFromStream(FILE *f, LevelDesc *levels, i32 max_levels) {
                 if (!Parsing_ParseStackHeader(val, &q, &r, &count, vals_str, sizeof(vals_str))) {
                     return Levels_Fail(levels, max_levels);
                 }
-                if (count <= 0 || count > MAX_STACK ||
-                    levels[current_idx].initial_stack_count >= LEVEL_ENTRY_LIMIT) {
+                if (count <= 0 || count > MAX_STACK || levels[current_idx].initial_stack_count >= LEVEL_ENTRY_LIMIT) {
                     return Levels_Fail(levels, max_levels);
                 }
 
@@ -723,7 +722,8 @@ bool Levels_LoadFromStream(FILE *f, LevelDesc *levels, i32 max_levels) {
 
                 char *token = strtok(vals_str, ",");
                 for (i32 s = 0; s < count; s++) {
-                    if (!token || !Parsing_ParseI32(token, &levels[current_idx].initial_stacks[s_idx].stone_values[s])) {
+                    if (!token ||
+                        !Parsing_ParseI32(token, &levels[current_idx].initial_stacks[s_idx].stone_values[s])) {
                         return Levels_Fail(levels, max_levels);
                     }
                     token = strtok(nullptr, ",");

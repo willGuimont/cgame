@@ -11,13 +11,31 @@ static const char *Utils_GetSideName(const BoardSide side) {
         case SIDE_Q_POS:
             return "EAST (Right)";
         case SIDE_R_NEG:
-            return "NORTH-EAST (Top-Right)";
+            return "NORTH (Top)";
         case SIDE_R_POS:
-            return "SOUTH-WEST (Bottom-Left)";
+            return "SOUTH (Bottom)";
         case SIDE_S_NEG:
-            return "NORTH-WEST (Top-Left)";
-        case SIDE_S_POS:
             return "SOUTH-EAST (Bottom-Right)";
+        case SIDE_S_POS:
+            return "NORTH-WEST (Top-Left)";
+    }
+    return "UNKNOWN";
+}
+
+static const char *Utils_GetSideCompactName(const BoardSide side) {
+    switch (side) {
+        case SIDE_Q_NEG:
+            return "LEFT";
+        case SIDE_Q_POS:
+            return "RIGHT";
+        case SIDE_R_NEG:
+            return "TOP";
+        case SIDE_R_POS:
+            return "BOTTOM";
+        case SIDE_S_NEG:
+            return "BOTTOM-RIGHT";
+        case SIDE_S_POS:
+            return "TOP-LEFT";
     }
     return "UNKNOWN";
 }
@@ -121,9 +139,8 @@ static void Render_DrawFixedBridge(const Font font, const Vector2 center, const 
     float final_radius = base_radius;
     if (active) {
         final_radius = base_radius * (1.0f + (0.15f * pulse));
-        const Color glow_color =
-                (Color) {bridge_col.r, bridge_col.g, bridge_col.b,
-                         (unsigned char) (((float) alpha * 0.35f) + ((float) alpha * 0.25f * pulse))};
+        const Color glow_color = (Color) {bridge_col.r, bridge_col.g, bridge_col.b,
+                                          (unsigned char) (((float) alpha * 0.35f) + ((float) alpha * 0.25f * pulse))};
         DrawCircleV(center, final_radius * 1.3f, glow_color);
     }
 
@@ -134,13 +151,8 @@ static void Render_DrawFixedBridge(const Font font, const Vector2 center, const 
     DrawCircleLinesV(center, final_radius * 0.5f, (Color) {17, 17, 27, (unsigned char) alpha});
 }
 
-void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
-    const LevelDesc *desc = &LEVELS[gs->current_level_idx];
-    bool is_editor = (gs->screen == SCREEN_LEVEL_EDITOR);
-    Board *board = is_editor ? &gs->editor_board : &gs->board;
-    BoardSide side_a = is_editor ? gs->editor_side_a : desc->side_a;
-    BoardSide side_b = is_editor ? gs->editor_side_b : desc->side_b;
-
+void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_a, const BoardSide side_b,
+                        const bool is_editor, const Vector2 origin, const float size) {
     // Pass 1: Draw target side outlines (larger hexes)
     for (i32 i = 0; i < board->count; i++) {
         const Cell *cell = &board->cells[i];
@@ -257,7 +269,6 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
                     (Rectangle) {center.x - size * 0.22f, center.y - size * 0.22f, size * 0.44f, size * 0.44f}, 1.0f,
                     (Color) {height_col.r, height_col.g, height_col.b, 45});
         }
-
     }
 
     // Pass 3: Draw all stone stacks, previews, required badges and warning badges on top of everything
@@ -477,6 +488,15 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
     }
 }
 
+void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
+    const LevelDesc *desc = &LEVELS[gs->current_level_idx];
+    const bool is_editor = (gs->screen == SCREEN_LEVEL_EDITOR);
+    const Board *board = is_editor ? &gs->editor_board : &gs->board;
+    const BoardSide side_a = is_editor ? gs->editor_side_a : desc->side_a;
+    const BoardSide side_b = is_editor ? gs->editor_side_b : desc->side_b;
+    Render_DrawBoardEx(gs, board, side_a, side_b, is_editor, origin, size);
+}
+
 void Render_DrawUI(const GameState *gs) {
     const LevelDesc *desc = &LEVELS[gs->current_level_idx];
 
@@ -606,13 +626,13 @@ void Render_DrawEditorUI(const GameState *gs) {
 
     const Rectangle rect_side_a = {20.0f, 305.0f, 160.0f, 26.0f};
     char side_a_str[64];
-    snprintf(side_a_str, sizeof(side_a_str), "SIDE A: %s", Utils_GetSideString(gs->editor_side_a));
+    snprintf(side_a_str, sizeof(side_a_str), "SIDE A: %s", Utils_GetSideCompactName(gs->editor_side_a));
     CGame_DrawButton(gs->font_ibm, rect_side_a, side_a_str, inactive_bg, inactive_fg,
                      CheckCollisionPointRec(mouse, rect_side_a), UI_FONT_BUTTON);
 
     const Rectangle rect_side_b = {20.0f, 335.0f, 160.0f, 26.0f};
     char side_b_str[64];
-    snprintf(side_b_str, sizeof(side_b_str), "SIDE B: %s", Utils_GetSideString(gs->editor_side_b));
+    snprintf(side_b_str, sizeof(side_b_str), "SIDE B: %s", Utils_GetSideCompactName(gs->editor_side_b));
     CGame_DrawButton(gs->font_ibm, rect_side_b, side_b_str, inactive_bg, inactive_fg,
                      CheckCollisionPointRec(mouse, rect_side_b), UI_FONT_BUTTON);
 
@@ -753,6 +773,5 @@ void Render_DrawEditorUI(const GameState *gs) {
 #else
     const char *import_note = "Export and import work in the terminal.";
 #endif
-    CGame_DrawText(gs->font_ibm, import_note, 230, 680, UI_FONT_BADGE,
-                   (Color) {110, 115, 141, 255});
+    CGame_DrawText(gs->font_ibm, import_note, 230, 680, UI_FONT_BADGE, (Color) {110, 115, 141, 255});
 }

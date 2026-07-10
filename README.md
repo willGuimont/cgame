@@ -24,7 +24,7 @@ make web-deploy
 
 ## Hexatak
 
-![Hexatak title screen](docs/hexatak/title_screen.png)
+![Hexatak thumbnail](docs/hexatak/thumbnail.png)
 
 ### Description
 
@@ -77,6 +77,8 @@ Mouse:
 * Use the on-screen buttons for undo, redo, reset, etc.
 
 ### Screenshots
+
+![Hexatak thumbnail](docs/hexatak/thumbnail.png)
 
 ![Hexatak title screen](docs/hexatak/title_screen.png)
 

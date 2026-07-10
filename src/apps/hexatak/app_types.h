@@ -32,6 +32,7 @@ typedef struct {
 
 typedef enum {
     SCREEN_TITLE,
+    SCREEN_THUMBNAIL,
     SCREEN_LEVEL_SELECT,
     SCREEN_GAMEPLAY,
     SCREEN_LEVEL_EDITOR,
@@ -60,6 +61,9 @@ typedef struct {
 
     // Screen navigation
     ScreenState screen;
+    Board thumbnail_board;
+    BoardSide thumbnail_side_a;
+    BoardSide thumbnail_side_b;
     bool level_completed[LEVEL_COUNT];
     bool level_impossible[LEVEL_COUNT];
     bool level_manual_check[LEVEL_COUNT];

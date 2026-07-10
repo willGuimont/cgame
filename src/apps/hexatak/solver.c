@@ -57,8 +57,8 @@ static bool Solver_BoardEquals(const Board *a, const Board *b) {
         const Cell *ca = &a->cells[i];
         const Cell *cb = &b->cells[i];
         if (!Hex_Equals(ca->hex, cb->hex) || ca->count != cb->count || ca->blocked != cb->blocked ||
-            ca->fixed_bridge != cb->fixed_bridge ||
-            ca->required_value != cb->required_value || ca->required_height != cb->required_height) {
+            ca->fixed_bridge != cb->fixed_bridge || ca->required_value != cb->required_value ||
+            ca->required_height != cb->required_height) {
             return false;
         }
         for (i32 s = 0; s < ca->count; s++) {
@@ -192,10 +192,11 @@ bool Solver_CountSolutionsWithStaticCells(const Board *start, const BoardSide si
                 const i32 min_spread_distance = stack_count == 1 ? 2 : 1;
                 for (i32 distance = min_spread_distance; distance <= stack_count; distance++) {
                     next = node.board;
-                    const Move spread_move = {.type = MOVE_SPREAD, .from_index = from, .dir = dir, .distance = distance};
+                    const Move spread_move = {
+                            .type = MOVE_SPREAD, .from_index = from, .dir = dir, .distance = distance};
                     if (Board_ApplyMove(&next, spread_move)) {
-                        if (!Solver_PushNode(&nodes, &node_capacity, &visited, &node_count, &next, node.depth + 1,
-                                             -1, spread_move)) {
+                        if (!Solver_PushNode(&nodes, &node_capacity, &visited, &node_count, &next, node.depth + 1, -1,
+                                             spread_move)) {
                             out->truncated = true;
                             expansion_truncated = true;
                             break;
@@ -223,8 +224,7 @@ bool Solver_CountSolutions(const Board *start, const BoardSide side_a, const Boa
 }
 
 bool Solver_FindFirstSolutionWithStaticCells(const Board *start, const BoardSide side_a, const BoardSide side_b,
-                                             i32 max_moves, const bool *static_cells,
-                                             SolverFirstSolutionResult *out) {
+                                             i32 max_moves, const bool *static_cells, SolverFirstSolutionResult *out) {
     if (!start || !out) {
         return false;
     }
@@ -294,7 +294,8 @@ bool Solver_FindFirstSolutionWithStaticCells(const Board *start, const BoardSide
                 const i32 min_spread_distance = stack_count == 1 ? 2 : 1;
                 for (i32 distance = min_spread_distance; distance <= stack_count; distance++) {
                     next = node.board;
-                    const Move spread_move = {.type = MOVE_SPREAD, .from_index = from, .dir = dir, .distance = distance};
+                    const Move spread_move = {
+                            .type = MOVE_SPREAD, .from_index = from, .dir = dir, .distance = distance};
                     if (Board_ApplyMove(&next, spread_move)) {
                         if (!Solver_PushNode(&nodes, &node_capacity, &visited, &node_count, &next, node.depth + 1,
                                              node_index, spread_move)) {

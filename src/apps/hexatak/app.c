@@ -74,13 +74,83 @@ static Font App_LoadFont(const char *file_name) {
 
 static void App_TakeScreenshot(void) {
     char path[512];
-    const long long timestamp = (long long)time(NULL);
+    const long long timestamp = (long long) time(NULL);
 #ifdef ROOT_DIR
     snprintf(path, sizeof(path), ROOT_DIR "/docs/hexatak/hexatak-shot-%lld.png", timestamp);
 #else
     snprintf(path, sizeof(path), "docs/hexatak/hexatak-shot-%lld.png", timestamp);
 #endif
     TakeScreenshot(path);
+}
+
+static void App_LoadBoardFromLevelDesc(Board *board, const LevelDesc *desc) {
+    Board_Init(board, desc->radius);
+
+    for (i32 i = 0; i < desc->blocked_count; i++) {
+        const i32 idx = Board_FindCellIndex(board, desc->blocked_hexes[i]);
+        if (idx >= 0) {
+            board->cells[idx].blocked = true;
+        }
+    }
+    for (i32 i = 0; i < desc->fixed_count; i++) {
+        const i32 idx = Board_FindCellIndex(board, desc->fixed_hexes[i]);
+        if (idx >= 0) {
+            board->cells[idx].fixed_bridge = true;
+        }
+    }
+    for (i32 i = 0; i < desc->initial_stack_count; i++) {
+        const i32 idx = Board_FindCellIndex(board, desc->initial_stacks[i].hex);
+        if (idx >= 0) {
+            Cell *cell = &board->cells[idx];
+            cell->count = desc->initial_stacks[i].count;
+            for (i32 s = 0; s < cell->count; s++) {
+                cell->stones[s].value = desc->initial_stacks[i].stone_values[s];
+            }
+        }
+    }
+    for (i32 i = 0; i < desc->required_count; i++) {
+        const i32 idx = Board_FindCellIndex(board, desc->required_hexes[i].hex);
+        if (idx >= 0) {
+            board->cells[idx].required_value = desc->required_hexes[i].required_value;
+        }
+    }
+    for (i32 i = 0; i < desc->required_height_count; i++) {
+        const i32 idx = Board_FindCellIndex(board, desc->required_height_hexes[i].hex);
+        if (idx >= 0) {
+            board->cells[idx].required_height = desc->required_height_hexes[i].required_height;
+        }
+    }
+}
+
+static void App_InitThumbnailBoard(GameState *gs) {
+    const LevelDesc *thumb_desc = &LEVELS[0];
+    for (i32 i = 0; i < LEVEL_COUNT; i++) {
+        if (LEVELS[i].name && strcmp(LEVELS[i].name, "Exact Tolls") == 0) {
+            thumb_desc = &LEVELS[i];
+            break;
+        }
+    }
+
+    App_LoadBoardFromLevelDesc(&gs->thumbnail_board, thumb_desc);
+    gs->thumbnail_side_a = thumb_desc->side_a;
+    gs->thumbnail_side_b = thumb_desc->side_b;
+}
+
+static bool App_IsAnyThumbnailDismissInput(void) {
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) || IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) ||
+        GetMouseWheelMove() != 0.0f) {
+        return true;
+    }
+
+    i32 key = GetKeyPressed();
+    while (key != 0) {
+        if (key != KEY_F12) {
+            return true;
+        }
+        key = GetKeyPressed();
+    }
+
+    return false;
 }
 
 static i32 Board_CountStones(const Board *board) {
@@ -178,8 +248,8 @@ static void App_ReportSolver(const GameState *gs) {
     printf("\n=== SOLVER: %s ===\n", desc->name ? desc->name : "Untitled");
     printf("Start: level initial board, max moves: %d%s\n", result.max_moves,
            desc->move_limit > 0 ? "" : " (debug cap)");
-    printf("Explored states: %d%s, time: %.3fs\n", result.explored_states,
-           result.truncated ? " (truncated)" : "", solve_seconds);
+    printf("Explored states: %d%s, time: %.3fs\n", result.explored_states, result.truncated ? " (truncated)" : "",
+           solve_seconds);
     for (i32 moves = 0; moves <= result.max_moves; moves++) {
         printf("moves %d: %lld solution%s\n", moves, result.solutions_by_moves[moves],
                result.solutions_by_moves[moves] == 1 ? "" : "s");
@@ -228,8 +298,8 @@ static void App_ReportSolverFromCurrentState(const GameState *gs) {
         }
     }
     printf("Static stacks: %d\n", static_count);
-    printf("Explored states: %d%s, time: %.3fs\n", result.explored_states,
-           result.truncated ? " (truncated)" : "", solve_seconds);
+    printf("Explored states: %d%s, time: %.3fs\n", result.explored_states, result.truncated ? " (truncated)" : "",
+           solve_seconds);
     if (result.found) {
         printf("additional turns needed to solve: %d\n", result.moves);
         printf("first solution total turns from start: %d\n", gs->move_count + result.moves);
@@ -298,8 +368,8 @@ static void App_ReportAllSolvability(GameState *gs) {
         }
     }
 
-    printf("\nSummary: %d impossible, %d skipped / %d levels, time: %.3fs\n", impossible_count, skipped_count, LEVEL_COUNT,
-           GetTime() - all_start);
+    printf("\nSummary: %d impossible, %d skipped / %d levels, time: %.3fs\n", impossible_count, skipped_count,
+           LEVEL_COUNT, GetTime() - all_start);
     printf("==========================\n\n");
 }
 #endif
@@ -326,6 +396,7 @@ static bool App_Init(void *state) {
     gs->font_roboto = App_LoadFont("RobotoMono-Regular.ttf");
 
     Level_Load(gs, 0);
+    App_InitThumbnailBoard(gs);
     gs->screen = SCREEN_TITLE;
     gs->anim_time = 0.0f;
     gs->game_completed = false;
@@ -409,100 +480,100 @@ static void Editor_WriteLevel(const GameState *gs, FILE *f) {
 
 #ifdef PLATFORM_WEB
 EM_JS(void, Editor_ShowWebExportJs, (const char *level_text), {
-        var text = UTF8ToString(level_text);
-        if (Module.hexatakExportOverlay) {
-            Module.hexatakExportOverlay.remove();
-            Module.hexatakExportOverlay = null;
-        }
+    var text = UTF8ToString(level_text);
+    if (Module.hexatakExportOverlay) {
+        Module.hexatakExportOverlay.remove();
+        Module.hexatakExportOverlay = null;
+    }
 
-        var overlay = document.createElement('div');
-        Module.hexatakExportOverlay = overlay;
-        overlay.style.position = 'fixed';
-        overlay.style.inset = '0';
-        overlay.style.zIndex = '10000';
-        overlay.style.background = 'rgba(17, 17, 27, 0.86)';
-        overlay.style.display = 'flex';
-        overlay.style.alignItems = 'center';
-        overlay.style.justifyContent = 'center';
-        overlay.style.fontFamily = 'monospace';
+    var overlay = document.createElement('div');
+    Module.hexatakExportOverlay = overlay;
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.zIndex = '10000';
+    overlay.style.background = 'rgba(17, 17, 27, 0.86)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.fontFamily = 'monospace';
 
-        var panel = document.createElement('div');
-        panel.style.width = 'min(720px, calc(100vw - 32px))';
-        panel.style.background = '#1e1e2e';
-        panel.style.border = '2px solid #cba6f7';
-        panel.style.padding = '16px';
-        panel.style.boxSizing = 'border-box';
+    var panel = document.createElement('div');
+    panel.style.width = 'min(720px, calc(100vw - 32px))';
+    panel.style.background = '#1e1e2e';
+    panel.style.border = '2px solid #cba6f7';
+    panel.style.padding = '16px';
+    panel.style.boxSizing = 'border-box';
 
-        var title = document.createElement('div');
-        title.textContent = 'Export Hexatak Level';
-        title.style.color = '#fab387';
-        title.style.fontSize = '18px';
-        title.style.marginBottom = '10px';
-        panel.appendChild(title);
+    var title = document.createElement('div');
+    title.textContent = 'Export Hexatak Level';
+    title.style.color = '#fab387';
+    title.style.fontSize = '18px';
+    title.style.marginBottom = '10px';
+    panel.appendChild(title);
 
-        var help = document.createElement('div');
-        help.textContent = 'Copy the level text below.';
-        help.style.color = '#a6adc8';
-        help.style.fontSize = '14px';
-        help.style.marginBottom = '10px';
-        panel.appendChild(help);
+    var help = document.createElement('div');
+    help.textContent = 'Copy the level text below.';
+    help.style.color = '#a6adc8';
+    help.style.fontSize = '14px';
+    help.style.marginBottom = '10px';
+    panel.appendChild(help);
 
-        var textarea = document.createElement('textarea');
-        textarea.value = text;
-        textarea.style.width = '100%';
-        textarea.style.height = '360px';
-        textarea.style.boxSizing = 'border-box';
-        textarea.style.background = '#11111b';
-        textarea.style.color = '#cdd6f4';
-        textarea.style.border = '1px solid #585b70';
-        textarea.style.padding = '10px';
-        textarea.style.fontFamily = 'monospace';
-        textarea.style.fontSize = '14px';
-        textarea.spellcheck = false;
-        panel.appendChild(textarea);
+    var textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.width = '100%';
+    textarea.style.height = '360px';
+    textarea.style.boxSizing = 'border-box';
+    textarea.style.background = '#11111b';
+    textarea.style.color = '#cdd6f4';
+    textarea.style.border = '1px solid #585b70';
+    textarea.style.padding = '10px';
+    textarea.style.fontFamily = 'monospace';
+    textarea.style.fontSize = '14px';
+    textarea.spellcheck = false;
+    panel.appendChild(textarea);
 
-        var actions = document.createElement('div');
-        actions.style.display = 'flex';
-        actions.style.gap = '10px';
-        actions.style.justifyContent = 'flex-end';
-        actions.style.marginTop = '12px';
+    var actions = document.createElement('div');
+    actions.style.display = 'flex';
+    actions.style.gap = '10px';
+    actions.style.justifyContent = 'flex-end';
+    actions.style.marginTop = '12px';
 
-        function makeButton(label, bg, fg) {
-            var button = document.createElement('button');
-            button.textContent = label;
-            button.style.background = bg;
-            button.style.color = fg;
-            button.style.border = '0';
-            button.style.padding = '10px 14px';
-            button.style.fontFamily = 'monospace';
-            button.style.fontSize = '14px';
-            button.style.cursor = 'pointer';
-            return button;
-        }
+    function makeButton(label, bg, fg) {
+        var button = document.createElement('button');
+        button.textContent = label;
+        button.style.background = bg;
+        button.style.color = fg;
+        button.style.border = '0';
+        button.style.padding = '10px 14px';
+        button.style.fontFamily = 'monospace';
+        button.style.fontSize = '14px';
+        button.style.cursor = 'pointer';
+        return button;
+    }
 
-        var close = makeButton('Close', '#313244', '#cdd6f4');
-        var copy = makeButton('Copy', '#cba6f7', '#1e1e2e');
-        close.onclick = function() {
-            overlay.remove();
-            Module.hexatakExportOverlay = null;
-        };
-        copy.onclick = function() {
-            textarea.focus();
-            textarea.select();
-            if (navigator.clipboard && navigator.clipboard.writeText) {
-                navigator.clipboard.writeText(textarea.value);
-            } else {
-                document.execCommand('copy');
-            }
-        };
-        actions.appendChild(close);
-        actions.appendChild(copy);
-        panel.appendChild(actions);
-
-        overlay.appendChild(panel);
-        document.body.appendChild(overlay);
+    var close = makeButton('Close', '#313244', '#cdd6f4');
+    var copy = makeButton('Copy', '#cba6f7', '#1e1e2e');
+    close.onclick = function() {
+        overlay.remove();
+        Module.hexatakExportOverlay = null;
+    };
+    copy.onclick = function() {
         textarea.focus();
         textarea.select();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textarea.value);
+        } else {
+            document.execCommand('copy');
+        }
+    };
+    actions.appendChild(close);
+    actions.appendChild(copy);
+    panel.appendChild(actions);
+
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+    textarea.focus();
+    textarea.select();
 })
 
 static void Editor_ShowWebExport(const char *level_text) { Editor_ShowWebExportJs(level_text); }
@@ -828,12 +899,27 @@ static void App_Update(void *state, f32 dt) {
     auto const gs = (GameState *) state;
     gs->anim_time += dt;
 
+    if (gs->screen == SCREEN_THUMBNAIL) {
+        if (IsKeyPressed(KEY_F12)) {
+            App_TakeScreenshot();
+            return;
+        }
+        if (App_IsAnyThumbnailDismissInput()) {
+            PlaySound(gs->snd_click);
+            gs->screen = SCREEN_TITLE;
+        }
+        return;
+    }
+
     if (gs->screen == SCREEN_TITLE) {
         const Vector2 mouse = GetMousePosition();
         const Rectangle btn_play = {260.0f, 390.0f, 200.0f, 50.0f};
         const Rectangle btn_editor = {260.0f, 465.0f, 200.0f, 50.0f};
-        if ((CheckCollisionPointRec(mouse, btn_play) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) ||
-            IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
+        if (IsKeyPressed(KEY_F10)) {
+            PlaySound(gs->snd_click);
+            gs->screen = SCREEN_THUMBNAIL;
+        } else if ((CheckCollisionPointRec(mouse, btn_play) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) ||
+                   IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_SPACE)) {
             PlaySound(gs->snd_click);
             gs->screen = SCREEN_LEVEL_SELECT;
         } else if (CheckCollisionPointRec(mouse, btn_editor) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -1653,13 +1739,35 @@ static void App_Draw(void *state, f32 alpha) {
 
         CGame_DrawText(gs->font_ibm, "Press ENTER or SPACE to start",
                        360 - (CGame_MeasureText(gs->font_ibm, "Press ENTER or SPACE to start", TITLE_START_FONT) / 2),
-                       530, TITLE_START_FONT,
-                       (Color) {110, 115, 141, 255});
+                       530, TITLE_START_FONT, (Color) {110, 115, 141, 255});
 
         const char *title_credit = "By William Guimont-Martin";
         i32 tw_credit = CGame_MeasureText(gs->font_ibm, title_credit, TITLE_SUBTITLE_FONT);
         CGame_DrawText(gs->font_ibm, title_credit, 360 - (tw_credit / 2), 678, TITLE_SUBTITLE_FONT,
                        (Color) {88, 91, 112, 255});
+    } else if (gs->screen == SCREEN_THUMBNAIL) {
+        DrawRectangleGradientV(0, 0, 720, 720, (Color) {24, 24, 37, 255}, (Color) {17, 17, 27, 255});
+
+        DrawCircleGradient((Vector2) {360.0f, 372.0f}, 250.0f, (Color) {137, 180, 250, 28}, (Color) {17, 17, 27, 0});
+        DrawCircleGradient((Vector2) {420.0f, 300.0f}, 220.0f, (Color) {250, 179, 135, 24}, (Color) {17, 17, 27, 0});
+
+        constexpr i32 THUMB_SAFE_X = 45;
+        constexpr i32 THUMB_SAFE_Y = 110;
+        constexpr i32 THUMB_SAFE_W = 630;
+        constexpr i32 THUMB_SAFE_H = 500;
+        constexpr i32 THUMB_SAFE_CENTER_X = THUMB_SAFE_X + (THUMB_SAFE_W / 2);
+
+        const char *title_text = "HEXATAK";
+        constexpr i32 THUMB_TITLE_FONT = 112;
+        const i32 tw_title = CGame_MeasureText(gs->font_roboto, title_text, THUMB_TITLE_FONT);
+        CGame_DrawText(gs->font_roboto, title_text, THUMB_SAFE_CENTER_X - (tw_title / 2), THUMB_SAFE_Y - 2,
+                       THUMB_TITLE_FONT, (Color) {250, 179, 135, 255});
+
+        const float board_top = (float) (THUMB_SAFE_Y + THUMB_TITLE_FONT + 14);
+        const float board_bottom = (float) (THUMB_SAFE_Y + THUMB_SAFE_H - 18);
+        const float board_center_y = (board_top + board_bottom) * 0.5f;
+        Render_DrawBoardEx(gs, &gs->thumbnail_board, gs->thumbnail_side_a, gs->thumbnail_side_b, false,
+                           (Vector2) {(float) THUMB_SAFE_CENTER_X, board_center_y}, 48.0f);
     } else if (gs->screen == SCREEN_LEVEL_SELECT) {
         // Draw Header
         CGame_DrawText(gs->font_ibm, "SELECT LEVEL", 360 - (CGame_MeasureText(gs->font_ibm, "SELECT LEVEL", 30) / 2),
@@ -1743,8 +1851,8 @@ static void App_Draw(void *state, f32 alpha) {
 #ifndef NDEBUG
         Rectangle btn_reload = {190.0f, 650.0f, 120.0f, 40.0f};
         bool reload_hovered = CheckCollisionPointRec(mouse, btn_reload);
-        CGame_DrawButton(gs->font_ibm, btn_reload, "RELOAD", (Color) {148, 226, 213, 255},
-                         (Color) {30, 30, 46, 255}, reload_hovered, UI_FONT_BUTTON);
+        CGame_DrawButton(gs->font_ibm, btn_reload, "RELOAD", (Color) {148, 226, 213, 255}, (Color) {30, 30, 46, 255},
+                         reload_hovered, UI_FONT_BUTTON);
 
         Rectangle btn_check_all = {285.0f, 600.0f, 150.0f, 36.0f};
         bool check_all_hovered = CheckCollisionPointRec(mouse, btn_check_all);
