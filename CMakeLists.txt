@@ -46,22 +46,22 @@ endif ()
 # cgame library
 add_library(cgame
         src/cgame/common.h
-        src/cgame/entity.h
+        src/cgame/ecs/entity.h
         src/cgame/game_loop.h
         src/cgame/utils/arena.h
         src/cgame/utils/dynamic_array.h
         src/cgame/utils/string_view.h
         src/cgame/utils/vectori.h
         src/cgame/utils/draw.h
-        src/cgame/world.h
-        src/cgame/entity.c
+        src/cgame/ecs/world.h
+        src/cgame/ecs/entity.c
         src/cgame/game_loop.c
         src/cgame/stb_impl.c
         src/cgame/utils/arena.c
         src/cgame/utils/draw.c
-        src/cgame/world.c
+        src/cgame/ecs/world.c
         src/cgame/utils/bitset.h
-        src/cgame/hex.c
+        src/cgame/coords/hex.c
 )
 
 target_include_directories(cgame
@@ -304,7 +304,7 @@ add_executable(hexatak
         src/apps/hexatak/game.c
         src/apps/hexatak/solver.h
         src/apps/hexatak/solver.c
-        src/cgame/hex.h
+        src/cgame/coords/hex.h
         web/hexatak/minshell.html
 )
 add_cgame_app(hexatak hexatak
@@ -327,7 +327,7 @@ add_executable(hexatak-itch
         src/apps/hexatak/game.c
         src/apps/hexatak/solver.h
         src/apps/hexatak/solver.c
-        src/cgame/hex.h
+        src/cgame/coords/hex.h
         web/hexatak/itch.html
 )
 add_cgame_app(hexatak-itch hexatak

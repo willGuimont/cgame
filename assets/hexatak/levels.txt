@@ -355,11 +355,11 @@ stack: 0,1:3:1,2,4
 
 name: Sixty-Four Ones
 desc: Build a 64 from nothing but 1-stones.
-best_moves: 15
+best_moves: 14
 radius: 3
 side_a: Q_NEG
 side_b: Q_POS
-move_limit: 0
+move_limit: 18
 required: -2,3:0
 required: -1,1:0
 required: -1,2:0
@@ -415,7 +415,7 @@ best_moves: 15
 radius: 3
 side_a: Q_NEG
 side_b: S_POS
-move_limit: 0
+move_limit: 20
 blocked: -3,0
 blocked: -2,-1
 blocked: -2,0

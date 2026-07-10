@@ -1,6 +1,6 @@
 #pragma once
 
-#include "utils/vectori.h"
+#include "../utils/vectori.h"
 
 constexpr i32 MAX_ENTITIES = 1024;
 

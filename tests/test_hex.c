@@ -1,4 +1,4 @@
-#include "hex.h"
+#include "../src/cgame/coords/hex.h"
 #include "test_utils.h"
 
 static bool near_f32(const f32 a, const f32 b) { return fabsf(a - b) < 0.0001f; }

@@ -1,4 +1,4 @@
-#include "entity.h"
+#include "../src/cgame/ecs/entity.h"
 #include "test_utils.h"
 
 #include <string.h>

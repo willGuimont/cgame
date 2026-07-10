@@ -1,9 +1,9 @@
 #pragma once
 
-#include "common.h"
+#include "../common.h"
+#include "../utils/arena.h"
+#include "../utils/vectori.h"
 #include "entity.h"
-#include "utils/arena.h"
-#include "utils/vectori.h"
 
 constexpr i32 DEFAULT_WORLD_WIDTH = 11;
 constexpr i32 DEFAULT_WORLD_HEIGHT = 5;

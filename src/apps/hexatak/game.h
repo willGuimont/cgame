@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 
-#include "hex.h"
+#include "../../cgame/coords/hex.h"
 
 constexpr i32 MAX_CELLS = 64;
 constexpr i32 MAX_STACK = 16;

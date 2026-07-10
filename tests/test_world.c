@@ -1,5 +1,5 @@
+#include "../src/cgame/ecs/world.h"
 #include "test_utils.h"
-#include "world.h"
 
 static Arena *make_arena(void) { return Arena_Create(MIB(1), KIB(64)); }
 
