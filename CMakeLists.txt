@@ -221,16 +221,6 @@ function(cgame_generate_web_index)
     set(CGAME_WEB_INDEX_TEMPLATE "${CMAKE_SOURCE_DIR}/web/index.html.in")
     set(CGAME_WEB_INDEX_FAVICON "")
 
-    if (NOT EXISTS "${CGAME_WEB_INDEX_TEMPLATE}")
-        foreach (app IN LISTS apps)
-            get_property(web_dir GLOBAL PROPERTY "CGAME_APP_${app}_WEB_DIR")
-            if (EXISTS "${web_dir}/index.html.in")
-                set(CGAME_WEB_INDEX_TEMPLATE "${web_dir}/index.html.in")
-                break()
-            endif ()
-        endforeach()
-    endif ()
-
     foreach (app IN LISTS apps)
         get_property(web_dir GLOBAL PROPERTY "CGAME_APP_${app}_WEB_DIR")
         if (EXISTS "${web_dir}/favicon.svg")
@@ -273,7 +263,7 @@ function(cgame_generate_web_index)
     endforeach()
 
     if (NOT EXISTS "${CGAME_WEB_INDEX_TEMPLATE}")
-        message(FATAL_ERROR "Missing web index template. Expected ${CGAME_WEB_INDEX_TEMPLATE} or an app WEB_DIR index.html.in")
+        message(FATAL_ERROR "Missing web index template: ${CGAME_WEB_INDEX_TEMPLATE}")
     endif ()
 
     configure_file(
@@ -306,7 +296,7 @@ add_executable(hexatak
 )
 add_cgame_app(hexatak hexatak
         TITLE "Hexatak"
-        DESCRIPTION "Hexagonal Tak-inspired puzzle game."
+        DESCRIPTION "Hex-grid puzzle about merging and stacking stones to build a road across the board."
         WEB_DIR "web/hexatak"
 )
 

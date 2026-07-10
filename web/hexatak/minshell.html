@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <title>Hexatak - Hexagonal Grid Puzzle</title>
+    <title>Hexatak - Tak-Inspired Hex Puzzle</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
 
@@ -171,6 +171,17 @@
             color: var(--accent-lavender);
         }
 
+        .info-card p {
+            font-size: 0.95rem;
+            color: var(--text-sub);
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .info-card p + p {
+            margin-top: 0.9rem;
+        }
+
         .key-badge {
             background-color: var(--bg-color);
             border: 1px solid var(--border-color);
@@ -187,6 +198,10 @@
         /* Console log (hidden by default, can be printed to developer tools) */
         #output {
             display: none;
+        }
+
+        a {
+            color: var(--accent-blue);
         }
 
         footer {
@@ -236,7 +251,7 @@
 <div class="main-container">
     <header>
         <h1>HEXATAK</h1>
-        <div class="subtitle">A Hexagonal Grid Connection Puzzle inspired by Tak</div>
+        <div class="subtitle">Merge, stack, and spread stones to build a road across the board.</div>
     </header>
 
     <div class="game-wrapper">
@@ -247,15 +262,10 @@
         <div class="info-card">
             <h2 class="play-title">HOW TO PLAY</h2>
             <ul>
-                <li>To move a stack of stones: Select it by left-clicking, then click an adjacent hex to move it
-                    there.
-                </li>
-                <li>Move a single stone to an adjacent hex by clicking the target neighbor (<strong>a STEP</strong>).
-                </li>
-                <li>Spread multiple stones along a straight line path by clicking, holding, and dragging (<strong>a
-                    SPREAD</strong>).
-                </li>
-                <li>Connect the colored target boundaries to complete the node loop and solve the grid.</li>
+                <li>Build a contiguous road between the two highlighted board edges.</li>
+                <li>Left click a stack, then left click an adjacent hex to move the whole stack one tile.</li>
+                <li>Click and drag from a stack to spread towers across multiple cells in a straight line.</li>
+                <li>Merge matching stone values and satisfy bridge, value-gate, and height-gate requirements.</li>
             </ul>
         </div>
 
@@ -264,16 +274,29 @@
             <ul>
                 <li><span class="key-badge">U</span> Undo the last move</li>
                 <li><span class="key-badge">Y</span> Redo the last undone move</li>
-                <li><span class="key-badge">R</span> Reset the current level layout</li>
-                <li><span class="key-badge">Esc</span> Return to level select / exit screen</li>
-                <li><span class="key-badge">Space</span> or <span class="key-badge">Click</span> Next level (when won)
-                </li>
+                <li><span class="key-badge">R</span> Reset the current level</li>
+                <li><span class="key-badge">Esc</span> Return to the menu or leave the editor</li>
+                <li><span class="key-badge">Space</span> / <span class="key-badge">Enter</span> Advance dialogs and continue after a clear</li>
             </ul>
         </div>
     </div>
 
+    <div class="info-section">
+        <div class="info-card">
+            <h2 class="play-title">ABOUT</h2>
+            <p>Hexatak is a hex-grid puzzle inspired by Tak and created for the raylib 6.x game jam.</p>
+            <p>It includes 18 handcrafted levels and an in-game level editor used to build the puzzle set.</p>
+        </div>
+
+        <div class="info-card">
+            <h2 class="keys-title">LINKS</h2>
+            <p><a href="https://github.com/willGuimont/cgame">Source repository</a></p>
+            <p><a href="https://itch.io/jam/raylib-6x-gamejam">raylib 6.x game jam</a></p>
+        </div>
+    </div>
+
     <footer>
-        Built with Raylib and ❤
+        Built with raylib in C.
     </footer>
 </div>
 
