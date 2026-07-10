@@ -3,6 +3,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #include <raylib.h>
 #include <stdio.h>
@@ -69,6 +70,17 @@ static Font App_LoadFont(const char *file_name) {
         SetTextureFilter(font.texture, TEXTURE_FILTER_BILINEAR);
     }
     return font;
+}
+
+static void App_TakeScreenshot(void) {
+    char path[512];
+    const long long timestamp = (long long)time(NULL);
+#ifdef ROOT_DIR
+    snprintf(path, sizeof(path), ROOT_DIR "/docs/hexatak/hexatak-shot-%lld.png", timestamp);
+#else
+    snprintf(path, sizeof(path), "docs/hexatak/hexatak-shot-%lld.png", timestamp);
+#endif
+    TakeScreenshot(path);
 }
 
 static i32 Board_CountStones(const Board *board) {
@@ -1243,6 +1255,10 @@ static void App_Update(void *state, f32 dt) {
                 return;
             }
             gs->esc_timer = 2.0f;
+        }
+
+        if (IsKeyPressed(KEY_F12)) {
+            App_TakeScreenshot();
         }
 
         if (IsKeyPressed(KEY_R)) {
