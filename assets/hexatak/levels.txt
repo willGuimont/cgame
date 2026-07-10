@@ -130,6 +130,7 @@ stack: 1,0:1:1
 name: False Bridge
 desc: Route around a dead gate.
 tip: A value gate marked 0 can hold stones, but it never counts as part of the road. The connection must go around it.
+best_moves: 2
 radius: 2
 side_a: Q_NEG
 side_b: Q_POS
@@ -161,6 +162,7 @@ stack: 0,2:1:1
 
 name: Exact Tolls
 desc: The bridge wants the exact values and height.
+best_moves: 4
 radius: 2
 side_a: Q_NEG
 side_b: Q_POS
@@ -261,7 +263,7 @@ desc: So many gates
 radius: 3
 side_a: Q_NEG
 side_b: Q_POS
-move_limit: 6
+move_limit: 7
 blocked: -3,1
 blocked: -3,2
 blocked: -3,3
@@ -306,184 +308,111 @@ stack: 0,-3:3:4,2,1
 stack: 1,-2:4:1,2,4,8
 stack: 2,-1:3:8,2,1
 
-name: TODO
-desc: Connect along another axis.
-tip: Hex tiles have six directions. A valid road can follow any of them.
-radius: 2
-side_a: R_NEG
-side_b: R_POS
-move_limit: 3
-stack: 0,-2:1:1
-stack: 0,-1:1:1
-stack: -1,0:3:1,2,4
-stack: 1,0:1:1
-stack: 0,2:1:1
-blocked: 0,0
-
-name: Around the Block
-desc: Bend around the obstacle.
-tip: Blocked tiles cannot be crossed or occupied. A valid road may need to leave the obvious line.
-radius: 2
-side_a: Q_NEG
-side_b: Q_POS
-move_limit: 4
-blocked: 0,0
-stack: -2,0:1:1
-stack: -1,0:1:1
-stack: -1,-1:2:1,2
-stack: 0,-1:1:4
-stack: 1,-1:2:1,2
-stack: 1,0:1:1
-stack: 2,0:1:1
-
-name: Tall Detour
-desc: The detour needs height.
-tip: Height gates care about stack size, not top value.
-radius: 2
-side_a: Q_NEG
-side_b: Q_POS
-move_limit: 4
-blocked: 0,0
-required_height: 0,-1:3
-stack: -2,0:1:1
-stack: -1,0:1:1
-stack: -1,-1:1:1
-stack: 0,-2:2:2,4
-stack: 1,-1:1:8
-stack: 1,0:1:1
-stack: 2,0:1:1
-
-name: Corner Turn
-desc: Turn through the corner.
-tip: Larger boards often have several possible routes. The highlighted sides define which connection matters.
+name: The Ring
+desc: Enter and exit the ring
+best_moves: 3
 radius: 3
 side_a: Q_NEG
 side_b: Q_POS
 move_limit: 4
-stack: -3,0:1:1
-stack: -2,0:1:1
-stack: -2,-1:1:1
-stack: -1,-2:3:1,2,4
-stack: 0,-1:1:1
-stack: 1,0:1:1
-stack: 2,0:1:1
-stack: 3,0:1:1
-blocked: -1,0
+blocked: -3,1
+blocked: -3,2
+blocked: -2,-1
+blocked: -2,1
+blocked: -2,3
+blocked: -1,-2
+blocked: -1,-1
+blocked: -1,2
+blocked: -1,3
+blocked: 0,-3
+blocked: 0,-2
+blocked: 0,2
+blocked: 0,3
+blocked: 1,-3
+blocked: 1,-2
+blocked: 1,1
+blocked: 1,2
+blocked: 2,-3
+blocked: 2,-1
+blocked: 2,1
+blocked: 3,-2
+blocked: 3,-1
+fixed: -3,0
+fixed: -3,3
+fixed: 3,-3
+fixed: 3,0
+required: -1,0:16
+required: -1,1:8
+required: 1,-1:4
+required: 1,0:8
+required: 2,-2:8
+required: 2,0:4
+stack: -1,0:4:8,4,2,1
+stack: 0,0:4:1,2,4,8
+stack: 0,1:3:1,2,4
+
+name: The Maze
+desc: Don't get lost!
+best_moves: 13
+radius: 3
+side_a: Q_NEG
+side_b: S_POS
+move_limit: 0
+blocked: -3,0
+blocked: -2,-1
+blocked: -2,0
+blocked: -2,1
+blocked: -1,2
+blocked: 0,-3
+blocked: 0,-1
 blocked: 0,0
+blocked: 0,2
+blocked: 1,-3
+blocked: 2,-2
+blocked: 2,-1
+blocked: 2,0
+required: -3,1:4
+required: -3,3:2
+required: -2,2:0
+required: 0,-2:0
+required: 1,-1:8
+required: 1,0:2
+required: 1,1:0
+required: 1,2:8
+required: 2,-3:2
+required: 3,-3:8
+required: 3,-2:2
+stack: -3,1:4:8,4,2,1
+stack: -3,3:4:1,2,4,8
+stack: -1,1:5:1,2,4,8,16
+stack: 1,1:4:1,2,4,8
+stack: 3,-3:4:1,2,4,8
+stack: 3,0:4:8,4,2,1
 
-name: Height Causeway
-desc: Raise two bridge tiles.
-tip: A road through height gates must keep every required stack tall enough.
-radius: 3
-side_a: Q_NEG
-side_b: Q_POS
-move_limit: 4
-required_height: 0,-1:2
-required_height: 1,-1:2
-stack: -3,0:1:1
-stack: -2,0:1:1
-stack: -1,-1:3:1,2,4
-stack: 0,-1:1:1
-stack: 1,-1:1:1
-stack: 2,0:1:1
-stack: 3,0:1:1
-blocked: -1,0
-blocked: 0,0
-
-name: Interface Contact
-desc: Merge through stack contact.
-tip: Whole-stack movement preserves order. When two stacks meet, the contact between them determines the merge.
-radius: 3
-side_a: Q_NEG
-side_b: Q_POS
-move_limit: 4
-required: 0,0:4
-stack: -3,0:1:1
-stack: -2,0:1:1
-stack: -1,0:1:1
-stack: 0,0:1:1
-stack: 1,1:2:1,2
-stack: 2,0:1:1
-stack: 3,0:1:1
-blocked: 1,0
-blocked: 0,1
-
-name: Same Stones
-desc: Stack order matters.
-tip: Two stacks can contain the same values but behave differently when moved.
-radius: 3
-side_a: Q_NEG
-side_b: Q_POS
-move_limit: 4
-required: 0,0:4
-stack: -3,0:1:1
-stack: -2,0:1:1
-stack: -1,0:1:1
-stack: 0,0:1:1
-stack: 1,1:2:1,2
-stack: 1,-1:2:2,1
-stack: 2,0:1:1
-stack: 3,0:1:1
-blocked: 1,0
-blocked: 0,1
-
-
-name: Outer Ring
-desc: Avoid the sealed center.
-tip: Blocked cells can make the shortest-looking route invalid.
+name: The Lockworks
+desc: Open a route through every kind of constraint.
+best_moves: 5
 radius: 3
 side_a: Q_NEG
 side_b: Q_POS
 move_limit: 3
-blocked: -1,0
-blocked: 0,0
-blocked: 1,0
-stack: -3,0:1:1
-stack: -2,0:1:1
-stack: -2,-1:1:1
-stack: -1,-2:4:1,2,4,8
-stack: 0,-2:1:1
-stack: 1,-1:1:1
-stack: 2,0:1:1
-stack: 3,0:1:1
-
-name: Forked Road
-desc: Connect the correct sides.
-tip: A move can create a road that still connects the wrong sides. Check the highlighted goal.
-radius: 3
-side_a: R_NEG
-side_b: R_POS
-move_limit: 3
-blocked: 0,0
-blocked: 1,-1
-stack: 0,-3:1:1
-stack: 0,-2:1:1
-stack: -1,-1:4:1,2,4,8
-stack: -2,0:1:1
-stack: 1,0:1:1
-stack: 0,2:1:1
-stack: 0,3:1:1
-
-name: Final Causeway
-desc: Solve with every rule.
-tip: Inspect stack order, gate conditions, and blocked routes before committing to a move.
-radius: 3
-side_a: Q_NEG
-side_b: Q_POS
-move_limit: 3
+required_height: -1,0:3
+required: 0,-1:4
+required: 0,0:0
+blocked: -2,-1
 blocked: -1,1
 blocked: 0,1
-blocked: 1,0
-required: 0,0:4
-required_height: 1,-1:3
-required_height: -1,0:2
+blocked: 1,1
+blocked: 1,-2
+blocked: 2,-2
+fixed: -2,0:1
+fixed: 1,0:1
 stack: -3,0:1:1
-stack: -2,0:1:1
-stack: -2,-1:1:2
-stack: -1,-1:1:4
-stack: 0,0:1:1
-stack: 1,1:2:1,2
-stack: 1,-2:3:1,2,4
-stack: 2,-1:1:8
+stack: -1,0:1:1
+stack: 0,-1:1:2
+stack: 1,-1:3:1,3,5
+stack: -1,-1:2:2,4
+stack: 0,-2:1:2
+stack: 0,0:1:8
 stack: 2,0:1:1
 stack: 3,0:1:1

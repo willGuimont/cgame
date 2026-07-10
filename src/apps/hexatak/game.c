@@ -436,7 +436,7 @@ static bool Levels_IsValidDesc(const LevelDesc *desc) {
     if (!desc || !desc->name) {
         return false;
     }
-    if (desc->radius < 0 || Hex_SpiralCount(desc->radius) > MAX_CELLS) {
+    if (desc->radius < 0 || Hex_SpiralCount(desc->radius) > MAX_CELLS || desc->best_moves < 0) {
         return false;
     }
     if (desc->blocked_count < 0 || desc->blocked_count > LEVEL_ENTRY_LIMIT || desc->fixed_count < 0 ||
@@ -564,6 +564,8 @@ bool Levels_LoadFromStream(FILE *f, LevelDesc *levels, i32 max_levels) {
                 levels[current_idx].side_b = Parsing_ParseSide(val);
             } else if (strcmp(key, "move_limit") == 0) {
                 levels[current_idx].move_limit = atoi(val);
+            } else if (strcmp(key, "best_moves") == 0) {
+                levels[current_idx].best_moves = atoi(val);
             } else if (strcmp(key, "blocked") == 0) {
                 i32 q = 0;
                 i32 r = 0;
@@ -638,6 +640,9 @@ bool Levels_LoadFromStream(FILE *f, LevelDesc *levels, i32 max_levels) {
         return Levels_Fail(levels, max_levels);
     }
     for (i32 i = 0; i <= current_idx; i++) {
+        if (levels[i].best_moves <= 0) {
+            levels[i].best_moves = levels[i].move_limit;
+        }
         if (!Levels_IsValidDesc(&levels[i])) {
             return Levels_Fail(levels, max_levels);
         }
@@ -662,17 +667,21 @@ bool Levels_LoadAll(void) {
         return false;
     }
 
-    LevelDesc loaded[LEVEL_COUNT];
-    memset(loaded, 0, sizeof(loaded));
+    LevelDesc *loaded = calloc((size_t) LEVEL_COUNT, sizeof(*loaded));
+    if (!loaded) {
+        return false;
+    }
 
     const bool ok = Levels_LoadFromStream(f, loaded, LEVEL_COUNT);
     fclose(f);
     if (!ok) {
         Levels_FreeAll(loaded, LEVEL_COUNT);
+        free(loaded);
         return false;
     }
 
     Levels_FreeAll(LEVELS, LEVEL_COUNT);
-    memcpy(LEVELS, loaded, sizeof(loaded));
+    memcpy(LEVELS, loaded, (size_t) LEVEL_COUNT * sizeof(*loaded));
+    free(loaded);
     return ok;
 }

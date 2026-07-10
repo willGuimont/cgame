@@ -7,6 +7,10 @@
 #include <raylib.h>
 #include <stdio.h>
 
+#ifdef PLATFORM_WEB
+#include <emscripten/emscripten.h>
+#endif
+
 #include "app_render.h"
 #include "app_state.h"
 #include "app_types.h"
@@ -281,18 +285,7 @@ static bool App_Init(void *state) {
     return true;
 }
 
-static void Editor_Export(const GameState *gs) {
-    FILE *f = fopen("exported_level.txt", "w");
-    if (!f) {
-#ifdef ROOT_DIR
-        f = fopen(ROOT_DIR "/exported_level.txt", "w");
-#endif
-    }
-    if (!f) {
-        TraceLog(LOG_ERROR, "Failed to write exported_level.txt!");
-        return;
-    }
-
+static void Editor_WriteLevel(const GameState *gs, FILE *f) {
     fprintf(f, "# Hexatak Custom Level\n");
     fprintf(f, "name: %s\n", Editor_GetName(gs));
     fprintf(f, "desc: %s\n", Editor_GetDescription(gs));
@@ -344,52 +337,144 @@ static void Editor_Export(const GameState *gs) {
             fprintf(f, "\n");
         }
     }
+}
+
+#ifdef PLATFORM_WEB
+EM_JS(void, Editor_ShowWebExportJs, (const char *level_text), {
+        var text = UTF8ToString(level_text);
+        if (Module.hexatakExportOverlay) {
+            Module.hexatakExportOverlay.remove();
+            Module.hexatakExportOverlay = null;
+        }
+
+        var overlay = document.createElement('div');
+        Module.hexatakExportOverlay = overlay;
+        overlay.style.position = 'fixed';
+        overlay.style.inset = '0';
+        overlay.style.zIndex = '10000';
+        overlay.style.background = 'rgba(17, 17, 27, 0.86)';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.fontFamily = 'monospace';
+
+        var panel = document.createElement('div');
+        panel.style.width = 'min(720px, calc(100vw - 32px))';
+        panel.style.background = '#1e1e2e';
+        panel.style.border = '2px solid #cba6f7';
+        panel.style.padding = '16px';
+        panel.style.boxSizing = 'border-box';
+
+        var title = document.createElement('div');
+        title.textContent = 'Export Hexatak Level';
+        title.style.color = '#fab387';
+        title.style.fontSize = '18px';
+        title.style.marginBottom = '10px';
+        panel.appendChild(title);
+
+        var help = document.createElement('div');
+        help.textContent = 'Copy the level text below.';
+        help.style.color = '#a6adc8';
+        help.style.fontSize = '14px';
+        help.style.marginBottom = '10px';
+        panel.appendChild(help);
+
+        var textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.width = '100%';
+        textarea.style.height = '360px';
+        textarea.style.boxSizing = 'border-box';
+        textarea.style.background = '#11111b';
+        textarea.style.color = '#cdd6f4';
+        textarea.style.border = '1px solid #585b70';
+        textarea.style.padding = '10px';
+        textarea.style.fontFamily = 'monospace';
+        textarea.style.fontSize = '14px';
+        textarea.spellcheck = false;
+        panel.appendChild(textarea);
+
+        var actions = document.createElement('div');
+        actions.style.display = 'flex';
+        actions.style.gap = '10px';
+        actions.style.justifyContent = 'flex-end';
+        actions.style.marginTop = '12px';
+
+        function makeButton(label, bg, fg) {
+            var button = document.createElement('button');
+            button.textContent = label;
+            button.style.background = bg;
+            button.style.color = fg;
+            button.style.border = '0';
+            button.style.padding = '10px 14px';
+            button.style.fontFamily = 'monospace';
+            button.style.fontSize = '14px';
+            button.style.cursor = 'pointer';
+            return button;
+        }
+
+        var close = makeButton('Close', '#313244', '#cdd6f4');
+        var copy = makeButton('Copy', '#cba6f7', '#1e1e2e');
+        close.onclick = function() {
+            overlay.remove();
+            Module.hexatakExportOverlay = null;
+        };
+        copy.onclick = function() {
+            textarea.focus();
+            textarea.select();
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(textarea.value);
+            } else {
+                document.execCommand('copy');
+            }
+        };
+        actions.appendChild(close);
+        actions.appendChild(copy);
+        panel.appendChild(actions);
+
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+        textarea.focus();
+        textarea.select();
+})
+
+static void Editor_ShowWebExport(const char *level_text) { Editor_ShowWebExportJs(level_text); }
+#endif
+
+static void Editor_Export(const GameState *gs) {
+#ifdef PLATFORM_WEB
+    char *level_text = nullptr;
+    size_t level_text_size = 0;
+    FILE *f = open_memstream(&level_text, &level_text_size);
+    if (!f) {
+        TraceLog(LOG_ERROR, "Failed to create exported level text");
+        return;
+    }
+
+    Editor_WriteLevel(gs, f);
+    fclose(f);
+    Editor_ShowWebExport(level_text);
+    free(level_text);
+    return;
+#else
+    FILE *f = fopen("exported_level.txt", "w");
+    if (!f) {
+#ifdef ROOT_DIR
+        f = fopen(ROOT_DIR "/exported_level.txt", "w");
+#endif
+    }
+    if (!f) {
+        TraceLog(LOG_ERROR, "Failed to write exported_level.txt!");
+        return;
+    }
+
+    Editor_WriteLevel(gs, f);
 
     fclose(f);
 
     printf("\n=== EXPORTED LEVEL ===\n");
-    printf("name: %s\n", Editor_GetName(gs));
-    printf("desc: %s\n", Editor_GetDescription(gs));
-    if (Editor_GetTip(gs)[0] != '\0') {
-        printf("tip: %s\n", Editor_GetTip(gs));
-    }
-    printf("radius: %d\n", gs->editor_board.radius);
-    printf("side_a: %s\n", Utils_GetSideString(gs->editor_side_a));
-    printf("side_b: %s\n", Utils_GetSideString(gs->editor_side_b));
-    printf("move_limit: %d\n", gs->editor_move_limit);
-    for (i32 i = 0; i < gs->editor_board.count; i++) {
-        const Cell *cell = &gs->editor_board.cells[i];
-        if (cell->blocked)
-            printf("blocked: %d,%d\n", cell->hex.q, cell->hex.r);
-    }
-    for (i32 i = 0; i < gs->editor_board.count; i++) {
-        const Cell *cell = &gs->editor_board.cells[i];
-        if (cell->fixed_bridge)
-            printf("fixed: %d,%d\n", cell->hex.q, cell->hex.r);
-    }
-    for (i32 i = 0; i < gs->editor_board.count; i++) {
-        const Cell *cell = &gs->editor_board.cells[i];
-        if (Cell_HasRequiredValue(cell))
-            printf("required: %d,%d:%d\n", cell->hex.q, cell->hex.r, Cell_GetDisplayedRequiredValue(cell));
-    }
-    for (i32 i = 0; i < gs->editor_board.count; i++) {
-        const Cell *cell = &gs->editor_board.cells[i];
-        if (cell->required_height > 0)
-            printf("required_height: %d,%d:%d\n", cell->hex.q, cell->hex.r, cell->required_height);
-    }
-    for (i32 i = 0; i < gs->editor_board.count; i++) {
-        const Cell *cell = &gs->editor_board.cells[i];
-        if (cell->count > 0) {
-            printf("stack: %d,%d:%d:", cell->hex.q, cell->hex.r, cell->count);
-            for (i32 s = 0; s < cell->count; s++) {
-                printf("%d", cell->stones[s].value);
-                if (s + 1 < cell->count)
-                    printf(",");
-            }
-            printf("\n");
-        }
-    }
+    Editor_WriteLevel(gs, stdout);
     printf("======================\n\n");
+#endif
 }
 
 static void Editor_FreeLevelDesc(LevelDesc *desc) {
@@ -472,14 +557,158 @@ static bool Editor_IsImportEndLine(const char *line) {
     return *line == '\0';
 }
 
+static bool Editor_ImportFromStream(GameState *gs, FILE *level_text, const char *source_name) {
+    LevelDesc imported[1];
+    memset(imported, 0, sizeof(imported));
+
+    if (!Levels_LoadFromStream(level_text, imported, 1)) {
+        TraceLog(LOG_ERROR, "Failed to import level from %s", source_name);
+        Editor_FreeLevelDesc(&imported[0]);
+        return false;
+    }
+
+    Editor_ApplyLevelDesc(gs, &imported[0]);
+    Editor_FreeLevelDesc(&imported[0]);
+    return true;
+}
+
+#ifdef PLATFORM_WEB
+static void Editor_BeginWebImport(void) {
+    EM_ASM({
+        if (Module.hexatakImportOverlay) {
+            return;
+        }
+
+        var overlay = document.createElement('div');
+        Module.hexatakImportOverlay = overlay;
+        overlay.style.position = 'fixed';
+        overlay.style.inset = '0';
+        overlay.style.zIndex = '10000';
+        overlay.style.background = 'rgba(17, 17, 27, 0.86)';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.fontFamily = 'monospace';
+
+        var panel = document.createElement('div');
+        panel.style.width = 'min(720px, calc(100vw - 32px))';
+        panel.style.background = '#1e1e2e';
+        panel.style.border = '2px solid #89b4fa';
+        panel.style.padding = '16px';
+        panel.style.boxSizing = 'border-box';
+
+        var title = document.createElement('div');
+        title.textContent = 'Import Hexatak Level';
+        title.style.color = '#fab387';
+        title.style.fontSize = '18px';
+        title.style.marginBottom = '10px';
+        panel.appendChild(title);
+
+        var help = document.createElement('div');
+        help.textContent = 'Paste exported level text below.';
+        help.style.color = '#a6adc8';
+        help.style.fontSize = '14px';
+        help.style.marginBottom = '10px';
+        panel.appendChild(help);
+
+        var textarea = document.createElement('textarea');
+        textarea.style.width = '100%';
+        textarea.style.height = '360px';
+        textarea.style.boxSizing = 'border-box';
+        textarea.style.background = '#11111b';
+        textarea.style.color = '#cdd6f4';
+        textarea.style.border = '1px solid #585b70';
+        textarea.style.padding = '10px';
+        textarea.style.fontFamily = 'monospace';
+        textarea.style.fontSize = '14px';
+        textarea.spellcheck = false;
+        panel.appendChild(textarea);
+
+        var actions = document.createElement('div');
+        actions.style.display = 'flex';
+        actions.style.gap = '10px';
+        actions.style.justifyContent = 'flex-end';
+        actions.style.marginTop = '12px';
+
+        function makeButton(label, bg, fg) {
+            var button = document.createElement('button');
+            button.textContent = label;
+            button.style.background = bg;
+            button.style.color = fg;
+            button.style.border = '0';
+            button.style.padding = '10px 14px';
+            button.style.fontFamily = 'monospace';
+            button.style.fontSize = '14px';
+            button.style.cursor = 'pointer';
+            return button;
+        }
+
+        var cancel = makeButton('Cancel', '#313244', '#cdd6f4');
+        var submit = makeButton('Import', '#94e2d5', '#1e1e2e');
+        cancel.onclick = function() {
+            overlay.remove();
+            Module.hexatakImportOverlay = null;
+        };
+        submit.onclick = function() {
+            Module.hexatakImportText = textarea.value;
+            Module.hexatakImportReady = 1;
+            overlay.remove();
+            Module.hexatakImportOverlay = null;
+        };
+        actions.appendChild(cancel);
+        actions.appendChild(submit);
+        panel.appendChild(actions);
+
+        overlay.appendChild(panel);
+        document.body.appendChild(overlay);
+        textarea.focus();
+    });
+}
+
+static char *Editor_TakeWebImportText(void) {
+    return (char *) EM_ASM_PTR({
+        if (!Module.hexatakImportReady) {
+            return 0;
+        }
+        var text = Module.hexatakImportText || "";
+        Module.hexatakImportReady = 0;
+        Module.hexatakImportText = "";
+        return stringToNewUTF8(text);
+    });
+}
+
+static void Editor_PollWebImport(GameState *gs) {
+    char *text = Editor_TakeWebImportText();
+    if (!text) {
+        return;
+    }
+    if (text[0] == '\0') {
+        free(text);
+        TraceLog(LOG_WARNING, "No level text was imported");
+        return;
+    }
+
+    FILE *level_text = tmpfile();
+    if (!level_text) {
+        free(text);
+        TraceLog(LOG_ERROR, "Failed to create temporary import stream");
+        return;
+    }
+
+    fputs(text, level_text);
+    free(text);
+    rewind(level_text);
+    Editor_ImportFromStream(gs, level_text, "browser input");
+    fclose(level_text);
+}
+#endif
+
 static bool Editor_Import(GameState *gs) {
 #ifdef PLATFORM_WEB
     (void) gs;
-    TraceLog(LOG_WARNING, "stdin import is not supported in the web build");
-    return false;
+    Editor_BeginWebImport();
+    return true;
 #else
-    LevelDesc imported[1];
-    memset(imported, 0, sizeof(imported));
 
     fprintf(stderr, "\n=== IMPORT LEVEL ===\n");
     fprintf(stderr, "Paste the level text here, then enter a line containing only END.\n");
@@ -521,17 +750,9 @@ static bool Editor_Import(GameState *gs) {
     }
 
     rewind(level_text);
-    if (!Levels_LoadFromStream(level_text, imported, 1)) {
-        fclose(level_text);
-        TraceLog(LOG_ERROR, "Failed to import level from stdin");
-        Editor_FreeLevelDesc(&imported[0]);
-        return false;
-    }
+    const bool ok = Editor_ImportFromStream(gs, level_text, "stdin");
     fclose(level_text);
-
-    Editor_ApplyLevelDesc(gs, &imported[0]);
-    Editor_FreeLevelDesc(&imported[0]);
-    return true;
+    return ok;
 #endif
 }
 
@@ -561,6 +782,10 @@ static void App_Update(void *state, f32 dt) {
             gs->screen = SCREEN_TITLE;
             return;
         }
+
+#ifdef PLATFORM_WEB
+        Editor_PollWebImport(gs);
+#endif
 
         const Vector2 mouse = GetMousePosition();
 
@@ -1310,13 +1535,16 @@ static void App_Draw(void *state, f32 alpha) {
         // Pulse and draw the Title
         float title_y = 200.0f + (8.0f * sinf(gs->anim_time * 2.0f));
         const char *title_text = "HEXATAK";
-        i32 tw_title = CGame_MeasureText(gs->font_roboto, title_text, 64);
-        CGame_DrawText(gs->font_roboto, title_text, 360 - (tw_title / 2), (i32) title_y, 64,
+        constexpr i32 TITLE_FONT = 72;
+        i32 tw_title = CGame_MeasureText(gs->font_roboto, title_text, TITLE_FONT);
+        CGame_DrawText(gs->font_roboto, title_text, 360 - (tw_title / 2), (i32) title_y, TITLE_FONT,
                        (Color) {250, 179, 135, 255}); // Peach
 
+        constexpr i32 TITLE_SUBTITLE_FONT = 28;
+        constexpr i32 TITLE_START_FONT = 22;
         const char *subtitle = "A hexagonal tak inspired game";
-        i32 tw_sub = CGame_MeasureText(gs->font_roboto, subtitle, 20);
-        CGame_DrawText(gs->font_roboto, subtitle, 360 - (tw_sub / 2), (i32) (title_y + 82.0f), 20,
+        i32 tw_sub = CGame_MeasureText(gs->font_roboto, subtitle, TITLE_SUBTITLE_FONT);
+        CGame_DrawText(gs->font_roboto, subtitle, 360 - (tw_sub / 2), (i32) (title_y + 88.0f), TITLE_SUBTITLE_FONT,
                        (Color) {166, 173, 200, 255}); // Subtext Gray
 
         // Play button
@@ -1336,8 +1564,14 @@ static void App_Draw(void *state, f32 alpha) {
                          UI_FONT_BUTTON);
 
         CGame_DrawText(gs->font_ibm, "Press ENTER or SPACE to start",
-                       360 - (CGame_MeasureText(gs->font_ibm, "Press ENTER or SPACE to start", 16) / 2), 530, 16,
+                       360 - (CGame_MeasureText(gs->font_ibm, "Press ENTER or SPACE to start", TITLE_START_FONT) / 2),
+                       530, TITLE_START_FONT,
                        (Color) {110, 115, 141, 255});
+
+        const char *title_credit = "By William Guimont-Martin";
+        i32 tw_credit = CGame_MeasureText(gs->font_ibm, title_credit, TITLE_SUBTITLE_FONT);
+        CGame_DrawText(gs->font_ibm, title_credit, 360 - (tw_credit / 2), 678, TITLE_SUBTITLE_FONT,
+                       (Color) {88, 91, 112, 255});
     } else if (gs->screen == SCREEN_LEVEL_SELECT) {
         // Draw Header
         CGame_DrawText(gs->font_ibm, "SELECT LEVEL", 360 - (CGame_MeasureText(gs->font_ibm, "SELECT LEVEL", 30) / 2),
@@ -1497,20 +1731,35 @@ static void App_Draw(void *state, f32 alpha) {
         if (gs->level_won) {
             DrawRectangle(0, 0, 720, 720, (Color) {17, 17, 27, 200});
 
-            constexpr i32 FONT_SZ_TITLE = 36;
+            constexpr i32 FONT_SZ_TITLE = 48;
+            constexpr i32 FONT_SZ_MSG = 26;
+            constexpr i32 FONT_SZ_BEST = 22;
+            constexpr i32 FONT_SZ_NEXT = 22;
             const char *win_title = "LEVEL CLEARED!";
             const i32 tw1 = CGame_MeasureText(gs->font_ibm, win_title, FONT_SZ_TITLE);
-            CGame_DrawText(gs->font_ibm, win_title, 360 - (tw1 / 2), 280, FONT_SZ_TITLE, (Color) {166, 227, 161, 255});
+            CGame_DrawText(gs->font_ibm, win_title, 360 - (tw1 / 2), 272, FONT_SZ_TITLE, (Color) {166, 227, 161, 255});
 
             char msg_str[128];
             snprintf(msg_str, sizeof(msg_str), "Completed in %d moves!", gs->move_count);
-            const i32 tw2 = CGame_MeasureText(gs->font_ibm, msg_str, 22);
-            CGame_DrawText(gs->font_ibm, msg_str, 360 - (tw2 / 2), 340, 22, (Color) {205, 214, 244, 255});
+            const i32 tw2 = CGame_MeasureText(gs->font_ibm, msg_str, FONT_SZ_MSG);
+            CGame_DrawText(gs->font_ibm, msg_str, 360 - (tw2 / 2), 336, FONT_SZ_MSG, (Color) {205, 214, 244, 255});
+
+            i32 next_msg_y = 380;
+            if (desc->best_moves > 0) {
+                char best_str[128];
+                snprintf(best_str, sizeof(best_str), "This level is possible in %d move%s.", desc->best_moves,
+                         desc->best_moves == 1 ? "" : "s");
+                const i32 tw_best = CGame_MeasureText(gs->font_ibm, best_str, FONT_SZ_BEST);
+                CGame_DrawText(gs->font_ibm, best_str, 360 - (tw_best / 2), 372, FONT_SZ_BEST,
+                               (Color) {249, 226, 175, 255});
+                next_msg_y = 414;
+            }
 
             const char *next_msg = (gs->current_level_idx + 1 < LEVEL_COUNT) ? "Press SPACE or CLICK for next level"
                                                                              : "Press SPACE or CLICK to finish";
-            const i32 tw3 = CGame_MeasureText(gs->font_ibm, next_msg, 20);
-            CGame_DrawText(gs->font_ibm, next_msg, 360 - (tw3 / 2), 380, 20, (Color) {166, 173, 200, 255});
+            const i32 tw3 = CGame_MeasureText(gs->font_ibm, next_msg, FONT_SZ_NEXT);
+            CGame_DrawText(gs->font_ibm, next_msg, 360 - (tw3 / 2), next_msg_y, FONT_SZ_NEXT,
+                           (Color) {166, 173, 200, 255});
         } else if (desc->move_limit > 0 && gs->move_count >= desc->move_limit && !gs->win_animation_active) {
             DrawRectangle(0, 0, 720, 720, (Color) {17, 17, 27, 200});
 
@@ -1527,18 +1776,26 @@ static void App_Draw(void *state, f32 alpha) {
         if (gs->game_completed) {
             DrawRectangle(0, 0, 720, 720, (Color) {17, 17, 27, 240});
 
-            constexpr i32 FONT_SZ_TITLE = 40;
+            constexpr i32 FONT_SZ_TITLE = 52;
+            constexpr i32 FONT_SZ_DESC = 28;
+            constexpr i32 FONT_SZ_INSTR = 24;
+            constexpr i32 FONT_SZ_CREDIT = 24;
             const char *comp_title = "CONGRATULATIONS!";
             const i32 tw1 = CGame_MeasureText(gs->font_ibm, comp_title, FONT_SZ_TITLE);
-            CGame_DrawText(gs->font_ibm, comp_title, 360 - (tw1 / 2), 240, FONT_SZ_TITLE, (Color) {166, 227, 161, 255});
+            CGame_DrawText(gs->font_ibm, comp_title, 360 - (tw1 / 2), 232, FONT_SZ_TITLE, (Color) {166, 227, 161, 255});
 
             const char *comp_desc = "You have completed all levels of HEXATAK!";
-            const i32 tw2 = CGame_MeasureText(gs->font_ibm, comp_desc, 22);
-            CGame_DrawText(gs->font_ibm, comp_desc, 360 - (tw2 / 2), 310, 22, (Color) {205, 214, 244, 255});
+            const i32 tw2 = CGame_MeasureText(gs->font_ibm, comp_desc, FONT_SZ_DESC);
+            CGame_DrawText(gs->font_ibm, comp_desc, 360 - (tw2 / 2), 308, FONT_SZ_DESC, (Color) {205, 214, 244, 255});
 
             const char *comp_instr = "Press R / ENTER to return to Level Menu";
-            const i32 tw3 = CGame_MeasureText(gs->font_ibm, comp_instr, 20);
-            CGame_DrawText(gs->font_ibm, comp_instr, 360 - (tw3 / 2), 370, 20, (Color) {166, 173, 200, 255});
+            const i32 tw3 = CGame_MeasureText(gs->font_ibm, comp_instr, FONT_SZ_INSTR);
+            CGame_DrawText(gs->font_ibm, comp_instr, 360 - (tw3 / 2), 372, FONT_SZ_INSTR, (Color) {166, 173, 200, 255});
+
+            const char *comp_credit = "Credits: William Guimont-Martin";
+            const i32 tw4 = CGame_MeasureText(gs->font_ibm, comp_credit, FONT_SZ_CREDIT);
+            CGame_DrawText(gs->font_ibm, comp_credit, 360 - (tw4 / 2), 438, FONT_SZ_CREDIT,
+                           (Color) {110, 115, 141, 255});
         }
 
         if (gs->show_tip && desc->tip) {

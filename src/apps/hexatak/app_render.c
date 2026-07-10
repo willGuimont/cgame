@@ -690,4 +690,12 @@ void Render_DrawEditorUI(const GameState *gs) {
         CGame_DrawTextScaled(gs->font_ibm, "R-Click: Clear Stack/Block/Gates", 230, 42, UI_FONT_HELP, 450,
                              (Color) {166, 173, 200, 255});
     }
+
+#ifdef PLATFORM_WEB
+    const char *import_note = "Import opens a browser paste box.";
+#else
+    const char *import_note = "Export and import work in the terminal.";
+#endif
+    CGame_DrawText(gs->font_ibm, import_note, 230, 680, UI_FONT_BADGE,
+                   (Color) {110, 115, 141, 255});
 }

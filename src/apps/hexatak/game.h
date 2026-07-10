@@ -59,6 +59,7 @@ typedef struct {
     BoardSide side_a;
     BoardSide side_b;
     i32 move_limit;
+    i32 best_moves;
     struct {
         Hex hex;
         i32 count;
@@ -81,7 +82,7 @@ typedef struct {
     i32 required_height_count;
 } LevelDesc;
 
-constexpr i32 LEVEL_COUNT = 25;
+constexpr i32 LEVEL_COUNT = 18;
 extern LevelDesc LEVELS[LEVEL_COUNT];
 bool Levels_LoadAll(void);
 bool Levels_LoadFromStream(FILE *f, LevelDesc *levels, i32 max_levels);
