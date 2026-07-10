@@ -99,8 +99,8 @@ target_compile_options(cgame
 set(CGAME_APP_TARGETS)
 
 function(add_cgame_app target_name app_dir)
-    set(options)
-    set(one_value_args TITLE DESCRIPTION WEB_DIR ASSET_DIR)
+    set(options EXCLUDE_FROM_INDEX)
+    set(one_value_args TITLE DESCRIPTION WEB_DIR ASSET_DIR SHELL_FILE)
     set(multi_value_args)
     cmake_parse_arguments(APP "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
@@ -128,6 +128,9 @@ function(add_cgame_app target_name app_dir)
     set_property(GLOBAL PROPERTY "CGAME_APP_${target_name}_TITLE" "${APP_TITLE}")
     set_property(GLOBAL PROPERTY "CGAME_APP_${target_name}_DESCRIPTION" "${APP_DESCRIPTION}")
     set_property(GLOBAL PROPERTY "CGAME_APP_${target_name}_WEB_DIR" "${APP_WEB_DIR}")
+    if (APP_EXCLUDE_FROM_INDEX)
+        set_property(GLOBAL PROPERTY "CGAME_APP_${target_name}_EXCLUDE_FROM_INDEX" TRUE)
+    endif ()
 
     target_include_directories(${target_name}
             PRIVATE
@@ -165,7 +168,11 @@ function(add_cgame_app target_name app_dir)
 
     if (CGAME_WEB)
         set(app_web_output_dir "${CMAKE_BINARY_DIR}/${target_name}")
-        set(app_shell_file "${APP_WEB_DIR}/minshell.html")
+        if (APP_SHELL_FILE)
+            set(app_shell_file "${APP_WEB_DIR}/${APP_SHELL_FILE}")
+        else ()
+            set(app_shell_file "${APP_WEB_DIR}/minshell.html")
+        endif ()
 
         if (NOT EXISTS "${app_shell_file}")
             message(FATAL_ERROR "Missing web shell for ${target_name}: ${app_shell_file}")
@@ -191,6 +198,7 @@ function(add_cgame_app target_name app_dir)
         file(COPY "${APP_WEB_DIR}/"
                 DESTINATION "${app_web_output_dir}"
                 PATTERN "minshell.html" EXCLUDE
+                PATTERN "itch.html" EXCLUDE
                 PATTERN "index.html.in" EXCLUDE
         )
 
@@ -238,6 +246,11 @@ function(cgame_generate_web_index)
     endif ()
 
     foreach (app IN LISTS apps)
+        get_property(exclude GLOBAL PROPERTY "CGAME_APP_${app}_EXCLUDE_FROM_INDEX")
+        if (exclude)
+            continue()
+        endif ()
+
         get_property(title GLOBAL PROPERTY "CGAME_APP_${app}_TITLE")
         get_property(description GLOBAL PROPERTY "CGAME_APP_${app}_DESCRIPTION")
 
@@ -298,6 +311,32 @@ add_cgame_app(hexatak hexatak
         TITLE "Hexatak"
         DESCRIPTION "Hex-grid puzzle about merging and stacking stones to build a road across the board."
         WEB_DIR "web/hexatak"
+)
+
+# Hexatak itch.io application
+add_executable(hexatak-itch
+        src/apps/hexatak/main.c
+        src/apps/hexatak/app.c
+        src/apps/hexatak/app.h
+        src/apps/hexatak/app_types.h
+        src/apps/hexatak/app_state.h
+        src/apps/hexatak/app_state.c
+        src/apps/hexatak/app_render.h
+        src/apps/hexatak/app_render.c
+        src/apps/hexatak/game.h
+        src/apps/hexatak/game.c
+        src/apps/hexatak/solver.h
+        src/apps/hexatak/solver.c
+        src/cgame/hex.h
+        web/hexatak/itch.html
+)
+add_cgame_app(hexatak-itch hexatak
+        TITLE "Hexatak Itch"
+        DESCRIPTION "Hex-grid puzzle about merging and stacking stones to build a road across the board (itch.io release target)."
+        WEB_DIR "web/hexatak"
+        ASSET_DIR "assets/hexatak"
+        SHELL_FILE "itch.html"
+        EXCLUDE_FROM_INDEX
 )
 
 get_property(CGAME_APP_TARGETS GLOBAL PROPERTY CGAME_APP_TARGETS)

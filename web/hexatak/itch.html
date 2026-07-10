@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en-us">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Hexatak - Tak-Inspired Hex Puzzle</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #11111b; /* Crust */
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        canvas.emscripten {
+            border: none;
+            outline: none;
+            width: 100vmin;
+            height: 100vmin;
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            display: block;
+        }
+
+        #output {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <canvas class="emscripten" id="canvas" tabindex="-1"></canvas>
+    <label for="output"></label><textarea id="output" rows="8" readonly></textarea>
+
+    <script>
+        const outputElement = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('output'));
+        const canvasElement = /** @type {HTMLCanvasElement | null} */ (document.getElementById('canvas'));
+
+        var Module = {
+            print: (function () {
+                if (outputElement) outputElement.value = '';
+                return function (text) {
+                    if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+                    console.log(text);
+                    if (outputElement) {
+                        outputElement.value += text + "\n";
+                        outputElement.scrollTop = outputElement.scrollHeight;
+                    }
+                };
+            })(),
+            canvas: (function () {
+                if (!canvasElement) {
+                    throw new Error('Missing canvas element');
+                }
+                canvasElement.addEventListener('contextmenu', function (event) {
+                    event.preventDefault();
+                });
+                return canvasElement;
+            })()
+        };
+    </script>
+    {{{ SCRIPT }}}
+</body>
+</html>
