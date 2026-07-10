@@ -160,7 +160,15 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
         }
     }
 
-    const i32 hovered_idx = is_editor ? Board_PickCell(board, GetMousePosition(), size, origin) : -1;
+    i32 hovered_idx = -1;
+    if (is_editor) {
+        hovered_idx = Board_PickCell(board, GetMousePosition(), size, origin);
+    }
+#ifndef NDEBUG
+    if (!is_editor) {
+        hovered_idx = Board_PickCell(board, GetMousePosition(), size, origin);
+    }
+#endif
 
     // Pass 2: Draw cell fills, borders, and required ring outlines
     for (i32 i = 0; i < board->count; i++) {
@@ -322,6 +330,20 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
             Render_DrawFixedBridge(gs->font_ibm, center, size, 255, is_active_path, pulse);
         }
 
+#ifndef NDEBUG
+        if (!is_editor && gs->debug_static_cells[i] && cell->count > 0) {
+            const Vector2 badge_center = {center.x - size * 0.42f, center.y - size * 0.42f};
+            const float badge_r = fmaxf(12.0f, size * 0.28f);
+            DrawCircleV(badge_center, badge_r, (Color) {249, 226, 175, 235});
+            DrawCircleLinesV(badge_center, badge_r, (Color) {17, 17, 27, 255});
+            const i32 static_font_sz = (i32) fmaxf(12.0f, badge_r * 1.25f);
+            const i32 static_tw = CGame_MeasureText(gs->font_ibm, "S", static_font_sz);
+            CGame_DrawText(gs->font_ibm, "S", (i32) (badge_center.x - (float) static_tw / 2.0f),
+                           (i32) (badge_center.y - (float) static_font_sz / 2.0f), static_font_sz,
+                           (Color) {17, 17, 27, 255});
+        }
+#endif
+
         if (Cell_HasRequiredValue(cell)) {
             const i32 displayed_required_value = Cell_GetDisplayedRequiredValue(cell);
             Color req_col = Utils_GetStoneColor(displayed_required_value);
@@ -392,6 +414,36 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
         }
     }
 
+#ifndef NDEBUG
+    if (hovered_idx >= 0 && hovered_idx < board->count) {
+        const Cell *cell = &board->cells[hovered_idx];
+        const HexLayout layout = {
+                .orientation = HEX_ORIENTATION_POINTY, .size = size, .origin = (HexPoint) {origin.x, origin.y}};
+        const HexPoint hp = Hex_ToPixel(layout, cell->hex);
+        const Vector2 center = {hp.x, hp.y};
+
+        char coord_str[32];
+        snprintf(coord_str, sizeof(coord_str), "(%d,%d)", cell->hex.q, cell->hex.r);
+        constexpr i32 COORD_FONT_SZ = UI_FONT_HELP;
+        const i32 coord_tw = CGame_MeasureText(gs->font_ibm, coord_str, COORD_FONT_SZ);
+        i32 coord_x = (i32) (center.x - (float) coord_tw / 2.0f);
+        i32 coord_y = (i32) (center.y - size - 26.0f);
+        if (coord_x < 4) {
+            coord_x = 4;
+        }
+        if (coord_x + coord_tw + 10 > GetScreenWidth()) {
+            coord_x = GetScreenWidth() - coord_tw - 10;
+        }
+        if (coord_y < 4) {
+            coord_y = 4;
+        }
+
+        DrawRectangle(coord_x - 5, coord_y - 3, coord_tw + 10, COORD_FONT_SZ + 6, (Color) {17, 17, 27, 230});
+        DrawRectangleLines(coord_x - 5, coord_y - 3, coord_tw + 10, COORD_FONT_SZ + 6, (Color) {88, 91, 112, 255});
+        CGame_DrawText(gs->font_ibm, coord_str, coord_x, coord_y, COORD_FONT_SZ, (Color) {249, 226, 175, 255});
+    }
+#endif
+
     if (gs->has_preview) {
         const Cell *from = &board->cells[gs->preview_move.from_index];
         const HexLayout layout = {
@@ -456,11 +508,16 @@ void Render_DrawUI(const GameState *gs) {
 #ifndef NDEBUG
     const Rectangle btn_solve = {20.0f, 650.0f, 60.0f, 40.0f};
     const Rectangle btn_open_editor = {20.0f, 600.0f, 150.0f, 40.0f};
+    const Rectangle btn_solve_current = {550.0f, 600.0f, 150.0f, 40.0f};
 #endif
 
 #ifndef NDEBUG
     CGame_DrawButton(gs->font_ibm, btn_open_editor, "OPEN IN EDITOR", (Color) {250, 179, 135, 255},
                      (Color) {30, 30, 46, 255}, CheckCollisionPointRec(mouse, btn_open_editor), UI_FONT_BUTTON);
+    CGame_DrawTextScaled(gs->font_ibm, "Middle click\n stack: static", 550, 554, UI_FONT_BODY, 150,
+                         (Color) {110, 115, 141, 255});
+    CGame_DrawButton(gs->font_ibm, btn_solve_current, "SOLVE CURRENT", (Color) {137, 180, 250, 255},
+                     (Color) {30, 30, 46, 255}, CheckCollisionPointRec(mouse, btn_solve_current), UI_FONT_BUTTON);
     CGame_DrawButton(gs->font_ibm, btn_solve, "SOLVE", (Color) {148, 226, 213, 255}, (Color) {30, 30, 46, 255},
                      CheckCollisionPointRec(mouse, btn_solve), UI_FONT_BUTTON);
 #endif

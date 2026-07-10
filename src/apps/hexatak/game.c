@@ -1,5 +1,7 @@
 #include "game.h"
 
+#include <errno.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -412,6 +414,77 @@ static void Parsing_TrimString(char *str) {
     }
 }
 
+static bool Parsing_OnlySpaces(const char *str) {
+    while (*str == ' ' || *str == '\t') {
+        str++;
+    }
+    return *str == '\0';
+}
+
+static bool Parsing_ParseI32(const char *str, i32 *out) {
+    if (!str || !out) {
+        return false;
+    }
+
+    errno = 0;
+    char *end = nullptr;
+    const long value = strtol(str, &end, 10);
+    if (str == end || errno == ERANGE || value < INT_MIN || value > INT_MAX || !Parsing_OnlySpaces(end)) {
+        return false;
+    }
+
+    *out = (i32) value;
+    return true;
+}
+
+static bool Parsing_ParseHexPair(const char *str, i32 *q, i32 *r) {
+    i32 parsed_q = 0;
+    i32 parsed_r = 0;
+    i32 n = 0;
+    if (sscanf(str, " %d , %d %n", &parsed_q, &parsed_r, &n) != 2 || !Parsing_OnlySpaces(str + n)) {
+        return false;
+    }
+
+    *q = parsed_q;
+    *r = parsed_r;
+    return true;
+}
+
+static bool Parsing_ParseHexValue(const char *str, i32 *q, i32 *r, i32 *value) {
+    i32 parsed_q = 0;
+    i32 parsed_r = 0;
+    i32 parsed_value = 0;
+    i32 n = 0;
+    if (sscanf(str, " %d , %d : %d %n", &parsed_q, &parsed_r, &parsed_value, &n) != 3 ||
+        !Parsing_OnlySpaces(str + n)) {
+        return false;
+    }
+
+    *q = parsed_q;
+    *r = parsed_r;
+    *value = parsed_value;
+    return true;
+}
+
+static bool Parsing_ParseStackHeader(const char *str, i32 *q, i32 *r, i32 *count, char *values, const size_t values_size) {
+    i32 parsed_q = 0;
+    i32 parsed_r = 0;
+    i32 parsed_count = 0;
+    i32 n = 0;
+    if (sscanf(str, " %d , %d : %d : %255s %n", &parsed_q, &parsed_r, &parsed_count, values, &n) != 4 ||
+        !Parsing_OnlySpaces(str + n)) {
+        return false;
+    }
+    if (values_size == 0 || strlen(values) >= values_size) {
+        return false;
+    }
+
+    *q = parsed_q;
+    *r = parsed_r;
+    *count = parsed_count;
+    return true;
+}
+
 static void Levels_FreeAll(LevelDesc *levels, const i32 max_levels) {
     if (!levels || max_levels <= 0) {
         return;
@@ -485,20 +558,32 @@ static bool Levels_IsValidDesc(const LevelDesc *desc) {
     return true;
 }
 
-static BoardSide Parsing_ParseSide(const char *str) {
-    if (strcmp(str, "Q_NEG") == 0)
-        return SIDE_Q_NEG;
-    if (strcmp(str, "Q_POS") == 0)
-        return SIDE_Q_POS;
-    if (strcmp(str, "R_NEG") == 0)
-        return SIDE_R_NEG;
-    if (strcmp(str, "R_POS") == 0)
-        return SIDE_R_POS;
-    if (strcmp(str, "S_NEG") == 0)
-        return SIDE_S_NEG;
-    if (strcmp(str, "S_POS") == 0)
-        return SIDE_S_POS;
-    return SIDE_Q_NEG;
+static bool Parsing_ParseSide(const char *str, BoardSide *out) {
+    if (strcmp(str, "Q_NEG") == 0) {
+        *out = SIDE_Q_NEG;
+        return true;
+    }
+    if (strcmp(str, "Q_POS") == 0) {
+        *out = SIDE_Q_POS;
+        return true;
+    }
+    if (strcmp(str, "R_NEG") == 0) {
+        *out = SIDE_R_NEG;
+        return true;
+    }
+    if (strcmp(str, "R_POS") == 0) {
+        *out = SIDE_R_POS;
+        return true;
+    }
+    if (strcmp(str, "S_NEG") == 0) {
+        *out = SIDE_S_NEG;
+        return true;
+    }
+    if (strcmp(str, "S_POS") == 0) {
+        *out = SIDE_S_POS;
+        return true;
+    }
+    return false;
 }
 
 const char *Utils_GetSideString(const BoardSide side) {
@@ -557,80 +642,94 @@ bool Levels_LoadFromStream(FILE *f, LevelDesc *levels, i32 max_levels) {
             } else if (strcmp(key, "tip") == 0) {
                 levels[current_idx].tip = strdup(val);
             } else if (strcmp(key, "radius") == 0) {
-                levels[current_idx].radius = atoi(val);
+                if (!Parsing_ParseI32(val, &levels[current_idx].radius)) {
+                    return Levels_Fail(levels, max_levels);
+                }
             } else if (strcmp(key, "side_a") == 0) {
-                levels[current_idx].side_a = Parsing_ParseSide(val);
+                if (!Parsing_ParseSide(val, &levels[current_idx].side_a)) {
+                    return Levels_Fail(levels, max_levels);
+                }
             } else if (strcmp(key, "side_b") == 0) {
-                levels[current_idx].side_b = Parsing_ParseSide(val);
+                if (!Parsing_ParseSide(val, &levels[current_idx].side_b)) {
+                    return Levels_Fail(levels, max_levels);
+                }
             } else if (strcmp(key, "move_limit") == 0) {
-                levels[current_idx].move_limit = atoi(val);
+                if (!Parsing_ParseI32(val, &levels[current_idx].move_limit)) {
+                    return Levels_Fail(levels, max_levels);
+                }
             } else if (strcmp(key, "best_moves") == 0) {
-                levels[current_idx].best_moves = atoi(val);
+                if (!Parsing_ParseI32(val, &levels[current_idx].best_moves)) {
+                    return Levels_Fail(levels, max_levels);
+                }
             } else if (strcmp(key, "blocked") == 0) {
                 i32 q = 0;
                 i32 r = 0;
-                if (sscanf(val, "%d,%d", &q, &r) == 2) {
-                    if (levels[current_idx].blocked_count >= LEVEL_ENTRY_LIMIT) {
-                        return Levels_Fail(levels, max_levels);
-                    }
-                    const i32 b_idx = levels[current_idx].blocked_count++;
-                    levels[current_idx].blocked_hexes[b_idx] = (Hex) {q, r};
+                if (!Parsing_ParseHexPair(val, &q, &r)) {
+                    return Levels_Fail(levels, max_levels);
                 }
+                if (levels[current_idx].blocked_count >= LEVEL_ENTRY_LIMIT) {
+                    return Levels_Fail(levels, max_levels);
+                }
+                const i32 b_idx = levels[current_idx].blocked_count++;
+                levels[current_idx].blocked_hexes[b_idx] = (Hex) {q, r};
             } else if (strcmp(key, "fixed") == 0) {
                 i32 q = 0;
                 i32 r = 0;
-                if (sscanf(val, "%d,%d", &q, &r) == 2) {
-                    if (levels[current_idx].fixed_count >= LEVEL_ENTRY_LIMIT) {
-                        return Levels_Fail(levels, max_levels);
-                    }
-                    const i32 f_idx = levels[current_idx].fixed_count++;
-                    levels[current_idx].fixed_hexes[f_idx] = (Hex) {q, r};
+                if (!Parsing_ParseHexPair(val, &q, &r)) {
+                    return Levels_Fail(levels, max_levels);
                 }
+                if (levels[current_idx].fixed_count >= LEVEL_ENTRY_LIMIT) {
+                    return Levels_Fail(levels, max_levels);
+                }
+                const i32 f_idx = levels[current_idx].fixed_count++;
+                levels[current_idx].fixed_hexes[f_idx] = (Hex) {q, r};
             } else if (strcmp(key, "required") == 0) {
                 i32 q = 0, r = 0, req_val = 0;
-                if (sscanf(val, "%d,%d:%d", &q, &r, &req_val) == 3) {
-                    if (levels[current_idx].required_count >= LEVEL_ENTRY_LIMIT) {
-                        return Levels_Fail(levels, max_levels);
-                    }
-                    const i32 r_idx = levels[current_idx].required_count++;
-                    levels[current_idx].required_hexes[r_idx].hex = (Hex) {q, r};
-                    levels[current_idx].required_hexes[r_idx].required_value =
-                            req_val == 0 ? REQUIRED_VALUE_OPEN_ONLY : req_val;
+                if (!Parsing_ParseHexValue(val, &q, &r, &req_val)) {
+                    return Levels_Fail(levels, max_levels);
                 }
+                if (levels[current_idx].required_count >= LEVEL_ENTRY_LIMIT) {
+                    return Levels_Fail(levels, max_levels);
+                }
+                const i32 r_idx = levels[current_idx].required_count++;
+                levels[current_idx].required_hexes[r_idx].hex = (Hex) {q, r};
+                levels[current_idx].required_hexes[r_idx].required_value =
+                        req_val == 0 ? REQUIRED_VALUE_OPEN_ONLY : req_val;
             } else if (strcmp(key, "required_height") == 0) {
                 i32 q = 0, r = 0, req_height = 0;
-                if (sscanf(val, "%d,%d:%d", &q, &r, &req_height) == 3) {
-                    if (levels[current_idx].required_height_count >= LEVEL_ENTRY_LIMIT) {
-                        return Levels_Fail(levels, max_levels);
-                    }
-                    const i32 r_idx = levels[current_idx].required_height_count++;
-                    levels[current_idx].required_height_hexes[r_idx].hex = (Hex) {q, r};
-                    levels[current_idx].required_height_hexes[r_idx].required_height = req_height;
+                if (!Parsing_ParseHexValue(val, &q, &r, &req_height)) {
+                    return Levels_Fail(levels, max_levels);
                 }
+                if (levels[current_idx].required_height_count >= LEVEL_ENTRY_LIMIT) {
+                    return Levels_Fail(levels, max_levels);
+                }
+                const i32 r_idx = levels[current_idx].required_height_count++;
+                levels[current_idx].required_height_hexes[r_idx].hex = (Hex) {q, r};
+                levels[current_idx].required_height_hexes[r_idx].required_height = req_height;
             } else if (strcmp(key, "stack") == 0) {
                 i32 q = 0, r = 0, count = 0;
                 char vals_str[256] = {0};
-                if (sscanf(val, "%d,%d:%d:%255s", &q, &r, &count, vals_str) == 4) {
-                    if (count <= 0 || count > MAX_STACK ||
-                        levels[current_idx].initial_stack_count >= LEVEL_ENTRY_LIMIT) {
+                if (!Parsing_ParseStackHeader(val, &q, &r, &count, vals_str, sizeof(vals_str))) {
+                    return Levels_Fail(levels, max_levels);
+                }
+                if (count <= 0 || count > MAX_STACK ||
+                    levels[current_idx].initial_stack_count >= LEVEL_ENTRY_LIMIT) {
+                    return Levels_Fail(levels, max_levels);
+                }
+
+                const i32 s_idx = levels[current_idx].initial_stack_count++;
+                levels[current_idx].initial_stacks[s_idx].hex = (Hex) {q, r};
+                levels[current_idx].initial_stacks[s_idx].count = count;
+
+                char *token = strtok(vals_str, ",");
+                for (i32 s = 0; s < count; s++) {
+                    if (!token || !Parsing_ParseI32(token, &levels[current_idx].initial_stacks[s_idx].stone_values[s])) {
                         return Levels_Fail(levels, max_levels);
                     }
-
-                    const i32 s_idx = levels[current_idx].initial_stack_count++;
-                    levels[current_idx].initial_stacks[s_idx].hex = (Hex) {q, r};
-                    levels[current_idx].initial_stacks[s_idx].count = count;
-
-                    char *token = strtok(vals_str, ",");
-                    for (i32 s = 0; s < count; s++) {
-                        if (!token) {
-                            return Levels_Fail(levels, max_levels);
-                        }
-                        levels[current_idx].initial_stacks[s_idx].stone_values[s] = atoi(token);
-                        token = strtok(nullptr, ",");
-                    }
-                    if (token) {
-                        return Levels_Fail(levels, max_levels);
-                    }
+                    token = strtok(nullptr, ",");
+                }
+                if (token) {
+                    return Levels_Fail(levels, max_levels);
                 }
             }
         }

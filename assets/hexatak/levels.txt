@@ -11,7 +11,7 @@ stack: 1,0:1:1
 
 name: Winding Road
 desc: Build a road that bends.
-tip: A road is any continuous chain of occupied tiles between the highlighted sides.
+tip: A road is any continuous chain of stones between the highlighted sides.
 radius: 2
 side_a: Q_NEG
 side_b: Q_POS
@@ -114,7 +114,7 @@ blocked: 1,-1
 
 name: Resonance Cascade
 desc: Trigger a chain of merges.
-tip: When matching values touch, they keep merging until no adjacent pair can combine. A single move can change more than one stone.
+tip: When matching values touch, they keep merging until no adjacent pair can combine. A single move can change more than one stone. Select a stack to inspect its order.
 radius: 1
 side_a: Q_NEG
 side_b: Q_POS
@@ -128,7 +128,7 @@ stack: 0,1:2:2,1
 stack: 1,0:1:1
 
 name: False Bridge
-desc: Route around a dead gate.
+desc: Route around a 0 gate.
 tip: A value gate marked 0 can hold stones, but it never counts as part of the road. The connection must go around it.
 best_moves: 2
 radius: 2
@@ -181,8 +181,9 @@ stack: 0,-1:1:1
 stack: 1,-2:1:1
 stack: 1,1:1:1
 
-name: 2 Tolls 4 Skools
-desc: A custom level built in the Level Editor.
+name: 2 Tolls 4 One
+desc: Height and value.
+tip: Start by looking for the condition that is hardest to satisfy.
 radius: 3
 side_a: Q_NEG
 side_b: Q_POS
@@ -260,6 +261,7 @@ stack: 1,-2:1:1
 
 name: Treacherous Way
 desc: So many gates
+tip: Anchors split the path into smaller segments. Solve each segment separately.
 radius: 3
 side_a: Q_NEG
 side_b: Q_POS
@@ -351,9 +353,65 @@ stack: -1,0:4:8,4,2,1
 stack: 0,0:4:1,2,4,8
 stack: 0,1:3:1,2,4
 
+name: Sixty-Four Ones
+desc: Build a 64 from nothing but 1-stones.
+best_moves: 15
+radius: 3
+side_a: Q_NEG
+side_b: Q_POS
+move_limit: 0
+required: -2,3:0
+required: -1,1:0
+required: -1,2:0
+required: -1,3:0
+required: 0,-1:0
+required: 0,0:64
+required: 0,1:0
+required: 1,-3:0
+required: 1,-2:0
+required: 1,-1:0
+required: 2,-3:0
+stack: -3,0:1:1
+stack: -3,1:1:1
+stack: -3,2:1:1
+stack: -3,3:1:1
+stack: -2,-1:1:1
+stack: -2,0:1:2
+stack: -2,1:1:2
+stack: -2,2:1:2
+stack: -2,3:1:1
+stack: -1,-2:1:1
+stack: -1,-1:1:2
+stack: -1,0:2:4,8
+stack: -1,1:2:4,8
+stack: -1,2:1:2
+stack: -1,3:1:1
+stack: 0,-3:1:1
+stack: 0,-2:1:2
+stack: 0,-1:2:4,8
+stack: 0,0:1:1
+stack: 0,1:2:4,8
+stack: 0,2:1:2
+stack: 0,3:1:1
+stack: 1,-3:1:1
+stack: 1,-2:1:2
+stack: 1,-1:2:4,8
+stack: 1,0:2:4,8
+stack: 1,1:1:2
+stack: 1,2:1:1
+stack: 2,-3:1:1
+stack: 2,-2:1:2
+stack: 2,-1:1:2
+stack: 2,0:1:2
+stack: 2,1:1:1
+stack: 3,-3:1:1
+stack: 3,-2:1:1
+stack: 3,-1:1:1
+stack: 3,0:1:1
+
 name: The Maze
 desc: Don't get lost!
-best_moves: 13
+best_moves: 15
 radius: 3
 side_a: Q_NEG
 side_b: S_POS
@@ -374,6 +432,9 @@ blocked: 2,0
 required: -3,1:4
 required: -3,3:2
 required: -2,2:0
+required: -1,-2:4
+required: -1,-1:2
+required: -1,0:8
 required: 0,-2:0
 required: 1,-1:8
 required: 1,0:2
@@ -388,31 +449,3 @@ stack: -1,1:5:1,2,4,8,16
 stack: 1,1:4:1,2,4,8
 stack: 3,-3:4:1,2,4,8
 stack: 3,0:4:8,4,2,1
-
-name: The Lockworks
-desc: Open a route through every kind of constraint.
-best_moves: 5
-radius: 3
-side_a: Q_NEG
-side_b: Q_POS
-move_limit: 3
-required_height: -1,0:3
-required: 0,-1:4
-required: 0,0:0
-blocked: -2,-1
-blocked: -1,1
-blocked: 0,1
-blocked: 1,1
-blocked: 1,-2
-blocked: 2,-2
-fixed: -2,0:1
-fixed: 1,0:1
-stack: -3,0:1:1
-stack: -1,0:1:1
-stack: 0,-1:1:2
-stack: 1,-1:3:1,3,5
-stack: -1,-1:2:2,4
-stack: 0,-2:1:2
-stack: 0,0:1:8
-stack: 2,0:1:1
-stack: 3,0:1:1

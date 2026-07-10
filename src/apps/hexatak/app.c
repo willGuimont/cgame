@@ -175,6 +175,62 @@ static void App_ReportSolver(const GameState *gs) {
     printf("==================\n\n");
 }
 
+static void App_PrintSolverMove(const Board *board, const Move move, const i32 move_number) {
+    const Hex from = board->cells[move.from_index].hex;
+    const i32 distance = move.type == MOVE_SPREAD ? move.distance : 1;
+    const Hex to = Hex_Add(from, Hex_Multiply(Hex_Direction(move.dir), distance));
+
+    if (move.type == MOVE_STEP) {
+        printf("%d. step from (%d,%d) to (%d,%d), dir %d\n", move_number, from.q, from.r, to.q, to.r, move.dir);
+    } else {
+        printf("%d. spread %d from (%d,%d) to (%d,%d), dir %d\n", move_number, move.distance, from.q, from.r, to.q,
+               to.r, move.dir);
+    }
+}
+
+static void App_ReportSolverFromCurrentState(const GameState *gs) {
+    const LevelDesc *desc = &LEVELS[gs->current_level_idx];
+    i32 max_moves = desc->move_limit > 0 ? desc->move_limit - gs->move_count : 8;
+    if (max_moves < 0) {
+        max_moves = 0;
+    }
+
+    SolverFirstSolutionResult result;
+    const double solve_start = GetTime();
+    if (!Solver_FindFirstSolutionWithStaticCells(&gs->board, desc->side_a, desc->side_b, max_moves,
+                                                 gs->debug_static_cells, &result)) {
+        const double solve_seconds = GetTime() - solve_start;
+        printf("\n=== SOLVER: CURRENT STATE ===\nFailed to run solver.\nTime: %.3fs\n=============================\n\n",
+               solve_seconds);
+        return;
+    }
+    const double solve_seconds = GetTime() - solve_start;
+
+    printf("\n=== SOLVER: CURRENT STATE: %s ===\n", desc->name ? desc->name : "Untitled");
+    printf("Moves already made: %d\n", gs->move_count);
+    printf("Additional turn cap: %d%s\n", result.max_moves, desc->move_limit > 0 ? "" : " (debug cap)");
+    i32 static_count = 0;
+    for (i32 i = 0; i < gs->board.count; i++) {
+        if (gs->debug_static_cells[i]) {
+            static_count++;
+        }
+    }
+    printf("Static stacks: %d\n", static_count);
+    printf("Explored states: %d%s, time: %.3fs\n", result.explored_states,
+           result.truncated ? " (truncated)" : "", solve_seconds);
+    if (result.found) {
+        printf("additional turns needed to solve: %d\n", result.moves);
+        printf("first solution total turns from start: %d\n", gs->move_count + result.moves);
+        printf("moves:\n");
+        for (i32 i = 0; i < result.moves; i++) {
+            App_PrintSolverMove(&gs->board, result.move_path[i], i + 1);
+        }
+    } else {
+        printf("status: no solution within %d additional turn%s\n", result.max_moves, result.max_moves == 1 ? "" : "s");
+    }
+    printf("==================================\n\n");
+}
+
 static void App_ReportAllSolvability(GameState *gs) {
     printf("\n=== SOLVER: ALL LEVELS ===\n");
 
@@ -1262,6 +1318,7 @@ static void App_Update(void *state, f32 dt) {
 #ifndef NDEBUG
         const Rectangle btn_solve = {20.0f, 650.0f, 60.0f, 40.0f};
         const Rectangle btn_open_editor = {20.0f, 600.0f, 150.0f, 40.0f};
+        const Rectangle btn_solve_current = {550.0f, 600.0f, 150.0f, 40.0f};
 #endif
 
         bool clicked_ui = false;
@@ -1288,6 +1345,11 @@ static void App_Update(void *state, f32 dt) {
             clicked_ui = true;
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 App_ReportSolver(gs);
+            }
+        } else if (CheckCollisionPointRec(mouse, btn_solve_current)) {
+            clicked_ui = true;
+            if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                App_ReportSolverFromCurrentState(gs);
             }
         }
 #endif
@@ -1331,6 +1393,16 @@ static void App_Update(void *state, f32 dt) {
         constexpr float SIZE = 45.0f;
         const Vector2 origin = {360.0f, 380.0f};
         const i32 hovered_idx = Board_PickCell(&gs->board, mouse, SIZE, origin);
+
+#ifndef NDEBUG
+        if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE) && hovered_idx >= 0) {
+            const Cell *cell = &gs->board.cells[hovered_idx];
+            if (cell->count > 0 && !cell->blocked) {
+                gs->debug_static_cells[hovered_idx] = !gs->debug_static_cells[hovered_idx];
+            }
+            return;
+        }
+#endif
 
         if (gs->input.mode == INPUT_IDLE) {
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && hovered_idx >= 0) {

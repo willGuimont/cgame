@@ -1,5 +1,6 @@
 #include "app_state.h"
 #include <math.h>
+#include <string.h>
 #include "utils/ring_buf.h"
 
 void History_Push(History *history, const Board *board, const i32 move_count) {
@@ -101,6 +102,9 @@ void Level_Load(GameState *gs, const i32 level_idx) {
     gs->win_animation_active = false;
     gs->win_animation_timer = 0.0f;
     gs->win_path_len = 0;
+#ifndef NDEBUG
+    memset(gs->debug_static_cells, 0, sizeof(gs->debug_static_cells));
+#endif
 }
 
 void Level_Reset(GameState *gs) {
@@ -161,6 +165,9 @@ void Level_Reset(GameState *gs) {
     gs->win_animation_active = false;
     gs->win_animation_timer = 0.0f;
     gs->win_path_len = 0;
+#ifndef NDEBUG
+    memset(gs->debug_static_cells, 0, sizeof(gs->debug_static_cells));
+#endif
 }
 
 void GameState_CheckWinCondition(GameState *gs) {

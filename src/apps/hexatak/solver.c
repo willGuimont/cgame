@@ -11,7 +11,9 @@ constexpr i32 SOLVER_NODE_CAPACITY_INITIAL = 200000;
 typedef struct {
     Board board;
     i32 depth;
+    i32 parent_index;
     i32 next_hash_index;
+    Move move;
 } SolverNode;
 
 typedef struct {
@@ -84,7 +86,7 @@ static bool Solver_IsVisited(const Board *board, const uint64_t hash, const Solv
 }
 
 static bool Solver_PushNode(SolverNode **nodes, i32 *node_capacity, SolverVisitedEntry **visited, i32 *node_count,
-                            const Board *board, const i32 depth) {
+                            const Board *board, const i32 depth, const i32 parent_index, const Move move) {
     const uint64_t hash = Solver_HashBoard(board);
     if (Solver_IsVisited(board, hash, *nodes, *visited)) {
         return true;
@@ -116,13 +118,15 @@ static bool Solver_PushNode(SolverNode **nodes, i32 *node_capacity, SolverVisite
 
     (*nodes)[*node_count].board = *board;
     (*nodes)[*node_count].depth = depth;
+    (*nodes)[*node_count].parent_index = parent_index;
     (*nodes)[*node_count].next_hash_index = next_hash_index;
+    (*nodes)[*node_count].move = move;
     (*node_count)++;
     return true;
 }
 
-bool Solver_CountSolutions(const Board *start, const BoardSide side_a, const BoardSide side_b, i32 max_moves,
-                           SolverResult *out) {
+bool Solver_CountSolutionsWithStaticCells(const Board *start, const BoardSide side_a, const BoardSide side_b,
+                                          i32 max_moves, const bool *static_cells, SolverResult *out) {
     if (!start || !out) {
         return false;
     }
@@ -147,7 +151,7 @@ bool Solver_CountSolutions(const Board *start, const BoardSide side_a, const Boa
     i32 node_count = 0;
     i32 queue_head = 0;
     bool expansion_truncated = false;
-    if (!Solver_PushNode(&nodes, &node_capacity, &visited, &node_count, start, 0)) {
+    if (!Solver_PushNode(&nodes, &node_capacity, &visited, &node_count, start, 0, -1, (Move) {0})) {
         free(nodes);
         hmfree(visited);
         return false;
@@ -169,10 +173,15 @@ bool Solver_CountSolutions(const Board *start, const BoardSide side_a, const Boa
             if (node.board.cells[from].count <= 0 || node.board.cells[from].blocked) {
                 continue;
             }
+            if (static_cells && static_cells[from]) {
+                continue;
+            }
             for (i32 dir = 0; dir < 6; dir++) {
                 Board next = node.board;
-                if (Board_ApplyMove(&next, (Move) {.type = MOVE_STEP, .from_index = from, .dir = dir, .distance = 0})) {
-                    if (!Solver_PushNode(&nodes, &node_capacity, &visited, &node_count, &next, node.depth + 1)) {
+                const Move step_move = {.type = MOVE_STEP, .from_index = from, .dir = dir, .distance = 0};
+                if (Board_ApplyMove(&next, step_move)) {
+                    if (!Solver_PushNode(&nodes, &node_capacity, &visited, &node_count, &next, node.depth + 1, -1,
+                                         step_move)) {
                         out->truncated = true;
                         expansion_truncated = true;
                         break;
@@ -180,12 +189,13 @@ bool Solver_CountSolutions(const Board *start, const BoardSide side_a, const Boa
                 }
 
                 const i32 stack_count = node.board.cells[from].count;
-                for (i32 distance = 1; distance <= stack_count; distance++) {
+                const i32 min_spread_distance = stack_count == 1 ? 2 : 1;
+                for (i32 distance = min_spread_distance; distance <= stack_count; distance++) {
                     next = node.board;
-                    if (Board_ApplyMove(
-                                &next,
-                                (Move) {.type = MOVE_SPREAD, .from_index = from, .dir = dir, .distance = distance})) {
-                        if (!Solver_PushNode(&nodes, &node_capacity, &visited, &node_count, &next, node.depth + 1)) {
+                    const Move spread_move = {.type = MOVE_SPREAD, .from_index = from, .dir = dir, .distance = distance};
+                    if (Board_ApplyMove(&next, spread_move)) {
+                        if (!Solver_PushNode(&nodes, &node_capacity, &visited, &node_count, &next, node.depth + 1,
+                                             -1, spread_move)) {
                             out->truncated = true;
                             expansion_truncated = true;
                             break;
@@ -202,6 +212,102 @@ bool Solver_CountSolutions(const Board *start, const BoardSide side_a, const Boa
         }
     }
 
+    free(nodes);
+    hmfree(visited);
+    return true;
+}
+
+bool Solver_CountSolutions(const Board *start, const BoardSide side_a, const BoardSide side_b, const i32 max_moves,
+                           SolverResult *out) {
+    return Solver_CountSolutionsWithStaticCells(start, side_a, side_b, max_moves, nullptr, out);
+}
+
+bool Solver_FindFirstSolutionWithStaticCells(const Board *start, const BoardSide side_a, const BoardSide side_b,
+                                             i32 max_moves, const bool *static_cells,
+                                             SolverFirstSolutionResult *out) {
+    if (!start || !out) {
+        return false;
+    }
+    if (max_moves < 0) {
+        return false;
+    }
+    if (max_moves > SOLVER_MAX_MOVES) {
+        max_moves = SOLVER_MAX_MOVES;
+    }
+
+    memset(out, 0, sizeof(*out));
+    out->max_moves = max_moves;
+    out->moves = -1;
+
+    i32 node_capacity = SOLVER_NODE_CAPACITY_INITIAL;
+    SolverNode *nodes = malloc((size_t) node_capacity * sizeof(*nodes));
+    SolverVisitedEntry *visited = nullptr;
+    if (!nodes) {
+        return false;
+    }
+
+    i32 node_count = 0;
+    i32 queue_head = 0;
+    if (!Solver_PushNode(&nodes, &node_capacity, &visited, &node_count, start, 0, -1, (Move) {0})) {
+        free(nodes);
+        hmfree(visited);
+        return false;
+    }
+
+    while (queue_head < node_count) {
+        const i32 node_index = queue_head++;
+        const SolverNode node = nodes[node_index];
+        out->explored_states++;
+
+        if (Board_HasConnection(&node.board, side_a, side_b)) {
+            out->found = true;
+            out->moves = node.depth;
+            for (i32 i = node.depth - 1, cursor = node_index; i >= 0 && cursor >= 0; i--) {
+                out->move_path[i] = nodes[cursor].move;
+                cursor = nodes[cursor].parent_index;
+            }
+            break;
+        }
+        if (node.depth >= max_moves) {
+            continue;
+        }
+
+        for (i32 from = 0; from < node.board.count; from++) {
+            if (node.board.cells[from].count <= 0 || node.board.cells[from].blocked) {
+                continue;
+            }
+            if (static_cells && static_cells[from]) {
+                continue;
+            }
+            for (i32 dir = 0; dir < 6; dir++) {
+                Board next = node.board;
+                const Move step_move = {.type = MOVE_STEP, .from_index = from, .dir = dir, .distance = 0};
+                if (Board_ApplyMove(&next, step_move)) {
+                    if (!Solver_PushNode(&nodes, &node_capacity, &visited, &node_count, &next, node.depth + 1,
+                                         node_index, step_move)) {
+                        out->truncated = true;
+                        goto done;
+                    }
+                }
+
+                const i32 stack_count = node.board.cells[from].count;
+                const i32 min_spread_distance = stack_count == 1 ? 2 : 1;
+                for (i32 distance = min_spread_distance; distance <= stack_count; distance++) {
+                    next = node.board;
+                    const Move spread_move = {.type = MOVE_SPREAD, .from_index = from, .dir = dir, .distance = distance};
+                    if (Board_ApplyMove(&next, spread_move)) {
+                        if (!Solver_PushNode(&nodes, &node_capacity, &visited, &node_count, &next, node.depth + 1,
+                                             node_index, spread_move)) {
+                            out->truncated = true;
+                            goto done;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+done:
     free(nodes);
     hmfree(visited);
     return true;
