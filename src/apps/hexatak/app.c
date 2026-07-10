@@ -1970,7 +1970,7 @@ static void App_Draw(void *state, f32 alpha) {
         }
 
         if (gs->game_completed) {
-            DrawRectangle(0, 0, 720, 720, (Color) {17, 17, 27, 240});
+            DrawRectangle(0, 0, 720, 720, (Color) {17, 17, 27, 255});
 
             constexpr i32 FONT_SZ_TITLE = 52;
             constexpr i32 FONT_SZ_DESC = 28;
