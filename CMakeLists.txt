@@ -347,8 +347,8 @@ add_executable(sokoban
         web/sokoban/minshell.html
 )
 add_cgame_app(sokoban sokoban
-        TITLE "Sokoban"
-        DESCRIPTION "Prototype box-pushing target inspired by the Hexatak app setup."
+        TITLE "Sokoban 3D"
+        DESCRIPTION "Sokoban, but in 3D and a bit of momentum"
         WEB_DIR "web/sokoban"
 )
 
