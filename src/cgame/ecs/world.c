@@ -50,7 +50,7 @@ bool World_GridInBounds(const World *world, const Vector3i pos) {
            pos.z >= 0 && pos.z < world->depth;
 }
 
-GridCell *World_GridCell(const World *world, const Vector3i pos) {
+GridCell *World_GridCell(World *world, const Vector3i pos) {
     if (!World_GridInBounds(world, pos)) {
         return nullptr;
     }

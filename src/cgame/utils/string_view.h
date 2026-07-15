@@ -12,8 +12,8 @@ typedef struct {
 
 static StringView StringView_Create(const char *cstr) {
     return (StringView) {
-            .data = cstr,
-            .count = strlen(cstr),
+            .data = cstr ? cstr : "",
+            .count = cstr ? strlen(cstr) : 0,
     };
 }
 

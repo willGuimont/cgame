@@ -117,7 +117,7 @@ static int test_rb_growth_preserves_order(void) {
     RING_BUFFER_PUSH(rb, 999);
     ASSERT(rb.capacity == 512U);
     ASSERT(rb.head == 0U);
-    ASSERT(rb.tail == (rb.tail - rb.head));
+    ASSERT(rb.tail == 262U);
 
     // Pop all items, they must be correctly ordered
     for (int i = 10; i < 256; i++) {
@@ -160,6 +160,25 @@ static int test_rb_pop_back_lifo(void) {
     return 0;
 }
 
+static int test_rb_push_overflow_keeps_existing_buffer(void) {
+    int item = 123;
+    RingBufferInt rb = {
+            .items = &item,
+            .head = 0,
+            .tail = (SIZE_MAX / 2U) + 1U,
+            .capacity = (SIZE_MAX / 2U) + 1U,
+    };
+
+    RING_BUFFER_PUSH(rb, 456);
+
+    ASSERT(rb.items == &item);
+    ASSERT(rb.head == 0U);
+    ASSERT(rb.tail == (SIZE_MAX / 2U) + 1U);
+    ASSERT(rb.capacity == (SIZE_MAX / 2U) + 1U);
+    ASSERT(item == 123);
+    return 0;
+}
+
 int main(void) {
     int failures = 0;
     RUN_TEST(test_rb_initial_allocation_and_push);
@@ -167,5 +186,6 @@ int main(void) {
     RUN_TEST(test_rb_circular_wrap);
     RUN_TEST(test_rb_growth_preserves_order);
     RUN_TEST(test_rb_pop_back_lifo);
+    RUN_TEST(test_rb_push_overflow_keeps_existing_buffer);
     return failures > 0 ? 1 : 0;
 }

@@ -82,11 +82,15 @@ i32 CGame_Run(const CGameLoopDesc *desc) {
             .accumulator = 0.0f,
     };
 
-#ifndef _DEBUG
+#ifdef NDEBUG
     SetTraceLogLevel(LOG_NONE);
 #endif
 
     InitWindow(game_loop.desc.width, game_loop.desc.height, game_loop.desc.title);
+    if (!IsWindowReady()) {
+        return 1;
+    }
+
     SetTargetFPS(game_loop.desc.target_fps);
 
     if (game_loop.desc.init && !game_loop.desc.init(game_loop.desc.state)) {

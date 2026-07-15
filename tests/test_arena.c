@@ -342,7 +342,7 @@ static int test_arena_push_struct_nz_returns_accessible_memory(void) {
     typedef struct {
         f32 x, y;
     } Vec2;
-    auto const v = PUSH_STRUCT_NZ(arena, Vec2);
+    Vec2 *const v = PUSH_STRUCT_NZ(arena, Vec2);
     ASSERT(v != nullptr);
     v->x = 1.0f;
     v->y = 2.0f;
@@ -371,12 +371,23 @@ static int test_arena_push_array_nz_returns_writable_memory(void) {
     Arena *arena = Arena_Create(RESERVE, COMMIT);
     ASSERT(arena != nullptr);
 
-    auto const arr = PUSH_ARRAY_NZ(arena, i32, 8);
+    i32 *const arr = PUSH_ARRAY_NZ(arena, i32, 8);
     ASSERT(arr != nullptr);
     for (int i = 0; i < 8; ++i)
         arr[i] = i;
     for (int i = 0; i < 8; ++i)
         ASSERT(arr[i] == i);
+
+    Arena_Destroy(arena);
+    return 0;
+}
+
+static int test_arena_push_array_overflow_returns_null(void) {
+    Arena *arena = Arena_Create(RESERVE, COMMIT);
+    ASSERT(arena != nullptr);
+
+    const u64 *arr = PUSH_ARRAY(arena, u64, UINT64_MAX);
+    ASSERT(arr == nullptr);
 
     Arena_Destroy(arena);
     return 0;
@@ -409,5 +420,6 @@ int main(void) {
     RUN_TEST(test_arena_push_struct_nz_returns_accessible_memory);
     RUN_TEST(test_arena_push_array_returns_zeroed_elements);
     RUN_TEST(test_arena_push_array_nz_returns_writable_memory);
+    RUN_TEST(test_arena_push_array_overflow_returns_null);
     return failures > 0 ? 1 : 0;
 }

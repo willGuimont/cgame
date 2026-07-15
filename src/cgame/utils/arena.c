@@ -98,6 +98,13 @@ void *Arena_Push(Arena *arena, const u64 size, const b32 non_zero) {
     return out;
 }
 
+void *Arena_PushArray(Arena *arena, const u64 elem_size, const u64 count, const b32 non_zero) {
+    if (elem_size != 0 && count > UINT64_MAX / elem_size) {
+        return nullptr;
+    }
+    return Arena_Push(arena, elem_size * count, non_zero);
+}
+
 void Arena_Pop(Arena *arena, u64 size) {
     size = MIN(size, arena->pos - ARENA_BASE_POS);
     arena->pos -= size;

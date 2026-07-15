@@ -103,14 +103,14 @@ void Render_DrawStoneStack(const Font font, const Cell *cell, const Vector2 cent
         float final_radius = base_radius;
         if (active || exploded) {
             final_radius = base_radius * (1.0f + (0.15f * pulse));
-            auto const glow_color =
+            const Color glow_color =
                     (Color) {166, 227, 161, (unsigned char) (((float) alpha * 0.4f) + ((float) alpha * 0.3f * pulse))};
             DrawCircleV(stone_center, final_radius * 1.3f, glow_color);
         }
 
         DrawCircleV(stone_center, final_radius, col);
 
-        auto const outline = (Color) {17, 17, 27, (unsigned char) alpha};
+        const Color outline = (Color) {17, 17, 27, (unsigned char) alpha};
         DrawCircleLinesV(stone_center, final_radius, outline);
 
         if (i == cell->count - 1 && cell->required_value > 0 && cell->stones[i].value != cell->required_value) {
@@ -191,8 +191,8 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
         const HexPoint hp = Hex_ToPixel(layout, cell->hex);
         const Vector2 center = {hp.x, hp.y};
 
-        auto fill = (Color) {49, 50, 68, 255};
-        auto border = (Color) {88, 91, 112, 255};
+        Color fill = (Color) {49, 50, 68, 255};
+        Color border = (Color) {88, 91, 112, 255};
 
         bool is_active_path = false;
         float pulse = 0.0f;

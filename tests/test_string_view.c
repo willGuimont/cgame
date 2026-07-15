@@ -17,6 +17,10 @@ static int test_sv_initializes_count_from_cstr(void) {
 
     const StringView empty = StringView_Create("");
     ASSERT(empty.count == 0U);
+
+    const StringView null_view = StringView_Create(nullptr);
+    ASSERT(null_view.count == 0U);
+    ASSERT(null_view.data != nullptr);
     return 0;
 }
 

@@ -74,7 +74,7 @@ static Font App_LoadFont(const char *file_name) {
 
 static void App_TakeScreenshot(void) {
     char path[512];
-    const long long timestamp = (long long) time(NULL);
+    const long long timestamp = (long long) time(nullptr);
 #ifdef ROOT_DIR
     snprintf(path, sizeof(path), ROOT_DIR "/docs/hexatak/hexatak-shot-%lld.png", timestamp);
 #else
@@ -384,7 +384,7 @@ static bool App_Init(void *state) {
         // If it fails (e.g. initial setup), we still want to log it
         TraceLog(LOG_WARNING, "levels.txt load failed! Using empty or static levels");
     }
-    auto const gs = (GameState *) state;
+    GameState *const gs = state;
     gs->snd_click = App_LoadSound("click.wav");
     gs->snd_move = App_LoadSound("move.wav");
     gs->snd_merge = App_LoadSound("merge.wav");
@@ -896,7 +896,7 @@ static bool Editor_Import(GameState *gs) {
 }
 
 static void App_Update(void *state, f32 dt) {
-    auto const gs = (GameState *) state;
+    GameState *const gs = state;
     gs->anim_time += dt;
 
     if (gs->screen == SCREEN_THUMBNAIL) {
@@ -1691,7 +1691,7 @@ static void App_Update(void *state, f32 dt) {
 static void App_Draw(void *state, f32 alpha) {
     (void) alpha;
 
-    auto const gs = (GameState *) state;
+    GameState *const gs = state;
 
     BeginDrawing();
     ClearBackground((Color) {30, 30, 46, 255});
@@ -1802,8 +1802,8 @@ static void App_Draw(void *state, f32 alpha) {
             Rectangle card_rect = {x, y, CARD_W, CARD_H};
             bool card_hovered = CheckCollisionPointRec(mouse, card_rect);
 
-            auto bg = (Color) {49, 50, 68, 255};
-            auto border = (Color) {88, 91, 112, 255};
+            Color bg = (Color) {49, 50, 68, 255};
+            Color border = (Color) {88, 91, 112, 255};
             if (card_hovered) {
                 border = (Color) {249, 226, 175, 255};
             }
@@ -2039,7 +2039,7 @@ static void App_Draw(void *state, f32 alpha) {
 }
 
 static void App_Deinit(void *state) {
-    auto const gs = (GameState *) state;
+    GameState *const gs = state;
     UnloadSound(gs->snd_click);
     UnloadSound(gs->snd_move);
     UnloadSound(gs->snd_merge);

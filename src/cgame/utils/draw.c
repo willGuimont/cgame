@@ -49,7 +49,7 @@ i32 CGame_MeasureTextWrappedHeight(const Font font, const char *text, const i32 
             break;
 
         const char *line_start = ptr;
-        const char *last_space = NULL;
+        const char *last_space = nullptr;
         const char *scan = ptr;
 
         while (*scan != '\0' && *scan != '\n') {
@@ -111,7 +111,7 @@ void CGame_DrawTextWrappedCentered(const Font font, const char *text, const i32 
             break;
 
         const char *line_start = ptr;
-        const char *last_space = NULL;
+        const char *last_space = nullptr;
         const char *scan = ptr;
 
         while (*scan != '\0' && *scan != '\n') {
