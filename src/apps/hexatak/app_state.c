@@ -18,18 +18,18 @@ bool History_Undo(History *history, Board *board, i32 *move_count) {
     return true;
 }
 
-i32 Board_PickCell(const Board *board, const Vector2 mouse, const float size, const Vector2 origin) {
+i32 Board_PickCell(const Board *board, const Vector2 mouse, const f32 size, const Vector2 origin) {
     i32 best = -1;
-    float best_dist = size * 0.9f;
+    f32 best_dist = size * 0.9f;
 
     const HexLayout layout = {
             .orientation = HEX_ORIENTATION_POINTY, .size = size, .origin = (HexPoint) {origin.x, origin.y}};
 
     for (i32 i = 0; i < board->count; i++) {
         const HexPoint hp = Hex_ToPixel(layout, board->cells[i].hex);
-        const float dx = mouse.x - hp.x;
-        const float dy = mouse.y - hp.y;
-        const float d = sqrtf((dx * dx) + (dy * dy));
+        const f32 dx = mouse.x - hp.x;
+        const f32 dy = mouse.y - hp.y;
+        const f32 d = sqrtf((dx * dx) + (dy * dy));
 
         if (d < best_dist) {
             best_dist = d;
@@ -44,7 +44,7 @@ void Level_Load(GameState *gs, const i32 level_idx) {
     if (level_idx < 0 || level_idx >= LEVEL_COUNT)
         return;
 
-    const LevelDesc *desc = &LEVELS[level_idx];
+    const LevelDesc *desc = &g_levels[level_idx];
     Board_Init(&gs->board, desc->radius);
 
     for (i32 i = 0; i < desc->blocked_count; i++) {
@@ -115,7 +115,7 @@ void Level_Reset(GameState *gs) {
     if (gs->testing_editor_level) {
         gs->board = gs->editor_board;
     } else {
-        const LevelDesc *desc = &LEVELS[gs->current_level_idx];
+        const LevelDesc *desc = &g_levels[gs->current_level_idx];
         Board_Init(&gs->board, desc->radius);
 
         for (i32 i = 0; i < desc->blocked_count; i++) {
@@ -171,7 +171,7 @@ void Level_Reset(GameState *gs) {
 }
 
 void GameState_CheckWinCondition(GameState *gs) {
-    const LevelDesc *desc = &LEVELS[gs->current_level_idx];
+    const LevelDesc *desc = &g_levels[gs->current_level_idx];
     const bool has_conn = Board_HasConnection(&gs->board, desc->side_a, desc->side_b);
     if (has_conn) {
         if (!gs->level_won && !gs->win_animation_active) {

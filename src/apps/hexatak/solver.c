@@ -1,6 +1,5 @@
 #include "solver.h"
 
-#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -17,21 +16,21 @@ typedef struct {
 } SolverNode;
 
 typedef struct {
-    uint64_t key;
+    u64 key;
     i32 first_index;
 } SolverVisitedEntry;
 
-static uint64_t Solver_HashBytes(uint64_t hash, const void *data, const size_t size) {
-    const unsigned char *bytes = data;
-    for (size_t i = 0; i < size; i++) {
+static u64 Solver_HashBytes(u64 hash, const void *data, const usize size) {
+    const u8 *bytes = data;
+    for (usize i = 0; i < size; i++) {
         hash ^= bytes[i];
         hash *= 1099511628211ULL;
     }
     return hash;
 }
 
-static uint64_t Solver_HashBoard(const Board *board) {
-    uint64_t hash = 1469598103934665603ULL;
+static u64 Solver_HashBoard(const Board *board) {
+    u64 hash = 1469598103934665603ULL;
     hash = Solver_HashBytes(hash, &board->radius, sizeof(board->radius));
     hash = Solver_HashBytes(hash, &board->count, sizeof(board->count));
     for (i32 i = 0; i < board->count; i++) {
@@ -70,8 +69,7 @@ static bool Solver_BoardEquals(const Board *a, const Board *b) {
     return true;
 }
 
-static bool Solver_IsVisited(const Board *board, const uint64_t hash, const SolverNode *nodes,
-                             SolverVisitedEntry *visited) {
+static bool Solver_IsVisited(const Board *board, const u64 hash, const SolverNode *nodes, SolverVisitedEntry *visited) {
     const ptrdiff_t entry_idx = hmgeti(visited, hash);
     if (entry_idx < 0) {
         return false;
@@ -87,7 +85,7 @@ static bool Solver_IsVisited(const Board *board, const uint64_t hash, const Solv
 
 static bool Solver_PushNode(SolverNode **nodes, i32 *node_capacity, SolverVisitedEntry **visited, i32 *node_count,
                             const Board *board, const i32 depth, const i32 parent_index, const Move move) {
-    const uint64_t hash = Solver_HashBoard(board);
+    const u64 hash = Solver_HashBoard(board);
     if (Solver_IsVisited(board, hash, *nodes, *visited)) {
         return true;
     }
@@ -98,7 +96,7 @@ static bool Solver_PushNode(SolverNode **nodes, i32 *node_capacity, SolverVisite
             return false;
         }
 
-        SolverNode *grown_nodes = realloc(*nodes, (size_t) next_capacity * sizeof(*grown_nodes));
+        SolverNode *grown_nodes = realloc(*nodes, (usize) next_capacity * sizeof(*grown_nodes));
         if (!grown_nodes) {
             return false;
         }
@@ -141,7 +139,7 @@ bool Solver_CountSolutionsWithStaticCells(const Board *start, const BoardSide si
     out->max_moves = max_moves;
 
     i32 node_capacity = SOLVER_NODE_CAPACITY_INITIAL;
-    SolverNode *nodes = malloc((size_t) node_capacity * sizeof(*nodes));
+    SolverNode *nodes = malloc((usize) node_capacity * sizeof(*nodes));
     SolverVisitedEntry *visited = nullptr;
     if (!nodes) {
         free(nodes);
@@ -240,7 +238,7 @@ bool Solver_FindFirstSolutionWithStaticCells(const Board *start, const BoardSide
     out->moves = -1;
 
     i32 node_capacity = SOLVER_NODE_CAPACITY_INITIAL;
-    SolverNode *nodes = malloc((size_t) node_capacity * sizeof(*nodes));
+    SolverNode *nodes = malloc((usize) node_capacity * sizeof(*nodes));
     SolverVisitedEntry *visited = nullptr;
     if (!nodes) {
         return false;

@@ -71,7 +71,7 @@ static Color Utils_GetFixedBridgeColor(void) {
     return (Color) {249, 226, 175, 255}; // Yellow
 }
 
-static const char *Utils_GetMoveLimitString(const i32 move_limit, char *buf, const size_t size) {
+static const char *Utils_GetMoveLimitString(const i32 move_limit, char *buf, const usize size) {
     if (move_limit == 0) {
         return "∞";
     }
@@ -80,79 +80,77 @@ static const char *Utils_GetMoveLimitString(const i32 move_limit, char *buf, con
     return buf;
 }
 
-void Render_DrawHex(const Vector2 center, const float size, const Color fill_color, const Color outline_color) {
+void Render_DrawHex(const Vector2 center, const f32 size, const Color fill_color, const Color outline_color) {
     DrawPoly(center, 6, size, 30.0f, fill_color);
     if (outline_color.a > 0) {
         DrawPolyLinesEx(center, 6, size, 30.0f, 2.0f, outline_color);
     }
 }
 
-void Render_DrawStoneStack(const Font font, const Cell *cell, const Vector2 center, const float size, const i32 alpha,
-                           const bool active, const float pulse, const bool exploded) {
+void Render_DrawStoneStack(const Font font, const Cell *cell, const Vector2 center, const f32 size, const i32 alpha,
+                           const bool active, const f32 pulse, const bool exploded) {
     if (cell->count == 0)
         return;
 
-    const float base_radius = size * 0.55f;
+    const f32 base_radius = size * 0.55f;
     for (i32 i = 0; i < cell->count; i++) {
-        const float y_offset = exploded ? -(float) i * (base_radius + 12.0f) : -(float) i * 5.0f;
+        const f32 y_offset = exploded ? -(f32) i * (base_radius + 12.0f) : -(f32) i * 5.0f;
         Color col = Utils_GetStoneColor(cell->stones[i].value);
-        col.a = (unsigned char) alpha;
+        col.a = (u8) alpha;
 
         const Vector2 stone_center = {center.x, center.y + y_offset};
 
-        float final_radius = base_radius;
+        f32 final_radius = base_radius;
         if (active || exploded) {
             final_radius = base_radius * (1.0f + (0.15f * pulse));
             const Color glow_color =
-                    (Color) {166, 227, 161, (unsigned char) (((float) alpha * 0.4f) + ((float) alpha * 0.3f * pulse))};
+                    (Color) {166, 227, 161, (u8) (((f32) alpha * 0.4f) + ((f32) alpha * 0.3f * pulse))};
             DrawCircleV(stone_center, final_radius * 1.3f, glow_color);
         }
 
         DrawCircleV(stone_center, final_radius, col);
 
-        const Color outline = (Color) {17, 17, 27, (unsigned char) alpha};
+        const Color outline = (Color) {17, 17, 27, (u8) alpha};
         DrawCircleLinesV(stone_center, final_radius, outline);
 
         if (i == cell->count - 1 && cell->required_value > 0 && cell->stones[i].value != cell->required_value) {
-            DrawCircleLinesV(stone_center, final_radius + 1.0f,
-                             (Color) {243, 139, 168, (unsigned char) (alpha * 6 / 10)});
-            DrawCircleLinesV(stone_center, final_radius + 3.0f,
-                             (Color) {243, 139, 168, (unsigned char) (alpha * 35 / 100)});
+            DrawCircleLinesV(stone_center, final_radius + 1.0f, (Color) {243, 139, 168, (u8) (alpha * 6 / 10)});
+            DrawCircleLinesV(stone_center, final_radius + 3.0f, (Color) {243, 139, 168, (u8) (alpha * 35 / 100)});
         }
 
         char val_str[16];
         snprintf(val_str, sizeof(val_str), "%d", cell->stones[i].value);
-        constexpr i32 FONT_SZ = UI_FONT_STONE;
-        const i32 tw = CGame_MeasureText(font, val_str, FONT_SZ);
-        const i32 text_x = (i32) (stone_center.x - ((float) tw / 2.0f));
-        const i32 text_y = (i32) (stone_center.y - ((float) FONT_SZ / 2.0f));
+        constexpr i32 font_sz = UI_FONT_STONE;
+        const i32 tw = CGame_MeasureText(font, val_str, font_sz);
+        const i32 text_x = (i32) (stone_center.x - ((f32) tw / 2.0f));
+        const i32 text_y = (i32) (stone_center.y - ((f32) font_sz / 2.0f));
 
-        CGame_DrawText(font, val_str, text_x, text_y, FONT_SZ, (Color) {17, 17, 27, (unsigned char) alpha});
+        CGame_DrawText(font, val_str, text_x, text_y, font_sz, (Color) {17, 17, 27, (u8) alpha});
     }
 }
 
-static void Render_DrawFixedBridge(const Font font, const Vector2 center, const float size, const i32 alpha,
-                                   const bool active, const float pulse) {
+static void Render_DrawFixedBridge(const Font font, const Vector2 center, const f32 size, const i32 alpha,
+                                   const bool active, const f32 pulse) {
     (void) font;
     const Color bridge_col = Utils_GetFixedBridgeColor();
-    const float base_radius = size * 0.55f;
-    float final_radius = base_radius;
+    const f32 base_radius = size * 0.55f;
+    f32 final_radius = base_radius;
     if (active) {
         final_radius = base_radius * (1.0f + (0.15f * pulse));
         const Color glow_color = (Color) {bridge_col.r, bridge_col.g, bridge_col.b,
-                                          (unsigned char) (((float) alpha * 0.35f) + ((float) alpha * 0.25f * pulse))};
+                                          (u8) (((f32) alpha * 0.35f) + ((f32) alpha * 0.25f * pulse))};
         DrawCircleV(center, final_radius * 1.3f, glow_color);
     }
 
-    DrawCircleV(center, final_radius, (Color) {bridge_col.r, bridge_col.g, bridge_col.b, (unsigned char) alpha});
-    DrawCircleLinesV(center, final_radius, (Color) {17, 17, 27, (unsigned char) alpha});
-    const Color inner_fill = (Color) {30, 30, 46, (unsigned char) alpha};
+    DrawCircleV(center, final_radius, (Color) {bridge_col.r, bridge_col.g, bridge_col.b, (u8) alpha});
+    DrawCircleLinesV(center, final_radius, (Color) {17, 17, 27, (u8) alpha});
+    const Color inner_fill = (Color) {30, 30, 46, (u8) alpha};
     DrawCircleV(center, final_radius * 0.5f, inner_fill);
-    DrawCircleLinesV(center, final_radius * 0.5f, (Color) {17, 17, 27, (unsigned char) alpha});
+    DrawCircleLinesV(center, final_radius * 0.5f, (Color) {17, 17, 27, (u8) alpha});
 }
 
 void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_a, const BoardSide side_b,
-                        const bool is_editor, const Vector2 origin, const float size) {
+                        const bool is_editor, const Vector2 origin, const f32 size) {
     // Pass 1: Draw target side outlines (larger hexes)
     for (i32 i = 0; i < board->count; i++) {
         const Cell *cell = &board->cells[i];
@@ -195,7 +193,7 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
         Color border = (Color) {88, 91, 112, 255};
 
         bool is_active_path = false;
-        float pulse = 0.0f;
+        f32 pulse = 0.0f;
         if (!is_editor && gs->win_animation_active) {
             i32 cell_idx_in_path = -1;
             for (i32 p = 0; p < gs->win_path_len; p++) {
@@ -205,11 +203,11 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
                 }
             }
             if (cell_idx_in_path >= 0) {
-                float cell_duration = 0.15f;
-                float cell_activation_time = (float) cell_idx_in_path * cell_duration;
+                f32 cell_duration = 0.15f;
+                f32 cell_activation_time = (f32) cell_idx_in_path * cell_duration;
                 if (gs->win_animation_timer >= cell_activation_time) {
                     is_active_path = true;
-                    float active_time = gs->win_animation_timer - cell_activation_time;
+                    f32 active_time = gs->win_animation_timer - cell_activation_time;
                     pulse = (expf(-active_time * 5.0f) * 0.5f) + (0.15f * sinf(active_time * 8.0f));
                     if (pulse < -0.15f)
                         pulse = -0.15f;
@@ -246,7 +244,7 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
         }
 
         if (is_active_path) {
-            Render_DrawHex(center, size + 2.0f, (Color) {166, 227, 161, (unsigned char) (40.0f + (20.0f * pulse))},
+            Render_DrawHex(center, size + 2.0f, (Color) {166, 227, 161, (u8) (40.0f + (20.0f * pulse))},
                            (Color) {166, 227, 161, 120});
         }
         Render_DrawHex(center, size, fill, border);
@@ -281,7 +279,7 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
         const Vector2 center = {hp.x, hp.y};
 
         bool is_active_path = false;
-        float pulse = 0.0f;
+        f32 pulse = 0.0f;
         if (!is_editor && gs->win_animation_active) {
             i32 cell_idx_in_path = -1;
             for (i32 p = 0; p < gs->win_path_len; p++) {
@@ -291,11 +289,11 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
                 }
             }
             if (cell_idx_in_path >= 0) {
-                float cell_duration = 0.15f;
-                float cell_activation_time = (float) cell_idx_in_path * cell_duration;
+                f32 cell_duration = 0.15f;
+                f32 cell_activation_time = (f32) cell_idx_in_path * cell_duration;
                 if (gs->win_animation_timer >= cell_activation_time) {
                     is_active_path = true;
-                    float active_time = gs->win_animation_timer - cell_activation_time;
+                    f32 active_time = gs->win_animation_timer - cell_activation_time;
                     pulse = (expf(-active_time * 5.0f) * 0.5f) + (0.15f * sinf(active_time * 8.0f));
                     if (pulse < -0.15f)
                         pulse = -0.15f;
@@ -344,13 +342,13 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
 #ifndef NDEBUG
         if (!is_editor && gs->debug_static_cells[i] && cell->count > 0) {
             const Vector2 badge_center = {center.x - size * 0.42f, center.y - size * 0.42f};
-            const float badge_r = fmaxf(12.0f, size * 0.28f);
+            const f32 badge_r = fmaxf(12.0f, size * 0.28f);
             DrawCircleV(badge_center, badge_r, (Color) {249, 226, 175, 235});
             DrawCircleLinesV(badge_center, badge_r, (Color) {17, 17, 27, 255});
             const i32 static_font_sz = (i32) fmaxf(12.0f, badge_r * 1.25f);
             const i32 static_tw = CGame_MeasureText(gs->font_ibm, "S", static_font_sz);
-            CGame_DrawText(gs->font_ibm, "S", (i32) (badge_center.x - (float) static_tw / 2.0f),
-                           (i32) (badge_center.y - (float) static_font_sz / 2.0f), static_font_sz,
+            CGame_DrawText(gs->font_ibm, "S", (i32) (badge_center.x - (f32) static_tw / 2.0f),
+                           (i32) (badge_center.y - (f32) static_font_sz / 2.0f), static_font_sz,
                            (Color) {17, 17, 27, 255});
         }
 #endif
@@ -359,7 +357,7 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
             const i32 displayed_required_value = Cell_GetDisplayedRequiredValue(cell);
             Color req_col = Utils_GetStoneColor(displayed_required_value);
             Vector2 badge_center = {center.x + size * 0.38f, center.y + size * 0.44f};
-            float badge_r = fminf(18.0f, fmaxf(14.0f, size * 0.42f));
+            f32 badge_r = fminf(18.0f, fmaxf(14.0f, size * 0.42f));
 
             DrawCircleV(badge_center, badge_r, (Color) {30, 30, 46, 230});
             DrawCircleLinesV(badge_center, badge_r, req_col);
@@ -369,8 +367,8 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
             snprintf(req_str, sizeof(req_str), "%d", displayed_required_value);
             const i32 req_font_sz = (i32) fminf(20.0f, fmaxf(16.0f, badge_r * 1.05f));
             i32 req_tw = CGame_MeasureText(gs->font_ibm, req_str, req_font_sz);
-            CGame_DrawText(gs->font_ibm, req_str, (i32) (badge_center.x - (float) req_tw / 2.0f),
-                           (i32) (badge_center.y - (float) req_font_sz / 2.0f), req_font_sz, req_col);
+            CGame_DrawText(gs->font_ibm, req_str, (i32) (badge_center.x - (f32) req_tw / 2.0f),
+                           (i32) (badge_center.y - (f32) req_font_sz / 2.0f), req_font_sz, req_col);
 
             const Cell *disp_cell = draw_preview ? &gs->preview_board.cells[i] : cell;
             if (!Cell_IsOpenOnlyGate(cell) && disp_cell->count > 0) {
@@ -379,13 +377,13 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
                     Render_DrawHex(center, size - 3.0f, (Color) {0, 0, 0, 0}, (Color) {243, 139, 168, 100});
 
                     Vector2 warn_center = {badge_center.x + badge_r * 0.85f, badge_center.y - badge_r * 0.85f};
-                    float warn_r = fmaxf(5.0f, badge_r * 0.55f);
+                    f32 warn_r = fmaxf(5.0f, badge_r * 0.55f);
                     DrawCircleV(warn_center, warn_r, (Color) {243, 139, 168, 230});
                     DrawCircleLinesV(warn_center, warn_r, (Color) {17, 17, 27, 255});
                     const i32 warn_font_sz = (i32) fmaxf(9.0f, warn_r * 1.5f);
                     const i32 warn_tw = CGame_MeasureText(gs->font_ibm, "!", warn_font_sz);
-                    CGame_DrawText(gs->font_ibm, "!", (i32) (warn_center.x - (float) warn_tw / 2.0f),
-                                   (i32) (warn_center.y - (float) warn_font_sz / 2.0f), warn_font_sz,
+                    CGame_DrawText(gs->font_ibm, "!", (i32) (warn_center.x - (f32) warn_tw / 2.0f),
+                                   (i32) (warn_center.y - (f32) warn_font_sz / 2.0f), warn_font_sz,
                                    (Color) {17, 17, 27, 255});
                 }
             }
@@ -394,7 +392,7 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
         if (cell->required_height > 0) {
             Color height_col = Utils_GetGateColor();
             Vector2 badge_center = {center.x - size * 0.38f, center.y + size * 0.44f};
-            float badge_r = fminf(19.0f, fmaxf(15.0f, size * 0.44f));
+            f32 badge_r = fminf(19.0f, fmaxf(15.0f, size * 0.44f));
 
             DrawPoly(badge_center, 4, badge_r, 45.0f, (Color) {30, 30, 46, 235});
             DrawPolyLinesEx(badge_center, 4, badge_r, 45.0f, 2.0f, height_col);
@@ -403,23 +401,23 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
 
             char height_str[16];
             snprintf(height_str, sizeof(height_str), "H%d", cell->required_height);
-            const i32 HEIGHT_FONT_SZ = (i32) fminf(19.0f, fmaxf(16.0f, badge_r * 0.95f));
-            const i32 height_tw = CGame_MeasureText(gs->font_ibm, height_str, HEIGHT_FONT_SZ);
-            CGame_DrawText(gs->font_ibm, height_str, (i32) (badge_center.x - (float) height_tw / 2.0f),
-                           (i32) (badge_center.y - (float) HEIGHT_FONT_SZ / 2.0f), HEIGHT_FONT_SZ, height_col);
+            const i32 height_font_sz = (i32) fminf(19.0f, fmaxf(16.0f, badge_r * 0.95f));
+            const i32 height_tw = CGame_MeasureText(gs->font_ibm, height_str, height_font_sz);
+            CGame_DrawText(gs->font_ibm, height_str, (i32) (badge_center.x - (f32) height_tw / 2.0f),
+                           (i32) (badge_center.y - (f32) height_font_sz / 2.0f), height_font_sz, height_col);
 
             const Cell *disp_cell = draw_preview ? &gs->preview_board.cells[i] : cell;
             if (disp_cell->count > 0 && disp_cell->count != cell->required_height) {
                 Render_DrawHex(center, size - 6.0f, (Color) {0, 0, 0, 0}, (Color) {243, 139, 168, 100});
 
                 Vector2 warn_center = {badge_center.x - badge_r * 0.78f, badge_center.y - badge_r * 0.78f};
-                float warn_r = fmaxf(5.0f, badge_r * 0.52f);
+                f32 warn_r = fmaxf(5.0f, badge_r * 0.52f);
                 DrawCircleV(warn_center, warn_r, (Color) {243, 139, 168, 230});
                 DrawCircleLinesV(warn_center, warn_r, (Color) {17, 17, 27, 255});
-                const i32 WARN_FONT_SZ = (i32) fmaxf(9.0f, warn_r * 1.5f);
-                const i32 warn_tw = CGame_MeasureText(gs->font_ibm, "!", WARN_FONT_SZ);
-                CGame_DrawText(gs->font_ibm, "!", (i32) (warn_center.x - (float) warn_tw / 2.0f),
-                               (i32) (warn_center.y - (float) WARN_FONT_SZ / 2.0f), WARN_FONT_SZ,
+                const i32 warn_font_sz = (i32) fmaxf(9.0f, warn_r * 1.5f);
+                const i32 warn_tw = CGame_MeasureText(gs->font_ibm, "!", warn_font_sz);
+                CGame_DrawText(gs->font_ibm, "!", (i32) (warn_center.x - (f32) warn_tw / 2.0f),
+                               (i32) (warn_center.y - (f32) warn_font_sz / 2.0f), warn_font_sz,
                                (Color) {17, 17, 27, 255});
             }
         }
@@ -435,9 +433,9 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
 
         char coord_str[32];
         snprintf(coord_str, sizeof(coord_str), "(%d,%d)", cell->hex.q, cell->hex.r);
-        constexpr i32 COORD_FONT_SZ = UI_FONT_HELP;
-        const i32 coord_tw = CGame_MeasureText(gs->font_ibm, coord_str, COORD_FONT_SZ);
-        i32 coord_x = (i32) (center.x - (float) coord_tw / 2.0f);
+        constexpr i32 coord_font_sz = UI_FONT_HELP;
+        const i32 coord_tw = CGame_MeasureText(gs->font_ibm, coord_str, coord_font_sz);
+        i32 coord_x = (i32) (center.x - (f32) coord_tw / 2.0f);
         i32 coord_y = (i32) (center.y - size - 26.0f);
         if (coord_x < 4) {
             coord_x = 4;
@@ -449,9 +447,9 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
             coord_y = 4;
         }
 
-        DrawRectangle(coord_x - 5, coord_y - 3, coord_tw + 10, COORD_FONT_SZ + 6, (Color) {17, 17, 27, 230});
-        DrawRectangleLines(coord_x - 5, coord_y - 3, coord_tw + 10, COORD_FONT_SZ + 6, (Color) {88, 91, 112, 255});
-        CGame_DrawText(gs->font_ibm, coord_str, coord_x, coord_y, COORD_FONT_SZ, (Color) {249, 226, 175, 255});
+        DrawRectangle(coord_x - 5, coord_y - 3, coord_tw + 10, coord_font_sz + 6, (Color) {17, 17, 27, 230});
+        DrawRectangleLines(coord_x - 5, coord_y - 3, coord_tw + 10, coord_font_sz + 6, (Color) {88, 91, 112, 255});
+        CGame_DrawText(gs->font_ibm, coord_str, coord_x, coord_y, coord_font_sz, (Color) {249, 226, 175, 255});
     }
 #endif
 
@@ -488,8 +486,8 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
     }
 }
 
-void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
-    const LevelDesc *desc = &LEVELS[gs->current_level_idx];
+void Render_DrawBoard(GameState *gs, const Vector2 origin, const f32 size) {
+    const LevelDesc *desc = &g_levels[gs->current_level_idx];
     const bool is_editor = (gs->screen == SCREEN_LEVEL_EDITOR);
     const Board *board = is_editor ? &gs->editor_board : &gs->board;
     const BoardSide side_a = is_editor ? gs->editor_side_a : desc->side_a;
@@ -498,7 +496,7 @@ void Render_DrawBoard(GameState *gs, const Vector2 origin, const float size) {
 }
 
 void Render_DrawUI(const GameState *gs) {
-    const LevelDesc *desc = &LEVELS[gs->current_level_idx];
+    const LevelDesc *desc = &g_levels[gs->current_level_idx];
 
     CGame_DrawText(gs->font_roboto, "HEXATAK", 20, 15, 34, (Color) {250, 179, 135, 255});
     CGame_DrawTextScaled(gs->font_ibm, desc->name, 20, 52, 22, 500, (Color) {205, 214, 244, 255});
@@ -655,9 +653,9 @@ void Render_DrawEditorUI(const GameState *gs) {
         CGame_DrawText(gs->font_ibm, "PLACEMENT STACK", 20, 435, UI_FONT_HELP, (Color) {166, 173, 200, 255});
 
         // Draw the current stack horizontally
-        float start_x = 20.0f;
+        f32 start_x = 20.0f;
         for (i32 s = 0; s < gs->editor_placement_stack_count; s++) {
-            Rectangle stone_rect = {start_x + (float) s * 23.0f, 455.0f, 21.0f, 20.0f};
+            Rectangle stone_rect = {start_x + (f32) s * 23.0f, 455.0f, 21.0f, 20.0f};
             Color col = Utils_GetStoneColor(gs->editor_placement_stack[s]);
             DrawRectangleRec(stone_rect, col);
             DrawRectangleLinesEx(stone_rect, 1.0f, (Color) {17, 17, 27, 255});
@@ -665,7 +663,7 @@ void Render_DrawEditorUI(const GameState *gs) {
             snprintf(val_lbl, sizeof(val_lbl), "%d", gs->editor_placement_stack[s]);
             CGame_DrawText(gs->font_ibm, val_lbl,
                            (i32) (stone_rect.x + (stone_rect.width / 2.0f) -
-                                  (float) CGame_MeasureText(gs->font_ibm, val_lbl, 11) / 2.0f),
+                                  (f32) CGame_MeasureText(gs->font_ibm, val_lbl, 11) / 2.0f),
                            (i32) (stone_rect.y + 4.0f), 11, (Color) {17, 17, 27, 255});
         }
 
@@ -678,7 +676,7 @@ void Render_DrawEditorUI(const GameState *gs) {
         CGame_DrawTextScaled(gs->font_ibm, "ADD TO STACK", 20, 485, UI_FONT_SMALL, 160, (Color) {166, 173, 200, 255});
         i32 values[] = {1, 2, 4, 8, 16, 32, 64};
         for (i32 v = 0; v < 7; v++) {
-            Rectangle val_rect = {20.0f + (float) v * 23.0f, 505.0f, 21.0f, 19.0f};
+            Rectangle val_rect = {20.0f + (f32) v * 23.0f, 505.0f, 21.0f, 19.0f};
             Color col = Utils_GetStoneColor(values[v]);
             DrawRectangleRec(val_rect, col);
             DrawRectangleLinesEx(val_rect, 1.0f, (Color) {17, 17, 27, 255});
@@ -686,7 +684,7 @@ void Render_DrawEditorUI(const GameState *gs) {
             snprintf(val_lbl, sizeof(val_lbl), "%d", values[v]);
             CGame_DrawText(gs->font_ibm, val_lbl,
                            (i32) (val_rect.x + (val_rect.width / 2.0f) -
-                                  (float) CGame_MeasureText(gs->font_ibm, val_lbl, 10) / 2.0f),
+                                  (f32) CGame_MeasureText(gs->font_ibm, val_lbl, 10) / 2.0f),
                            (i32) (val_rect.y + 5.0f), 10, (Color) {17, 17, 27, 255});
         }
 
@@ -702,7 +700,7 @@ void Render_DrawEditorUI(const GameState *gs) {
         CGame_DrawTextScaled(gs->font_ibm, "REQUIRED VALUE", 20, 440, UI_FONT_HELP, 160, (Color) {166, 173, 200, 255});
         i32 values[] = {0, 1, 2, 4, 8, 16, 32, 64};
         for (i32 v = 0; v < 8; v++) {
-            Rectangle val_rect = {20.0f + (float) v * 23.0f, 465.0f, 22.0f, 27.0f};
+            Rectangle val_rect = {20.0f + (f32) v * 23.0f, 465.0f, 22.0f, 27.0f};
             Color col = Utils_GetStoneColor(values[v]);
             bool is_selected = (gs->editor_selected_required_value == values[v]);
             DrawRectangleRec(val_rect, col);
@@ -713,7 +711,7 @@ void Render_DrawEditorUI(const GameState *gs) {
             const i32 val_font_sz = values[v] >= 16 ? 12 : 13;
             CGame_DrawText(gs->font_ibm, val_lbl,
                            (i32) (val_rect.x + (val_rect.width / 2.0f) -
-                                  (float) CGame_MeasureText(gs->font_ibm, val_lbl, val_font_sz) / 2.0f),
+                                  (f32) CGame_MeasureText(gs->font_ibm, val_lbl, val_font_sz) / 2.0f),
                            (i32) (val_rect.y + 7.0f), val_font_sz, (Color) {17, 17, 27, 255});
         }
     } else if (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_HEIGHT) {
@@ -721,7 +719,7 @@ void Render_DrawEditorUI(const GameState *gs) {
         Color height_col = Utils_GetGateColor();
         for (i32 v = 0; v < 6; v++) {
             const i32 height = v + 1;
-            Rectangle val_rect = {20.0f + (float) v * 29.0f, 465.0f, 27.0f, 27.0f};
+            Rectangle val_rect = {20.0f + (f32) v * 29.0f, 465.0f, 27.0f, 27.0f};
             Vector2 badge_center = {val_rect.x + val_rect.width / 2.0f, val_rect.y + val_rect.height / 2.0f};
             bool is_selected = (gs->editor_selected_required_height == height);
             DrawPoly(badge_center, 4, 14.5f, 45.0f, (Color) {30, 30, 46, 255});
@@ -730,7 +728,7 @@ void Render_DrawEditorUI(const GameState *gs) {
             char val_lbl[8];
             snprintf(val_lbl, sizeof(val_lbl), "H%d", height);
             CGame_DrawText(gs->font_ibm, val_lbl,
-                           (i32) (badge_center.x - (float) CGame_MeasureText(gs->font_ibm, val_lbl, 12) / 2.0f),
+                           (i32) (badge_center.x - (f32) CGame_MeasureText(gs->font_ibm, val_lbl, 12) / 2.0f),
                            (i32) (badge_center.y - 6.0f), 12, height_col);
         }
     }

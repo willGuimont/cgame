@@ -2,12 +2,14 @@
         build build-debug build-release \
         run run-debug run-release \
         test test-debug test-release \
+        format \
         web-build web-build-app web-serve web-deploy \
         asan-verbose asan-no-leaks
 
 DEBUG_BUILD_DIR := cmake-build-debug
 RELEASE_BUILD_DIR := cmake-build-release
 WEB_BUILD_DIR := cmake-build-web
+FORMAT_FILES := $(shell find src tests -type f \( -name '*.c' -o -name '*.h' \))
 
 APP ?= hexatak
 
@@ -45,6 +47,9 @@ test-debug: configure-debug
 
 test-release: configure-release
 	cmake --build $(RELEASE_BUILD_DIR) --target check
+
+format:
+	clang-format -i $(FORMAT_FILES)
 
 web-build: configure-web
 	cmake --build $(WEB_BUILD_DIR) --target all_apps --parallel

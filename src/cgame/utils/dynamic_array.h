@@ -1,14 +1,13 @@
 #pragma once
 
-#include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include "common.h"
 
 typedef struct {
     i32 *items;
-    size_t count;
-    size_t capacity;
+    usize count;
+    usize capacity;
 } DynamicArrayInt;
 
 #define DA_APPEND(xs, x)                                                                                               \
@@ -16,7 +15,7 @@ typedef struct {
         if ((xs).count >= (xs).capacity) {                                                                             \
             if ((xs).capacity > SIZE_MAX / 2)                                                                          \
                 break;                                                                                                 \
-            size_t _da_new_capacity = (xs).capacity == 0 ? 256 : (xs).capacity * 2;                                    \
+            usize _da_new_capacity = (xs).capacity == 0 ? 256 : (xs).capacity * 2;                                     \
             if (_da_new_capacity > SIZE_MAX / sizeof(*(xs).items))                                                     \
                 break;                                                                                                 \
             void *_da_tmp = realloc((xs).items, _da_new_capacity * sizeof(*(xs).items));                               \

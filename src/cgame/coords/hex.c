@@ -22,7 +22,7 @@ static i32 Hex_NormalizeDirection(const i32 direction) {
     return result < 0 ? result + 6 : result;
 }
 
-static bool Hex_Write(const Hex hex, Hex *out_hexes, const size_t out_count, const size_t index) {
+static bool Hex_Write(const Hex hex, Hex *out_hexes, const usize out_count, const usize index) {
     if (out_hexes && index < out_count) {
         out_hexes[index] = hex;
         return true;
@@ -137,27 +137,27 @@ Hex Hex_Round(const HexFractional hex) {
     return Hex_FromCube((Cube) {.q = q, .r = r, .s = s});
 }
 
-size_t Hex_RingCount(const i32 radius) {
+usize Hex_RingCount(const i32 radius) {
     if (radius < 0) {
         return 0;
     }
     if (radius == 0) {
         return 1;
     }
-    return (size_t) radius * 6U;
+    return (usize) radius * 6U;
 }
 
-size_t Hex_SpiralCount(const i32 radius) {
+usize Hex_SpiralCount(const i32 radius) {
     if (radius < 0) {
         return 0;
     }
-    return 1U + (3U * (size_t) radius * ((size_t) radius + 1U));
+    return 1U + (3U * (usize) radius * ((usize) radius + 1U));
 }
 
-size_t Hex_LineDrawCount(const Hex a, const Hex b) { return (size_t) Hex_Distance(a, b) + 1U; }
+usize Hex_LineDrawCount(const Hex a, const Hex b) { return (usize) Hex_Distance(a, b) + 1U; }
 
-size_t Hex_Ring(const Hex center, const i32 radius, Hex *out_hexes, const size_t out_count) {
-    const size_t required = Hex_RingCount(radius);
+usize Hex_Ring(const Hex center, const i32 radius, Hex *out_hexes, const usize out_count) {
+    const usize required = Hex_RingCount(radius);
     if (required == 0) {
         return 0;
     }
@@ -166,8 +166,8 @@ size_t Hex_Ring(const Hex center, const i32 radius, Hex *out_hexes, const size_t
     }
 
     Hex hex = Hex_Add(center, Hex_Multiply(Hex_Direction(4), radius));
-    size_t index = 0;
-    size_t written = 0;
+    usize index = 0;
+    usize written = 0;
 
     for (i32 side = 0; side < 6; side++) {
         for (i32 step = 0; step < radius; step++) {
@@ -182,14 +182,14 @@ size_t Hex_Ring(const Hex center, const i32 radius, Hex *out_hexes, const size_t
     return written;
 }
 
-size_t Hex_Spiral(const Hex center, const i32 radius, Hex *out_hexes, const size_t out_count) {
-    const size_t required = Hex_SpiralCount(radius);
+usize Hex_Spiral(const Hex center, const i32 radius, Hex *out_hexes, const usize out_count) {
+    const usize required = Hex_SpiralCount(radius);
     if (required == 0) {
         return 0;
     }
 
-    size_t written = Hex_Write(center, out_hexes, out_count, 0) ? 1U : 0U;
-    size_t index = 1;
+    usize written = Hex_Write(center, out_hexes, out_count, 0) ? 1U : 0U;
+    usize index = 1;
 
     for (i32 ring = 1; ring <= radius; ring++) {
         Hex hex = Hex_Add(center, Hex_Multiply(Hex_Direction(4), ring));
@@ -207,13 +207,13 @@ size_t Hex_Spiral(const Hex center, const i32 radius, Hex *out_hexes, const size
     return written;
 }
 
-size_t Hex_LineDraw(const Hex a, const Hex b, Hex *out_hexes, const size_t out_count) {
+usize Hex_LineDraw(const Hex a, const Hex b, Hex *out_hexes, const usize out_count) {
     const i32 distance = Hex_Distance(a, b);
-    size_t written = 0;
+    usize written = 0;
 
     for (i32 i = 0; i <= distance; i++) {
         const f32 t = distance == 0 ? 0.0f : (f32) i / (f32) distance;
-        if (Hex_Write(Hex_Round(Hex_Lerp(a, b, t)), out_hexes, out_count, (size_t) i)) {
+        if (Hex_Write(Hex_Round(Hex_Lerp(a, b, t)), out_hexes, out_count, (usize) i)) {
             written++;
         }
     }

@@ -13,9 +13,9 @@ typedef struct {
 
 typedef struct {
     HistoryEntry *items;
-    size_t head;
-    size_t tail;
-    size_t capacity;
+    usize head;
+    usize tail;
+    usize capacity;
 } History;
 
 typedef enum {
@@ -67,13 +67,13 @@ typedef struct {
     bool level_completed[LEVEL_COUNT];
     bool level_impossible[LEVEL_COUNT];
     bool level_manual_check[LEVEL_COUNT];
-    float anim_time;
+    f32 anim_time;
     i32 level_select_page;
-    float esc_timer;
+    f32 esc_timer;
     bool show_tip;
     bool tip_waiting_for_mouse_release;
     bool win_animation_active;
-    float win_animation_timer;
+    f32 win_animation_timer;
     i32 win_path[MAX_CELLS];
     i32 win_path_len;
 

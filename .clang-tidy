@@ -2,7 +2,8 @@
 #   Types:        PascalCase
 #   Functions:    Module_PascalCase for module APIs, snake_case for local helpers/tests
 #   Variables:    snake_case
-#   Constants:    UPPER_CASE
+#   Local const/constexpr: snake_case
+#   Global/static const/constexpr: UPPER_CASE
 #   Macros:       UPPER_CASE
 Checks: >
   -*,
@@ -39,7 +40,7 @@ CheckOptions:
   - key:             readability-identifier-naming.TypedefCase
     value:           CamelCase
   - key:             readability-identifier-naming.TypedefIgnoredRegexp
-    value:           '^(i8|i16|i32|i64|u8|u16|u32|u64|f32|f64|b8|b32)$'
+    value:           '^(i8|i16|i32|i64|u8|u16|u32|u64|usize|f32|f64|b8|b32)$'
   
   # Functions: snake_case unless they use the project module prefix form,
   # e.g. Entity_New, World_SetEntityPosition, StringView_Create.
@@ -58,7 +59,7 @@ CheckOptions:
   - key:             readability-identifier-naming.NamespaceCase
     value:           lower_case
   
-  # Local constants, const parameters, const members: lower_case
+  # Local constants, including local constexpr variables: lower_case
   - key:             readability-identifier-naming.ConstantCase
     value:           lower_case
   - key:             readability-identifier-naming.ConstParameterCase
@@ -72,10 +73,8 @@ CheckOptions:
   - key:             readability-identifier-naming.MacroDefinitionCase
     value:           UPPER_CASE
   
-  # Global, static, and constexpr constants: UPPER_CASE
+  # Global and static constants, including constexpr constants: UPPER_CASE
   - key:             readability-identifier-naming.GlobalConstantCase
     value:           UPPER_CASE
   - key:             readability-identifier-naming.StaticConstantCase
-    value:           UPPER_CASE
-  - key:             readability-identifier-naming.ConstexprVariableCase
     value:           UPPER_CASE

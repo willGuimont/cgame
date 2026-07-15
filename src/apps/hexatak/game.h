@@ -83,7 +83,7 @@ typedef struct {
 } LevelDesc;
 
 constexpr i32 LEVEL_COUNT = 18;
-extern LevelDesc LEVELS[LEVEL_COUNT];
+extern LevelDesc g_levels[LEVEL_COUNT];
 bool Levels_LoadAll(void);
 bool Levels_LoadFromStream(FILE *f, LevelDesc *levels, i32 max_levels);
 const char *Utils_GetSideString(BoardSide side);

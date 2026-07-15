@@ -1,7 +1,5 @@
 #pragma once
 
-#include <stddef.h>
-
 #include "../common.h"
 
 typedef struct {
@@ -78,17 +76,17 @@ HexFractional Hex_Lerp(Hex a, Hex b, f32 t);
 
 Hex Hex_Round(HexFractional hex);
 
-size_t Hex_RingCount(i32 radius);
+usize Hex_RingCount(i32 radius);
 
-size_t Hex_SpiralCount(i32 radius);
+usize Hex_SpiralCount(i32 radius);
 
-size_t Hex_LineDrawCount(Hex a, Hex b);
+usize Hex_LineDrawCount(Hex a, Hex b);
 
-size_t Hex_Ring(Hex center, i32 radius, Hex *out_hexes, size_t out_count);
+usize Hex_Ring(Hex center, i32 radius, Hex *out_hexes, usize out_count);
 
-size_t Hex_Spiral(Hex center, i32 radius, Hex *out_hexes, size_t out_count);
+usize Hex_Spiral(Hex center, i32 radius, Hex *out_hexes, usize out_count);
 
-size_t Hex_LineDraw(Hex a, Hex b, Hex *out_hexes, size_t out_count);
+usize Hex_LineDraw(Hex a, Hex b, Hex *out_hexes, usize out_count);
 
 HexPoint Hex_PointyToPixel(HexLayout layout, Hex hex);
 

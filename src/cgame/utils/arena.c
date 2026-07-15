@@ -92,7 +92,7 @@ void *Arena_Push(Arena *arena, const u64 size, const b32 non_zero) {
     u8 *out = (u8 *) arena + pos_aligned;
 
     if (!non_zero) {
-        memset(out, 0, (size_t) size);
+        memset(out, 0, (usize) size);
     }
 
     return out;
@@ -224,7 +224,7 @@ b32 Platform_MemRelease(void *ptr, const u64 size) {
 
 u32 Platform_GetPageSize(void) { return 65536; }
 
-void *Platform_MemReserve(const u64 size) { return malloc((size_t) size); }
+void *Platform_MemReserve(const u64 size) { return malloc((usize) size); }
 
 b32 Platform_MemCommit(void *ptr, const u64 size) {
     (void) ptr;

@@ -123,10 +123,10 @@ static void App_LoadBoardFromLevelDesc(Board *board, const LevelDesc *desc) {
 }
 
 static void App_InitThumbnailBoard(GameState *gs) {
-    const LevelDesc *thumb_desc = &LEVELS[0];
+    const LevelDesc *thumb_desc = &g_levels[0];
     for (i32 i = 0; i < LEVEL_COUNT; i++) {
-        if (LEVELS[i].name && strcmp(LEVELS[i].name, "Exact Tolls") == 0) {
-            thumb_desc = &LEVELS[i];
+        if (g_levels[i].name && strcmp(g_levels[i].name, "Exact Tolls") == 0) {
+            thumb_desc = &g_levels[i];
             break;
         }
     }
@@ -233,17 +233,17 @@ static Board App_BuildBoardFromLevelDesc(const LevelDesc *desc) {
 }
 
 static void App_ReportSolver(const GameState *gs) {
-    const LevelDesc *desc = &LEVELS[gs->current_level_idx];
+    const LevelDesc *desc = &g_levels[gs->current_level_idx];
     const Board start = gs->testing_editor_level ? gs->editor_board : App_BuildBoardFromLevelDesc(desc);
     const i32 max_moves = desc->move_limit > 0 ? desc->move_limit : 8;
     SolverResult result;
-    const double solve_start = GetTime();
+    const f64 solve_start = GetTime();
     if (!Solver_CountSolutions(&start, desc->side_a, desc->side_b, max_moves, &result)) {
-        const double solve_seconds = GetTime() - solve_start;
+        const f64 solve_seconds = GetTime() - solve_start;
         printf("\n=== SOLVER ===\nFailed to run solver.\nTime: %.3fs\n==============\n\n", solve_seconds);
         return;
     }
-    const double solve_seconds = GetTime() - solve_start;
+    const f64 solve_seconds = GetTime() - solve_start;
 
     printf("\n=== SOLVER: %s ===\n", desc->name ? desc->name : "Untitled");
     printf("Start: level initial board, max moves: %d%s\n", result.max_moves,
@@ -271,22 +271,22 @@ static void App_PrintSolverMove(const Board *board, const Move move, const i32 m
 }
 
 static void App_ReportSolverFromCurrentState(const GameState *gs) {
-    const LevelDesc *desc = &LEVELS[gs->current_level_idx];
+    const LevelDesc *desc = &g_levels[gs->current_level_idx];
     i32 max_moves = desc->move_limit > 0 ? desc->move_limit - gs->move_count : 8;
     if (max_moves < 0) {
         max_moves = 0;
     }
 
     SolverFirstSolutionResult result;
-    const double solve_start = GetTime();
+    const f64 solve_start = GetTime();
     if (!Solver_FindFirstSolutionWithStaticCells(&gs->board, desc->side_a, desc->side_b, max_moves,
                                                  gs->debug_static_cells, &result)) {
-        const double solve_seconds = GetTime() - solve_start;
+        const f64 solve_seconds = GetTime() - solve_start;
         printf("\n=== SOLVER: CURRENT STATE ===\nFailed to run solver.\nTime: %.3fs\n=============================\n\n",
                solve_seconds);
         return;
     }
-    const double solve_seconds = GetTime() - solve_start;
+    const f64 solve_seconds = GetTime() - solve_start;
 
     printf("\n=== SOLVER: CURRENT STATE: %s ===\n", desc->name ? desc->name : "Untitled");
     printf("Moves already made: %d\n", gs->move_count);
@@ -318,9 +318,9 @@ static void App_ReportAllSolvability(GameState *gs) {
 
     i32 impossible_count = 0;
     i32 skipped_count = 0;
-    const double all_start = GetTime();
+    const f64 all_start = GetTime();
     for (i32 level_idx = 0; level_idx < LEVEL_COUNT; level_idx++) {
-        const LevelDesc *desc = &LEVELS[level_idx];
+        const LevelDesc *desc = &g_levels[level_idx];
         const Board start = App_BuildBoardFromLevelDesc(desc);
         const i32 max_moves = desc->move_limit > 0 ? desc->move_limit : 8;
         gs->level_impossible[level_idx] = false;
@@ -337,16 +337,16 @@ static void App_ReportAllSolvability(GameState *gs) {
         }
 
         SolverResult result;
-        const double solve_start = GetTime();
+        const f64 solve_start = GetTime();
         if (!Solver_CountSolutions(&start, desc->side_a, desc->side_b, max_moves, &result)) {
-            const double solve_seconds = GetTime() - solve_start;
+            const f64 solve_seconds = GetTime() - solve_start;
             gs->level_impossible[level_idx] = true;
             impossible_count++;
             printf("\nLEVEL %d: %s\n", level_idx + 1, desc->name ? desc->name : "Untitled");
             printf("solver failed, time: %.3fs\n", solve_seconds);
             continue;
         }
-        const double solve_seconds = GetTime() - solve_start;
+        const f64 solve_seconds = GetTime() - solve_start;
 
         long long total_solutions = 0;
         printf("\nLEVEL %d: %s\n", level_idx + 1, desc->name ? desc->name : "Untitled");
@@ -582,7 +582,7 @@ static void Editor_ShowWebExport(const char *level_text) { Editor_ShowWebExportJ
 static void Editor_Export(const GameState *gs) {
 #ifdef PLATFORM_WEB
     char *level_text = nullptr;
-    size_t level_text_size = 0;
+    usize level_text_size = 0;
     FILE *f = open_memstream(&level_text, &level_text_size);
     if (!f) {
         TraceLog(LOG_ERROR, "Failed to create exported level text");
@@ -1002,12 +1002,12 @@ static void App_Update(void *state, f32 dt) {
                 }
 
                 // ADD value buttons (1, 2, 4, 8, 16, 32, 64)
-                i32 values_add[] = {1, 2, 4, 8, 16, 32, 64};
                 for (i32 v = 0; v < 7; v++) {
-                    Rectangle val_rect = {20.0f + (float) v * 23.0f, 505.0f, 21.0f, 19.0f};
+                    Rectangle val_rect = {20.0f + (f32) v * 23.0f, 505.0f, 21.0f, 19.0f};
                     if (CheckCollisionPointRec(mouse, val_rect)) {
                         PlaySound(gs->snd_click);
                         if (gs->editor_placement_stack_count < 16) {
+                            i32 values_add[] = {1, 2, 4, 8, 16, 32, 64};
                             gs->editor_placement_stack[gs->editor_placement_stack_count++] = values_add[v];
                         }
                     }
@@ -1035,17 +1035,17 @@ static void App_Update(void *state, f32 dt) {
                     gs->editor_placement_stack_count = 4;
                 }
             } else if (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_VALUE) {
-                i32 values[] = {0, 1, 2, 4, 8, 16, 32, 64};
                 for (i32 v = 0; v < 8; v++) {
-                    Rectangle val_rect = {20.0f + (float) v * 23.0f, 465.0f, 21.0f, 25.0f};
+                    Rectangle val_rect = {20.0f + ((f32) v * 23.0f), 465.0f, 21.0f, 25.0f};
                     if (CheckCollisionPointRec(mouse, val_rect)) {
+                        i32 values[] = {0, 1, 2, 4, 8, 16, 32, 64};
                         PlaySound(gs->snd_click);
                         gs->editor_selected_required_value = values[v];
                     }
                 }
             } else if (gs->editor_active_tool == EDITOR_TOOL_REQUIRED_HEIGHT) {
                 for (i32 v = 0; v < 6; v++) {
-                    Rectangle val_rect = {20.0f + (float) v * 27.0f, 465.0f, 25.0f, 25.0f};
+                    Rectangle val_rect = {20.0f + ((f32) v * 27.0f), 465.0f, 25.0f, 25.0f};
                     if (CheckCollisionPointRec(mouse, val_rect)) {
                         PlaySound(gs->snd_click);
                         gs->editor_selected_required_height = v + 1;
@@ -1071,16 +1071,16 @@ static void App_Update(void *state, f32 dt) {
                 gs->win_path_len = 0;
                 gs->has_preview = false;
 
-                free((void *) LEVELS[0].name);
-                free((void *) LEVELS[0].description);
-                free((void *) LEVELS[0].tip);
-                LEVELS[0].radius = gs->editor_board.radius;
-                LEVELS[0].side_a = gs->editor_side_a;
-                LEVELS[0].side_b = gs->editor_side_b;
-                LEVELS[0].move_limit = gs->editor_move_limit;
-                LEVELS[0].name = strdup(Editor_GetName(gs));
-                LEVELS[0].description = strdup(Editor_GetDescription(gs));
-                LEVELS[0].tip = strdup(Editor_GetTip(gs));
+                free((void *) g_levels[0].name);
+                free((void *) g_levels[0].description);
+                free((void *) g_levels[0].tip);
+                g_levels[0].radius = gs->editor_board.radius;
+                g_levels[0].side_a = gs->editor_side_a;
+                g_levels[0].side_b = gs->editor_side_b;
+                g_levels[0].move_limit = gs->editor_move_limit;
+                g_levels[0].name = strdup(Editor_GetName(gs));
+                g_levels[0].description = strdup(Editor_GetDescription(gs));
+                g_levels[0].tip = strdup(Editor_GetTip(gs));
 
                 gs->current_level_idx = 0;
             } else if (CheckCollisionPointRec(mouse, btn_export)) {
@@ -1096,9 +1096,9 @@ static void App_Update(void *state, f32 dt) {
             }
         }
 
-        constexpr float SIZE = 40.0f;
+        constexpr f32 size = 40.0f;
         const Vector2 origin = {460.0f, 360.0f};
-        i32 best = Board_PickCell(&gs->editor_board, mouse, SIZE, origin);
+        i32 best = Board_PickCell(&gs->editor_board, mouse, size, origin);
         if (best >= 0) {
             Cell *cell = &gs->editor_board.cells[best];
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -1195,7 +1195,7 @@ static void App_Update(void *state, f32 dt) {
 #endif
 
         // Pagination buttons
-        constexpr i32 TOTAL_PAGES = (LEVEL_COUNT + 5) / 6;
+        constexpr i32 total_pages = (LEVEL_COUNT + 5) / 6;
 
         if (gs->level_select_page > 0) {
             const Rectangle btn_prev = {330.0f, 650.0f, 80.0f, 40.0f};
@@ -1204,7 +1204,7 @@ static void App_Update(void *state, f32 dt) {
                 gs->level_select_page--;
             }
         }
-        if (gs->level_select_page + 1 < TOTAL_PAGES) {
+        if (gs->level_select_page + 1 < total_pages) {
             const Rectangle btn_next = {510.0f, 650.0f, 80.0f, 40.0f};
             if (CheckCollisionPointRec(mouse, btn_next) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 PlaySound(gs->snd_click);
@@ -1218,22 +1218,22 @@ static void App_Update(void *state, f32 dt) {
         if (end_idx > LEVEL_COUNT)
             end_idx = LEVEL_COUNT;
 
-        constexpr i32 COLS = 2;
-        constexpr float CARD_W = 260.0f;
-        constexpr float GAP_X = 40.0f;
-        constexpr float GRID_W = ((float) COLS * CARD_W) + ((float) (COLS - 1) * GAP_X);
-        constexpr float START_X = (720.0f - GRID_W) / 2.0f;
+        constexpr i32 cols = 2;
+        constexpr f32 card_w = 260.0f;
+        constexpr f32 gap_x = 40.0f;
+        constexpr f32 grid_w = ((f32) cols * card_w) + ((f32) (cols - 1) * gap_x);
+        constexpr f32 start_x = (720.0f - grid_w) / 2.0f;
 
         for (i32 i = start_idx; i < end_idx; i++) {
-            constexpr float START_Y = 200.0f;
-            constexpr float GAP_Y = 30.0f;
-            constexpr float CARD_H = 70.0f;
+            constexpr f32 start_y = 200.0f;
+            constexpr f32 gap_y = 30.0f;
+            constexpr f32 card_h = 70.0f;
             const i32 relative_idx = i - start_idx;
-            const i32 col = relative_idx % COLS;
-            const i32 row = relative_idx / COLS;
-            const float x = START_X + ((float) col * (CARD_W + GAP_X));
-            const float y = START_Y + ((float) row * (CARD_H + GAP_Y));
-            const Rectangle card_rect = {x, y, CARD_W, CARD_H};
+            const i32 col = relative_idx % cols;
+            const i32 row = relative_idx / cols;
+            const f32 x = start_x + ((f32) col * (card_w + gap_x));
+            const f32 y = start_y + ((f32) row * (card_h + gap_y));
+            const Rectangle card_rect = {x, y, card_w, card_h};
 
             if (CheckCollisionPointRec(mouse, card_rect) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 PlaySound(gs->snd_click);
@@ -1247,15 +1247,15 @@ static void App_Update(void *state, f32 dt) {
 
     if (gs->screen == SCREEN_GAMEPLAY) {
         if (gs->show_tip) {
-            const LevelDesc *desc = &LEVELS[gs->current_level_idx];
+            const LevelDesc *desc = &g_levels[gs->current_level_idx];
             if (!desc->tip) {
                 gs->show_tip = false;
             } else {
                 i32 text_height =
                         CGame_MeasureTextWrappedHeight(gs->font_ibm, desc->tip, 440, UI_FONT_TIP, UI_LINE_TIP);
                 i32 total_height = 30 + 24 + 20 + text_height + 30 + 40 + 30;
-                float popup_y = 360.0f - ((float) total_height / 2.0f);
-                Rectangle btn_ok = {300.0f, popup_y + (float) total_height - 70.0f, 120.0f, 40.0f};
+                f32 popup_y = 360.0f - ((f32) total_height / 2.0f);
+                Rectangle btn_ok = {300.0f, popup_y + (f32) total_height - 70.0f, 120.0f, 40.0f};
 
                 Vector2 mouse = GetMousePosition();
                 if (!IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
@@ -1275,8 +1275,8 @@ static void App_Update(void *state, f32 dt) {
         if (gs->win_animation_active) {
             gs->win_animation_timer += dt;
 
-            float cell_duration = 0.15f;
-            float total_duration = ((float) gs->win_path_len * cell_duration) + 0.5f;
+            f32 cell_duration = 0.15f;
+            f32 total_duration = ((f32) gs->win_path_len * cell_duration) + 0.5f;
 
             if (gs->win_animation_timer >= total_duration) {
                 gs->win_animation_active = false;
@@ -1396,7 +1396,7 @@ static void App_Update(void *state, f32 dt) {
             return;
         }
 
-        const LevelDesc *desc = &LEVELS[gs->current_level_idx];
+        const LevelDesc *desc = &g_levels[gs->current_level_idx];
         if (desc->move_limit > 0 && gs->move_count >= desc->move_limit && !gs->win_animation_active) {
             const Vector2 mouse = GetMousePosition();
             const Rectangle btn_undo = {90.0f, 650.0f, 120.0f, 40.0f};
@@ -1431,7 +1431,7 @@ static void App_Update(void *state, f32 dt) {
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 PlaySound(gs->snd_click);
                 if (!gs->testing_editor_level) {
-                    Editor_ApplyLevelDesc(gs, &LEVELS[gs->current_level_idx]);
+                    Editor_ApplyLevelDesc(gs, &g_levels[gs->current_level_idx]);
                 }
                 gs->testing_editor_level = false;
                 gs->show_tip = false;
@@ -1492,9 +1492,9 @@ static void App_Update(void *state, f32 dt) {
             return;
         }
 
-        constexpr float SIZE = 45.0f;
+        constexpr f32 size = 45.0f;
         const Vector2 origin = {360.0f, 380.0f};
-        const i32 hovered_idx = Board_PickCell(&gs->board, mouse, SIZE, origin);
+        const i32 hovered_idx = Board_PickCell(&gs->board, mouse, size, origin);
 
 #ifndef NDEBUG
         if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE) && hovered_idx >= 0) {
@@ -1699,26 +1699,26 @@ static void App_Draw(void *state, f32 alpha) {
     if (gs->screen == SCREEN_TITLE) {
         // Draw decorative slowly rotating background elements
         for (i32 i = 0; i < 5; i++) {
-            constexpr float BASE_Y = 360.0f;
-            float angle = (gs->anim_time * 0.1f) + ((float) i * 72.0f * DEG2RAD);
-            float radius = 180.0f + (20.0f * sinf((gs->anim_time * 0.5f) + (float) i));
-            Vector2 hex_center = {360.0f + (radius * cosf(angle)), BASE_Y + (radius * sinf(angle))};
+            constexpr f32 base_y = 360.0f;
+            f32 angle = (gs->anim_time * 0.1f) + ((f32) i * 72.0f * DEG2RAD);
+            f32 radius = 180.0f + (20.0f * sinf((gs->anim_time * 0.5f) + (f32) i));
+            Vector2 hex_center = {360.0f + (radius * cosf(angle)), base_y + (radius * sinf(angle))};
             Render_DrawHex(hex_center, 60.0f, (Color) {49, 50, 68, 80}, (Color) {79, 79, 105, 40});
         }
 
         // Pulse and draw the Title
-        float title_y = 200.0f + (8.0f * sinf(gs->anim_time * 2.0f));
+        f32 title_y = 200.0f + (8.0f * sinf(gs->anim_time * 2.0f));
         const char *title_text = "HEXATAK";
-        constexpr i32 TITLE_FONT = 72;
-        i32 tw_title = CGame_MeasureText(gs->font_roboto, title_text, TITLE_FONT);
-        CGame_DrawText(gs->font_roboto, title_text, 360 - (tw_title / 2), (i32) title_y, TITLE_FONT,
+        constexpr i32 title_font = 72;
+        i32 tw_title = CGame_MeasureText(gs->font_roboto, title_text, title_font);
+        CGame_DrawText(gs->font_roboto, title_text, 360 - (tw_title / 2), (i32) title_y, title_font,
                        (Color) {250, 179, 135, 255}); // Peach
 
-        constexpr i32 TITLE_SUBTITLE_FONT = 28;
-        constexpr i32 TITLE_START_FONT = 22;
+        constexpr i32 title_subtitle_font = 28;
+        constexpr i32 title_start_font = 22;
         const char *subtitle = "A hexagonal tak inspired game";
-        i32 tw_sub = CGame_MeasureText(gs->font_roboto, subtitle, TITLE_SUBTITLE_FONT);
-        CGame_DrawText(gs->font_roboto, subtitle, 360 - (tw_sub / 2), (i32) (title_y + 88.0f), TITLE_SUBTITLE_FONT,
+        i32 tw_sub = CGame_MeasureText(gs->font_roboto, subtitle, title_subtitle_font);
+        CGame_DrawText(gs->font_roboto, subtitle, 360 - (tw_sub / 2), (i32) (title_y + 88.0f), title_subtitle_font,
                        (Color) {166, 173, 200, 255}); // Subtext Gray
 
         // Play button
@@ -1738,12 +1738,12 @@ static void App_Draw(void *state, f32 alpha) {
                          UI_FONT_BUTTON);
 
         CGame_DrawText(gs->font_ibm, "Press ENTER or SPACE to start",
-                       360 - (CGame_MeasureText(gs->font_ibm, "Press ENTER or SPACE to start", TITLE_START_FONT) / 2),
-                       530, TITLE_START_FONT, (Color) {110, 115, 141, 255});
+                       360 - (CGame_MeasureText(gs->font_ibm, "Press ENTER or SPACE to start", title_start_font) / 2),
+                       530, title_start_font, (Color) {110, 115, 141, 255});
 
         const char *title_credit = "By William Guimont-Martin";
-        i32 tw_credit = CGame_MeasureText(gs->font_ibm, title_credit, TITLE_SUBTITLE_FONT);
-        CGame_DrawText(gs->font_ibm, title_credit, 360 - (tw_credit / 2), 678, TITLE_SUBTITLE_FONT,
+        i32 tw_credit = CGame_MeasureText(gs->font_ibm, title_credit, title_subtitle_font);
+        CGame_DrawText(gs->font_ibm, title_credit, 360 - (tw_credit / 2), 678, title_subtitle_font,
                        (Color) {88, 91, 112, 255});
     } else if (gs->screen == SCREEN_THUMBNAIL) {
         DrawRectangleGradientV(0, 0, 720, 720, (Color) {24, 24, 37, 255}, (Color) {17, 17, 27, 255});
@@ -1751,23 +1751,23 @@ static void App_Draw(void *state, f32 alpha) {
         DrawCircleGradient((Vector2) {360.0f, 372.0f}, 250.0f, (Color) {137, 180, 250, 28}, (Color) {17, 17, 27, 0});
         DrawCircleGradient((Vector2) {420.0f, 300.0f}, 220.0f, (Color) {250, 179, 135, 24}, (Color) {17, 17, 27, 0});
 
-        constexpr i32 THUMB_SAFE_X = 45;
-        constexpr i32 THUMB_SAFE_Y = 110;
-        constexpr i32 THUMB_SAFE_W = 630;
-        constexpr i32 THUMB_SAFE_H = 500;
-        constexpr i32 THUMB_SAFE_CENTER_X = THUMB_SAFE_X + (THUMB_SAFE_W / 2);
+        constexpr i32 thumb_safe_x = 45;
+        constexpr i32 thumb_safe_y = 110;
+        constexpr i32 thumb_safe_w = 630;
+        constexpr i32 thumb_safe_h = 500;
+        constexpr i32 thumb_safe_center_x = thumb_safe_x + (thumb_safe_w / 2);
 
         const char *title_text = "HEXATAK";
-        constexpr i32 THUMB_TITLE_FONT = 112;
-        const i32 tw_title = CGame_MeasureText(gs->font_roboto, title_text, THUMB_TITLE_FONT);
-        CGame_DrawText(gs->font_roboto, title_text, THUMB_SAFE_CENTER_X - (tw_title / 2), THUMB_SAFE_Y - 2,
-                       THUMB_TITLE_FONT, (Color) {250, 179, 135, 255});
+        constexpr i32 thumb_title_font = 112;
+        const i32 tw_title = CGame_MeasureText(gs->font_roboto, title_text, thumb_title_font);
+        CGame_DrawText(gs->font_roboto, title_text, thumb_safe_center_x - (tw_title / 2), thumb_safe_y - 2,
+                       thumb_title_font, (Color) {250, 179, 135, 255});
 
-        const float board_top = (float) (THUMB_SAFE_Y + THUMB_TITLE_FONT + 14);
-        const float board_bottom = (float) (THUMB_SAFE_Y + THUMB_SAFE_H - 18);
-        const float board_center_y = (board_top + board_bottom) * 0.5f;
+        constexpr f32 board_top = (f32) (thumb_safe_y + thumb_title_font + 14);
+        constexpr f32 board_bottom = (f32) (thumb_safe_y + thumb_safe_h - 18);
+        constexpr f32 board_center_y = (board_top + board_bottom) * 0.5f;
         Render_DrawBoardEx(gs, &gs->thumbnail_board, gs->thumbnail_side_a, gs->thumbnail_side_b, false,
-                           (Vector2) {(float) THUMB_SAFE_CENTER_X, board_center_y}, 48.0f);
+                           (Vector2) {(f32) thumb_safe_center_x, board_center_y}, 48.0f);
     } else if (gs->screen == SCREEN_LEVEL_SELECT) {
         // Draw Header
         CGame_DrawText(gs->font_ibm, "SELECT LEVEL", 360 - (CGame_MeasureText(gs->font_ibm, "SELECT LEVEL", 30) / 2),
@@ -1779,11 +1779,11 @@ static void App_Draw(void *state, f32 alpha) {
 
         // Level Cards Grid for current page
         Vector2 mouse = GetMousePosition();
-        constexpr i32 COLS = 2;
-        constexpr float CARD_W = 260.0f;
-        constexpr float GAP_X = 40.0f;
-        constexpr float GRID_W = ((float) COLS * CARD_W) + ((float) (COLS - 1) * GAP_X);
-        constexpr float START_X = (720.0f - GRID_W) / 2.0f;
+        constexpr i32 cols = 2;
+        constexpr f32 card_w = 260.0f;
+        constexpr f32 gap_x = 40.0f;
+        constexpr f32 grid_w = ((f32) cols * card_w) + ((f32) (cols - 1) * gap_x);
+        constexpr f32 start_x = (720.0f - grid_w) / 2.0f;
 
         i32 start_idx = gs->level_select_page * 6;
         i32 end_idx = start_idx + 6;
@@ -1791,15 +1791,15 @@ static void App_Draw(void *state, f32 alpha) {
             end_idx = LEVEL_COUNT;
 
         for (i32 i = start_idx; i < end_idx; i++) {
-            constexpr float START_Y = 200.0f;
-            constexpr float GAP_Y = 30.0f;
-            constexpr float CARD_H = 70.0f;
+            constexpr f32 start_y = 200.0f;
+            constexpr f32 gap_y = 30.0f;
+            constexpr f32 card_h = 70.0f;
             i32 relative_idx = i - start_idx;
-            i32 col = relative_idx % COLS;
-            i32 row = relative_idx / COLS;
-            float x = START_X + ((float) col * (CARD_W + GAP_X));
-            float y = START_Y + ((float) row * (CARD_H + GAP_Y));
-            Rectangle card_rect = {x, y, CARD_W, CARD_H};
+            i32 col = relative_idx % cols;
+            i32 row = relative_idx / cols;
+            f32 x = start_x + ((f32) col * (card_w + gap_x));
+            f32 y = start_y + ((f32) row * (card_h + gap_y));
+            Rectangle card_rect = {x, y, card_w, card_h};
             bool card_hovered = CheckCollisionPointRec(mouse, card_rect);
 
             Color bg = (Color) {49, 50, 68, 255};
@@ -1817,27 +1817,27 @@ static void App_Draw(void *state, f32 alpha) {
                            (Color) {166, 173, 200, 255});
             const bool show_status_badge =
                     gs->level_impossible[i] || gs->level_manual_check[i] || gs->level_completed[i];
-            float max_w = show_status_badge ? (CARD_W - 105.0f) : (CARD_W - 30.0f);
-            CGame_DrawTextScaled(gs->font_ibm, LEVELS[i].name, (i32) (x + 15), (i32) (y + 34), UI_FONT_BODY,
+            f32 max_w = show_status_badge ? (card_w - 105.0f) : (card_w - 30.0f);
+            CGame_DrawTextScaled(gs->font_ibm, g_levels[i].name, (i32) (x + 15), (i32) (y + 34), UI_FONT_BODY,
                                  (i32) max_w, (Color) {205, 214, 244, 255});
 
             if (gs->level_impossible[i]) {
-                DrawRectangle((i32) (x + CARD_W - 95), (i32) (y + 12), 80, 18, (Color) {243, 139, 168, 45});
-                DrawRectangleLines((i32) (x + CARD_W - 95), (i32) (y + 12), 80, 18, (Color) {243, 139, 168, 255});
+                DrawRectangle((i32) (x + card_w - 95), (i32) (y + 12), 80, 18, (Color) {243, 139, 168, 45});
+                DrawRectangleLines((i32) (x + card_w - 95), (i32) (y + 12), 80, 18, (Color) {243, 139, 168, 255});
                 i32 tw = CGame_MeasureText(gs->font_ibm, "IMPOSSIBLE", 9);
-                CGame_DrawText(gs->font_ibm, "IMPOSSIBLE", (i32) (x + CARD_W - 95.0f + 40.0f) - (tw / 2),
+                CGame_DrawText(gs->font_ibm, "IMPOSSIBLE", (i32) (x + card_w - 95.0f + 40.0f) - (tw / 2),
                                (i32) (y + 16.0f), 9, (Color) {243, 139, 168, 255});
             } else if (gs->level_manual_check[i]) {
-                DrawRectangle((i32) (x + CARD_W - 65), (i32) (y + 12), 50, 18, (Color) {249, 226, 175, 45});
-                DrawRectangleLines((i32) (x + CARD_W - 65), (i32) (y + 12), 50, 18, (Color) {249, 226, 175, 255});
+                DrawRectangle((i32) (x + card_w - 65), (i32) (y + 12), 50, 18, (Color) {249, 226, 175, 45});
+                DrawRectangleLines((i32) (x + card_w - 65), (i32) (y + 12), 50, 18, (Color) {249, 226, 175, 255});
                 i32 tw = CGame_MeasureText(gs->font_ibm, "TBD", 10);
-                CGame_DrawText(gs->font_ibm, "TBD", (i32) (x + CARD_W - 65.0f + 25.0f) - (tw / 2), (i32) (y + 16.0f),
+                CGame_DrawText(gs->font_ibm, "TBD", (i32) (x + card_w - 65.0f + 25.0f) - (tw / 2), (i32) (y + 16.0f),
                                10, (Color) {249, 226, 175, 255});
             } else if (gs->level_completed[i]) {
-                DrawRectangle((i32) (x + CARD_W - 85), (i32) (y + 12), 70, 18, (Color) {166, 227, 161, 40});
-                DrawRectangleLines((i32) (x + CARD_W - 85), (i32) (y + 12), 70, 18, (Color) {166, 227, 161, 255});
+                DrawRectangle((i32) (x + card_w - 85), (i32) (y + 12), 70, 18, (Color) {166, 227, 161, 40});
+                DrawRectangleLines((i32) (x + card_w - 85), (i32) (y + 12), 70, 18, (Color) {166, 227, 161, 255});
                 i32 tw = CGame_MeasureText(gs->font_ibm, "SOLVED", 10);
-                CGame_DrawText(gs->font_ibm, "SOLVED", (i32) (x + CARD_W - 85.0f + 35.0f) - (tw / 2), (i32) (y + 16.0f),
+                CGame_DrawText(gs->font_ibm, "SOLVED", (i32) (x + card_w - 85.0f + 35.0f) - (tw / 2), (i32) (y + 16.0f),
                                10, (Color) {166, 227, 161, 255});
             }
         }
@@ -1892,77 +1892,77 @@ static void App_Draw(void *state, f32 alpha) {
         i32 page_x = 460 - (page_tw / 2);
         CGame_DrawText(gs->font_ibm, page_str, page_x, 661, UI_FONT_BODY, (Color) {205, 214, 244, 255});
     } else if (gs->screen == SCREEN_LEVEL_EDITOR) {
-        constexpr float SIZE = 40.0f;
+        constexpr f32 size = 40.0f;
         const Vector2 origin = {460.0f, 360.0f};
-        Render_DrawBoard(gs, origin, SIZE);
+        Render_DrawBoard(gs, origin, size);
         Render_DrawEditorUI(gs);
     } else if (gs->screen == SCREEN_GAMEPLAY) {
-        constexpr float SIZE = 45.0f;
+        constexpr f32 size = 45.0f;
         const Vector2 origin = {360.0f, 380.0f};
-        Render_DrawBoard(gs, origin, SIZE);
+        Render_DrawBoard(gs, origin, size);
         Render_DrawUI(gs);
 
         if (gs->esc_timer > 0.0f) {
-            constexpr float PILL_Y = 142.0f;
+            constexpr f32 pill_y = 142.0f;
 
             const char *esc_msg = "Press ESC again to exit level";
             const i32 tw = CGame_MeasureText(gs->font_ibm, esc_msg, UI_FONT_SMALL);
-            constexpr float PILL_PAD_X = 24.0f;
-            constexpr float PILL_PAD_Y = 10.0f;
-            const float pill_w = (float) tw + (PILL_PAD_X * 2.0f);
-            constexpr float PILL_H = (float) UI_FONT_SMALL + (PILL_PAD_Y * 2.0f);
-            const float pill_x = 360.0f - (pill_w / 2.0f);
+            constexpr f32 pill_pad_x = 24.0f;
+            constexpr f32 pill_pad_y = 10.0f;
+            const f32 pill_w = (f32) tw + (pill_pad_x * 2.0f);
+            constexpr f32 pill_h = (f32) UI_FONT_SMALL + (pill_pad_y * 2.0f);
+            const f32 pill_x = 360.0f - (pill_w / 2.0f);
 
-            DrawRectangleRounded((Rectangle) {pill_x, PILL_Y, pill_w, PILL_H}, 0.5f, 4, (Color) {30, 30, 46, 230});
-            DrawRectangleRoundedLines((Rectangle) {pill_x, PILL_Y, pill_w, PILL_H}, 0.5f, 4,
+            DrawRectangleRounded((Rectangle) {pill_x, pill_y, pill_w, pill_h}, 0.5f, 4, (Color) {30, 30, 46, 230});
+            DrawRectangleRoundedLines((Rectangle) {pill_x, pill_y, pill_w, pill_h}, 0.5f, 4,
                                       (Color) {243, 139, 168, 200});
 
-            CGame_DrawText(gs->font_ibm, esc_msg, (i32) (360.0f - ((float) tw / 2.0f)), (i32) (PILL_Y + PILL_PAD_Y),
+            CGame_DrawText(gs->font_ibm, esc_msg, (i32) (360.0f - ((f32) tw / 2.0f)), (i32) (pill_y + pill_pad_y),
                            UI_FONT_SMALL, (Color) {243, 139, 168, 255});
         }
 
-        const LevelDesc *desc = &LEVELS[gs->current_level_idx];
+        const LevelDesc *desc = &g_levels[gs->current_level_idx];
 
         // Win / Lose Overlay
         if (gs->level_won) {
             DrawRectangle(0, 0, 720, 720, (Color) {17, 17, 27, 200});
 
-            constexpr i32 FONT_SZ_TITLE = 48;
-            constexpr i32 FONT_SZ_MSG = 26;
-            constexpr i32 FONT_SZ_BEST = 22;
-            constexpr i32 FONT_SZ_NEXT = 22;
+            constexpr i32 font_sz_title = 48;
+            constexpr i32 font_sz_msg = 26;
+            constexpr i32 font_sz_best = 22;
+            constexpr i32 font_sz_next = 22;
             const char *win_title = "LEVEL CLEARED!";
-            const i32 tw1 = CGame_MeasureText(gs->font_ibm, win_title, FONT_SZ_TITLE);
-            CGame_DrawText(gs->font_ibm, win_title, 360 - (tw1 / 2), 272, FONT_SZ_TITLE, (Color) {166, 227, 161, 255});
+            const i32 tw1 = CGame_MeasureText(gs->font_ibm, win_title, font_sz_title);
+            CGame_DrawText(gs->font_ibm, win_title, 360 - (tw1 / 2), 272, font_sz_title, (Color) {166, 227, 161, 255});
 
             char msg_str[128];
             snprintf(msg_str, sizeof(msg_str), "Completed in %d moves!", gs->move_count);
-            const i32 tw2 = CGame_MeasureText(gs->font_ibm, msg_str, FONT_SZ_MSG);
-            CGame_DrawText(gs->font_ibm, msg_str, 360 - (tw2 / 2), 336, FONT_SZ_MSG, (Color) {205, 214, 244, 255});
+            const i32 tw2 = CGame_MeasureText(gs->font_ibm, msg_str, font_sz_msg);
+            CGame_DrawText(gs->font_ibm, msg_str, 360 - (tw2 / 2), 336, font_sz_msg, (Color) {205, 214, 244, 255});
 
             i32 next_msg_y = 380;
             if (desc->best_moves > 0) {
                 char best_str[128];
                 snprintf(best_str, sizeof(best_str), "This level is possible in %d move%s.", desc->best_moves,
                          desc->best_moves == 1 ? "" : "s");
-                const i32 tw_best = CGame_MeasureText(gs->font_ibm, best_str, FONT_SZ_BEST);
-                CGame_DrawText(gs->font_ibm, best_str, 360 - (tw_best / 2), 372, FONT_SZ_BEST,
+                const i32 tw_best = CGame_MeasureText(gs->font_ibm, best_str, font_sz_best);
+                CGame_DrawText(gs->font_ibm, best_str, 360 - (tw_best / 2), 372, font_sz_best,
                                (Color) {249, 226, 175, 255});
                 next_msg_y = 414;
             }
 
             const char *next_msg = (gs->current_level_idx + 1 < LEVEL_COUNT) ? "Press SPACE or CLICK for next level"
                                                                              : "Press SPACE or CLICK to finish";
-            const i32 tw3 = CGame_MeasureText(gs->font_ibm, next_msg, FONT_SZ_NEXT);
-            CGame_DrawText(gs->font_ibm, next_msg, 360 - (tw3 / 2), next_msg_y, FONT_SZ_NEXT,
+            const i32 tw3 = CGame_MeasureText(gs->font_ibm, next_msg, font_sz_next);
+            CGame_DrawText(gs->font_ibm, next_msg, 360 - (tw3 / 2), next_msg_y, font_sz_next,
                            (Color) {166, 173, 200, 255});
         } else if (desc->move_limit > 0 && gs->move_count >= desc->move_limit && !gs->win_animation_active) {
             DrawRectangle(0, 0, 720, 720, (Color) {17, 17, 27, 200});
 
-            constexpr i32 FONT_SZ_TITLE = 36;
+            constexpr i32 font_sz_title = 36;
             const char *lose_title = "OUT OF MOVES!";
-            const i32 tw1 = CGame_MeasureText(gs->font_ibm, lose_title, FONT_SZ_TITLE);
-            CGame_DrawText(gs->font_ibm, lose_title, 360 - (tw1 / 2), 280, FONT_SZ_TITLE, (Color) {243, 139, 168, 255});
+            const i32 tw1 = CGame_MeasureText(gs->font_ibm, lose_title, font_sz_title);
+            CGame_DrawText(gs->font_ibm, lose_title, 360 - (tw1 / 2), 280, font_sz_title, (Color) {243, 139, 168, 255});
 
             const char *reset_msg = "Press U / click UNDO, or R to retry";
             const i32 tw2 = CGame_MeasureText(gs->font_ibm, reset_msg, 22);
@@ -1972,25 +1972,25 @@ static void App_Draw(void *state, f32 alpha) {
         if (gs->game_completed) {
             DrawRectangle(0, 0, 720, 720, (Color) {17, 17, 27, 255});
 
-            constexpr i32 FONT_SZ_TITLE = 52;
-            constexpr i32 FONT_SZ_DESC = 28;
-            constexpr i32 FONT_SZ_INSTR = 24;
-            constexpr i32 FONT_SZ_CREDIT = 24;
+            constexpr i32 font_sz_title = 52;
+            constexpr i32 font_sz_desc = 28;
+            constexpr i32 font_sz_instr = 24;
+            constexpr i32 font_sz_credit = 24;
             const char *comp_title = "CONGRATULATIONS!";
-            const i32 tw1 = CGame_MeasureText(gs->font_ibm, comp_title, FONT_SZ_TITLE);
-            CGame_DrawText(gs->font_ibm, comp_title, 360 - (tw1 / 2), 232, FONT_SZ_TITLE, (Color) {166, 227, 161, 255});
+            const i32 tw1 = CGame_MeasureText(gs->font_ibm, comp_title, font_sz_title);
+            CGame_DrawText(gs->font_ibm, comp_title, 360 - (tw1 / 2), 232, font_sz_title, (Color) {166, 227, 161, 255});
 
             const char *comp_desc = "You have completed all levels of HEXATAK!";
-            const i32 tw2 = CGame_MeasureText(gs->font_ibm, comp_desc, FONT_SZ_DESC);
-            CGame_DrawText(gs->font_ibm, comp_desc, 360 - (tw2 / 2), 308, FONT_SZ_DESC, (Color) {205, 214, 244, 255});
+            const i32 tw2 = CGame_MeasureText(gs->font_ibm, comp_desc, font_sz_desc);
+            CGame_DrawText(gs->font_ibm, comp_desc, 360 - (tw2 / 2), 308, font_sz_desc, (Color) {205, 214, 244, 255});
 
             const char *comp_instr = "Press R / ENTER to return to Level Menu";
-            const i32 tw3 = CGame_MeasureText(gs->font_ibm, comp_instr, FONT_SZ_INSTR);
-            CGame_DrawText(gs->font_ibm, comp_instr, 360 - (tw3 / 2), 372, FONT_SZ_INSTR, (Color) {166, 173, 200, 255});
+            const i32 tw3 = CGame_MeasureText(gs->font_ibm, comp_instr, font_sz_instr);
+            CGame_DrawText(gs->font_ibm, comp_instr, 360 - (tw3 / 2), 372, font_sz_instr, (Color) {166, 173, 200, 255});
 
             const char *comp_credit = "Credits: William Guimont-Martin";
-            const i32 tw4 = CGame_MeasureText(gs->font_ibm, comp_credit, FONT_SZ_CREDIT);
-            CGame_DrawText(gs->font_ibm, comp_credit, 360 - (tw4 / 2), 438, FONT_SZ_CREDIT,
+            const i32 tw4 = CGame_MeasureText(gs->font_ibm, comp_credit, font_sz_credit);
+            CGame_DrawText(gs->font_ibm, comp_credit, 360 - (tw4 / 2), 438, font_sz_credit,
                            (Color) {110, 115, 141, 255});
         }
 
@@ -2000,13 +2000,13 @@ static void App_Draw(void *state, f32 alpha) {
 
             i32 text_height = CGame_MeasureTextWrappedHeight(gs->font_ibm, desc->tip, 440, UI_FONT_TIP, UI_LINE_TIP);
             i32 total_height = 30 + 24 + 20 + text_height + 30 + 40 + 30;
-            float popup_x = 110.0f;
-            float popup_y = 360.0f - ((float) total_height / 2.0f);
+            f32 popup_x = 110.0f;
+            f32 popup_y = 360.0f - ((f32) total_height / 2.0f);
 
             // Draw popup box
-            DrawRectangleRounded((Rectangle) {popup_x, popup_y, 500.0f, (float) total_height}, 0.05f, 4,
+            DrawRectangleRounded((Rectangle) {popup_x, popup_y, 500.0f, (f32) total_height}, 0.05f, 4,
                                  (Color) {30, 30, 46, 255});
-            DrawRectangleRoundedLines((Rectangle) {popup_x, popup_y, 500.0f, (float) total_height}, 0.05f, 4,
+            DrawRectangleRoundedLines((Rectangle) {popup_x, popup_y, 500.0f, (f32) total_height}, 0.05f, 4,
                                       (Color) {137, 180, 250, 255});
 
             // Title
@@ -2020,7 +2020,7 @@ static void App_Draw(void *state, f32 alpha) {
                                           UI_FONT_TIP, UI_LINE_TIP, (Color) {205, 214, 244, 255});
 
             // OK Button
-            Rectangle btn_ok = {300.0f, popup_y + (float) total_height - 70.0f, 120.0f, 40.0f};
+            Rectangle btn_ok = {300.0f, popup_y + (f32) total_height - 70.0f, 120.0f, 40.0f};
             Vector2 mouse = GetMousePosition();
             bool ok_hovered = CheckCollisionPointRec(mouse, btn_ok);
             Color ok_bg = ok_hovered ? (Color) {166, 227, 161, 255} : (Color) {49, 50, 68, 255};
@@ -2030,8 +2030,8 @@ static void App_Draw(void *state, f32 alpha) {
             // Small instruction helper text below button
             const char *space_msg = "or press SPACE to close";
             i32 tw_space = CGame_MeasureText(gs->font_ibm, space_msg, UI_FONT_BADGE);
-            CGame_DrawText(gs->font_ibm, space_msg, 360 - (tw_space / 2),
-                           (i32) (popup_y + (float) total_height - 25.0f), UI_FONT_BADGE, (Color) {110, 115, 141, 255});
+            CGame_DrawText(gs->font_ibm, space_msg, 360 - (tw_space / 2), (i32) (popup_y + (f32) total_height - 25.0f),
+                           UI_FONT_BADGE, (Color) {110, 115, 141, 255});
         }
     }
 

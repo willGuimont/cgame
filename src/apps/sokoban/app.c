@@ -14,14 +14,14 @@ static void Sokoban_Draw(void *state, const f32 alpha) {
     (void) alpha;
 
     const char *text = "Hello, World";
-    constexpr i32 FONT_SIZE = 48;
-    const i32 text_width = MeasureText(text, FONT_SIZE);
+    constexpr i32 font_size = 48;
+    const i32 text_width = MeasureText(text, font_size);
     const i32 x = (960 - text_width) / 2;
-    constexpr i32 Y = (720 - FONT_SIZE) / 2;
+    constexpr i32 y = (720 - font_size) / 2;
 
     BeginDrawing();
     ClearBackground(RAYWHITE);
-    DrawText(text, x, Y, FONT_SIZE, BLACK);
+    DrawText(text, x, y, font_size, BLACK);
     EndDrawing();
 }
 

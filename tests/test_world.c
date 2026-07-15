@@ -11,8 +11,8 @@ static int test_grid_in_bounds_centre(void) {
     Arena *arena = make_arena();
     World world;
     make_world(&world, arena);
-    ASSERT(World_GridInBounds(&world, (Vector3i) {DEFAULT_WORLD_WIDTH / 2, DEFAULT_WORLD_HEIGHT / 2,
-                                                  DEFAULT_WORLD_DEPTH / 2}));
+    ASSERT(World_GridInBounds(&world,
+                              (Vector3i) {DEFAULT_WORLD_WIDTH / 2, DEFAULT_WORLD_HEIGHT / 2, DEFAULT_WORLD_DEPTH / 2}));
     World_Delete(&world);
     Arena_Destroy(arena);
     return 0;
@@ -32,8 +32,8 @@ static int test_grid_in_bounds_max_corner(void) {
     Arena *arena = make_arena();
     World world;
     make_world(&world, arena);
-    ASSERT(World_GridInBounds(&world, (Vector3i) {DEFAULT_WORLD_WIDTH - 1, DEFAULT_WORLD_HEIGHT - 1,
-                                                  DEFAULT_WORLD_DEPTH - 1}));
+    ASSERT(World_GridInBounds(&world,
+                              (Vector3i) {DEFAULT_WORLD_WIDTH - 1, DEFAULT_WORLD_HEIGHT - 1, DEFAULT_WORLD_DEPTH - 1}));
     World_Delete(&world);
     Arena_Destroy(arena);
     return 0;

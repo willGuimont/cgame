@@ -13,11 +13,11 @@ static int test_bitset_init_sets_bits_to_zero(void) {
 
 static int test_bitset_initbits_sets_exact_pattern(void) {
     Bitset bitset;
-    constexpr u64 PATTERN = 0xA5A5A5A5A5A5A5A5ULL;
+    constexpr u64 pattern = 0xA5A5A5A5A5A5A5A5ULL;
 
-    Bitset_InitBits(&bitset, PATTERN);
+    Bitset_InitBits(&bitset, pattern);
 
-    ASSERT(bitset.bits == PATTERN);
+    ASSERT(bitset.bits == pattern);
     return 0;
 }
 

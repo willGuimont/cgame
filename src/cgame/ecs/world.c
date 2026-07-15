@@ -12,9 +12,9 @@ static bool World_ValidDimensions(const i32 width, const i32 height, const i32 d
            (u64) width * (u64) height * (u64) depth <= SIZE_MAX / sizeof(GridCell);
 }
 
-static size_t World_GridIndex(const World *world, const Vector3i pos) {
-    return (size_t) pos.x + ((size_t) pos.y * (size_t) world->width) +
-           ((size_t) pos.z * (size_t) world->width * (size_t) world->height);
+static usize World_GridIndex(const World *world, const Vector3i pos) {
+    return (usize) pos.x + ((usize) pos.y * (usize) world->width) +
+           ((usize) pos.z * (usize) world->width * (usize) world->height);
 }
 
 static bool World_GridCellContains(const GridCell *head, const EntityId id) {
@@ -140,7 +140,7 @@ bool World_InitSized(World *world, Arena *arena, const i32 width, const i32 heig
     world->width = width;
     world->height = height;
     world->depth = depth;
-    world->grid = calloc((size_t) width * (size_t) height * (size_t) depth, sizeof(*world->grid));
+    world->grid = calloc((usize) width * (usize) height * (usize) depth, sizeof(*world->grid));
     if (!world->grid) {
         memset(world, 0, sizeof(*world));
         return false;

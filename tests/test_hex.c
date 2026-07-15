@@ -211,8 +211,10 @@ static int test_hex_flat_pixel_conversions(void) {
 }
 
 static int test_hex_generic_pixel_conversions(void) {
-    const HexLayout layout_pointy = {.orientation = HEX_ORIENTATION_POINTY, .size = 10.0f, .origin = {.x = 100.0f, .y = 50.0f}};
-    const HexLayout layout_flat = {.orientation = HEX_ORIENTATION_FLAT, .size = 10.0f, .origin = {.x = 100.0f, .y = 50.0f}};
+    const HexLayout layout_pointy = {
+            .orientation = HEX_ORIENTATION_POINTY, .size = 10.0f, .origin = {.x = 100.0f, .y = 50.0f}};
+    const HexLayout layout_flat = {
+            .orientation = HEX_ORIENTATION_FLAT, .size = 10.0f, .origin = {.x = 100.0f, .y = 50.0f}};
     const Hex hex = Hex_Create(2, -1);
 
     // Test Pointy via generic

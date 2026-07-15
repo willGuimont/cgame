@@ -4,8 +4,8 @@
 void CGame_DrawText(const Font font, const char *text, const i32 pos_x, const i32 pos_y, const i32 font_size,
                     const Color color) {
     if (font.texture.id > 0) {
-        const Vector2 position = {(float) pos_x, (float) pos_y};
-        DrawTextEx(font, text, position, (float) font_size, 1.0f, color);
+        const Vector2 position = {(f32) pos_x, (f32) pos_y};
+        DrawTextEx(font, text, position, (f32) font_size, 1.0f, color);
     } else {
         DrawText(text, pos_x, pos_y, font_size, color);
     }
@@ -13,7 +13,7 @@ void CGame_DrawText(const Font font, const char *text, const i32 pos_x, const i3
 
 i32 CGame_MeasureText(const Font font, const char *text, const i32 font_size) {
     if (font.texture.id > 0) {
-        const Vector2 size = MeasureTextEx(font, text, (float) font_size, 1.0f);
+        const Vector2 size = MeasureTextEx(font, text, (f32) font_size, 1.0f);
         return (i32) size.x;
     }
     return MeasureText(text, font_size);
@@ -57,7 +57,7 @@ i32 CGame_MeasureTextWrappedHeight(const Font font, const char *text, const i32 
                 last_space = scan;
             }
 
-            size_t len = (size_t) (scan - line_start) + 1;
+            usize len = (usize) (scan - line_start) + 1;
             char temp[256];
             if (len >= sizeof(temp))
                 len = sizeof(temp) - 1;
@@ -119,7 +119,7 @@ void CGame_DrawTextWrappedCentered(const Font font, const char *text, const i32 
                 last_space = scan;
             }
 
-            size_t len = (size_t) (scan - line_start) + 1;
+            usize len = (usize) (scan - line_start) + 1;
             char temp[256];
             if (len >= sizeof(temp))
                 len = sizeof(temp) - 1;
@@ -145,7 +145,7 @@ void CGame_DrawTextWrappedCentered(const Font font, const char *text, const i32 
             ptr = scan;
         }
 
-        size_t len = (size_t) (line_end - line_start);
+        usize len = (usize) (line_end - line_start);
         if (len > 0) {
             char draw_buf[256];
             if (len >= sizeof(draw_buf))
@@ -172,8 +172,8 @@ void CGame_DrawButton(const Font font, const Rectangle rect, const char *text, c
         tw = CGame_MeasureText(font, text, font_size);
     }
 
-    const i32 text_x = (i32) (rect.x + (rect.width / 2.0f) - ((float) tw / 2.0f));
-    const i32 text_y = (i32) (rect.y + (rect.height / 2.0f) - ((float) font_size / 2.0f));
+    const i32 text_x = (i32) (rect.x + (rect.width / 2.0f) - ((f32) tw / 2.0f));
+    const i32 text_y = (i32) (rect.y + (rect.height / 2.0f) - ((f32) font_size / 2.0f));
 
     CGame_DrawText(font, text, text_x, text_y, font_size, text_col);
 }

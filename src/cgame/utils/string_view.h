@@ -7,7 +7,7 @@
 
 typedef struct {
     const char *data;
-    size_t count;
+    usize count;
 } StringView;
 
 static StringView StringView_Create(const char *cstr) {
@@ -17,13 +17,13 @@ static StringView StringView_Create(const char *cstr) {
     };
 }
 
-static void StringView_ChopRight(StringView *sv, size_t n) {
+static void StringView_ChopRight(StringView *sv, usize n) {
     if (n > sv->count)
         n = sv->count;
     sv->count -= n;
 }
 
-static void StringView_ChopLeft(StringView *sv, size_t n) {
+static void StringView_ChopLeft(StringView *sv, usize n) {
     if (n > sv->count)
         n = sv->count;
     sv->count -= n;
@@ -31,13 +31,13 @@ static void StringView_ChopLeft(StringView *sv, size_t n) {
 }
 
 static void StringView_TrimRight(StringView *sv) {
-    while (sv->count > 0 && isspace((unsigned char) sv->data[sv->count - 1])) {
+    while (sv->count > 0 && isspace((u8) sv->data[sv->count - 1])) {
         StringView_ChopRight(sv, 1);
     }
 }
 
 static void StringView_TrimLeft(StringView *sv) {
-    while (sv->count > 0 && isspace((unsigned char) sv->data[0])) {
+    while (sv->count > 0 && isspace((u8) sv->data[0])) {
         StringView_ChopLeft(sv, 1);
     }
 }
@@ -48,7 +48,7 @@ static void StringView_Trim(StringView *sv) {
 }
 
 static StringView StringView_ChopByDelim(StringView *sv, const char delim) {
-    size_t i = 0;
+    usize i = 0;
     while (i < sv->count && sv->data[i] != delim) {
         i += 1;
     }
@@ -67,7 +67,7 @@ static StringView StringView_ChopByDelim(StringView *sv, const char delim) {
     return result;
 }
 
-static i32 StringView_PrintLen(const StringView sv) { return sv.count > (size_t) INT_MAX ? INT_MAX : (i32) sv.count; }
+static i32 StringView_PrintLen(const StringView sv) { return sv.count > (usize) INT_MAX ? INT_MAX : (i32) sv.count; }
 
 #define STRING_VIEW_FMT "%.*s"
 #define STRING_VIEW_ARG(s) StringView_PrintLen(s), (s).data

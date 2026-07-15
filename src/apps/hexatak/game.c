@@ -398,14 +398,14 @@ i32 Board_FindConnectionPath(const Board *board, const BoardSide a, const BoardS
 }
 
 // Levels
-LevelDesc LEVELS[LEVEL_COUNT];
+LevelDesc g_levels[LEVEL_COUNT];
 
 static void Parsing_TrimString(char *str) {
-    size_t l = strlen(str);
+    usize l = strlen(str);
     while (l > 0 && (str[l - 1] == '\r' || str[l - 1] == '\n' || str[l - 1] == ' ' || str[l - 1] == '\t')) {
         str[--l] = '\0';
     }
-    size_t start = 0;
+    usize start = 0;
     while (str[start] == ' ' || str[start] == '\t') {
         start++;
     }
@@ -466,7 +466,7 @@ static bool Parsing_ParseHexValue(const char *str, i32 *q, i32 *r, i32 *value) {
 }
 
 static bool Parsing_ParseStackHeader(const char *str, i32 *q, i32 *r, i32 *count, char *values,
-                                     const size_t values_size) {
+                                     const usize values_size) {
     i32 parsed_q = 0;
     i32 parsed_r = 0;
     i32 parsed_count = 0;
@@ -609,7 +609,7 @@ bool Levels_LoadFromStream(FILE *f, LevelDesc *levels, i32 max_levels) {
         return false;
     }
 
-    memset(levels, 0, (size_t) max_levels * sizeof(LevelDesc));
+    memset(levels, 0, (usize) max_levels * sizeof(LevelDesc));
 
     char line[512];
     i32 current_idx = -1;
@@ -766,7 +766,7 @@ bool Levels_LoadAll(void) {
         return false;
     }
 
-    LevelDesc *loaded = calloc((size_t) LEVEL_COUNT, sizeof(*loaded));
+    LevelDesc *loaded = calloc((usize) LEVEL_COUNT, sizeof(*loaded));
     if (!loaded) {
         return false;
     }
@@ -779,8 +779,8 @@ bool Levels_LoadAll(void) {
         return false;
     }
 
-    Levels_FreeAll(LEVELS, LEVEL_COUNT);
-    memcpy(LEVELS, loaded, (size_t) LEVEL_COUNT * sizeof(*loaded));
+    Levels_FreeAll(g_levels, LEVEL_COUNT);
+    memcpy(g_levels, loaded, (usize) LEVEL_COUNT * sizeof(*loaded));
     free(loaded);
     return ok;
 }
