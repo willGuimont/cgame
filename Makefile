@@ -2,7 +2,7 @@
         build build-debug build-release \
         run run-debug run-release \
         test test-debug test-release \
-        format \
+        format tidy \
         web-build web-build-app web-serve web-deploy \
         asan-verbose asan-no-leaks
 
@@ -10,6 +10,8 @@ DEBUG_BUILD_DIR := cmake-build-debug
 RELEASE_BUILD_DIR := cmake-build-release
 WEB_BUILD_DIR := cmake-build-web
 FORMAT_FILES := $(shell find src tests -type f \( -name '*.c' -o -name '*.h' \))
+TIDY_FILES := $(shell find src tests -type f -name '*.c')
+TIDY_HEADER_FILTER := ^$(CURDIR)/(src|tests)/
 
 APP ?= hexatak
 
@@ -50,6 +52,9 @@ test-release: configure-release
 
 format:
 	clang-format -i $(FORMAT_FILES)
+
+tidy: configure-debug
+	clang-tidy --quiet -p $(DEBUG_BUILD_DIR) --header-filter='$(TIDY_HEADER_FILTER)' $(TIDY_FILES)
 
 web-build: configure-web
 	cmake --build $(WEB_BUILD_DIR) --target all_apps --parallel

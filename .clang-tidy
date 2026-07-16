@@ -40,7 +40,7 @@ CheckOptions:
   - key:             readability-identifier-naming.TypedefCase
     value:           CamelCase
   - key:             readability-identifier-naming.TypedefIgnoredRegexp
-    value:           '^(i8|i16|i32|i64|u8|u16|u32|u64|usize|f32|f64|b8|b32)$'
+    value:           '^(i8|i16|i32|i64|u8|u16|u32|u64|usize|isize|iptr|uptr|imax|umax|f32|f64|ldouble|c32|c64|cldouble|complex|b8|b32)$'
   
   # Functions: snake_case unless they use the project module prefix form,
   # e.g. Entity_New, World_SetEntityPosition, StringView_Create.
