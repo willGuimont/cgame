@@ -174,7 +174,7 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
     if (is_editor) {
         hovered_idx = Board_PickCell(board, GetMousePosition(), size, origin);
     }
-#ifndef NDEBUG
+#ifdef DEV_MODE
     if (!is_editor) {
         hovered_idx = Board_PickCell(board, GetMousePosition(), size, origin);
     }
@@ -339,7 +339,7 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
             Render_DrawFixedBridge(gs->font_ibm, center, size, 255, is_active_path, pulse);
         }
 
-#ifndef NDEBUG
+#ifdef DEV_MODE
         if (!is_editor && gs->debug_static_cells[i] && cell->count > 0) {
             const Vector2 badge_center = {center.x - size * 0.42f, center.y - size * 0.42f};
             const f32 badge_r = fmaxf(12.0f, size * 0.28f);
@@ -423,7 +423,7 @@ void Render_DrawBoardEx(GameState *gs, const Board *board, const BoardSide side_
         }
     }
 
-#ifndef NDEBUG
+#ifdef DEV_MODE
     if (hovered_idx >= 0 && hovered_idx < board->count) {
         const Cell *cell = &board->cells[hovered_idx];
         const HexLayout layout = {
@@ -523,13 +523,13 @@ void Render_DrawUI(const GameState *gs) {
     const Rectangle btn_redo = {230.0f, 650.0f, 120.0f, 40.0f};
     const Rectangle btn_reset = {370.0f, 650.0f, 120.0f, 40.0f};
     const Rectangle btn_menu = {510.0f, 650.0f, 120.0f, 40.0f};
-#ifndef NDEBUG
+#ifdef DEV_MODE
     const Rectangle btn_solve = {20.0f, 650.0f, 60.0f, 40.0f};
     const Rectangle btn_open_editor = {20.0f, 600.0f, 150.0f, 40.0f};
     const Rectangle btn_solve_current = {550.0f, 600.0f, 150.0f, 40.0f};
 #endif
 
-#ifndef NDEBUG
+#ifdef DEV_MODE
     CGame_DrawButton(gs->font_ibm, btn_open_editor, "OPEN IN EDITOR", (Color) {250, 179, 135, 255},
                      (Color) {30, 30, 46, 255}, CheckCollisionPointRec(mouse, btn_open_editor), UI_FONT_BUTTON);
     CGame_DrawTextScaled(gs->font_ibm, "Middle click\n stack: static", 550, 554, UI_FONT_BODY, 150,

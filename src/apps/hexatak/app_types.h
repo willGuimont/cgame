@@ -77,7 +77,7 @@ typedef struct {
     i32 win_path[MAX_CELLS];
     i32 win_path_len;
 
-#ifndef NDEBUG
+#ifdef DEV_MODE
     bool debug_static_cells[MAX_CELLS];
 #endif
 

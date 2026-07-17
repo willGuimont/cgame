@@ -82,7 +82,7 @@ i32 CGame_Run(const CGameLoopDesc *desc) {
             .accumulator = 0.0f,
     };
 
-#ifdef NDEBUG
+#ifndef DEV_MODE
     SetTraceLogLevel(LOG_NONE);
 #endif
 

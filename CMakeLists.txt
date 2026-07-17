@@ -69,6 +69,11 @@ target_include_directories(cgame
         ${CMAKE_CURRENT_SOURCE_DIR}/src/cgame
 )
 
+target_compile_definitions(cgame
+        PUBLIC
+        $<$<CONFIG:Debug>:DEV_MODE>
+)
+
 target_link_libraries(cgame
         PUBLIC
         stb

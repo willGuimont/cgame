@@ -189,7 +189,7 @@ static bool App_RedoMove(GameState *gs) {
     return true;
 }
 
-#ifndef NDEBUG
+#ifdef DEV_MODE
 static Board App_BuildBoardFromLevelDesc(const LevelDesc *desc) {
     Board board;
     Board_Init(&board, desc->radius);
@@ -1172,7 +1172,7 @@ static void App_Update(void *state, f32 dt) {
             return;
         }
 
-#ifndef NDEBUG
+#ifdef DEV_MODE
         const Rectangle btn_reload = {190.0f, 650.0f, 120.0f, 40.0f};
         if (CheckCollisionPointRec(mouse, btn_reload) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             PlaySound(gs->snd_click);
@@ -1417,7 +1417,7 @@ static void App_Update(void *state, f32 dt) {
         const Rectangle btn_redo = {230.0f, 650.0f, 120.0f, 40.0f};
         const Rectangle btn_reset = {370.0f, 650.0f, 120.0f, 40.0f};
         const Rectangle btn_menu = {510.0f, 650.0f, 120.0f, 40.0f};
-#ifndef NDEBUG
+#ifdef DEV_MODE
         const Rectangle btn_solve = {20.0f, 650.0f, 60.0f, 40.0f};
         const Rectangle btn_open_editor = {20.0f, 600.0f, 150.0f, 40.0f};
         const Rectangle btn_solve_current = {550.0f, 600.0f, 150.0f, 40.0f};
@@ -1425,7 +1425,7 @@ static void App_Update(void *state, f32 dt) {
 
         bool clicked_ui = false;
 
-#ifndef NDEBUG
+#ifdef DEV_MODE
         if (CheckCollisionPointRec(mouse, btn_open_editor)) {
             clicked_ui = true;
             if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
@@ -1496,7 +1496,7 @@ static void App_Update(void *state, f32 dt) {
         const Vector2 origin = {360.0f, 380.0f};
         const i32 hovered_idx = Board_PickCell(&gs->board, mouse, size, origin);
 
-#ifndef NDEBUG
+#ifdef DEV_MODE
         if (IsMouseButtonPressed(MOUSE_BUTTON_MIDDLE) && hovered_idx >= 0) {
             const Cell *cell = &gs->board.cells[hovered_idx];
             if (cell->count > 0 && !cell->blocked) {
@@ -1848,7 +1848,7 @@ static void App_Draw(void *state, f32 alpha) {
         CGame_DrawButton(gs->font_ibm, btn_back, "BACK (Esc)", (Color) {49, 50, 68, 255}, (Color) {205, 214, 244, 255},
                          back_hovered, UI_FONT_BUTTON);
 
-#ifndef NDEBUG
+#ifdef DEV_MODE
         Rectangle btn_reload = {190.0f, 650.0f, 120.0f, 40.0f};
         bool reload_hovered = CheckCollisionPointRec(mouse, btn_reload);
         CGame_DrawButton(gs->font_ibm, btn_reload, "RELOAD", (Color) {148, 226, 213, 255}, (Color) {30, 30, 46, 255},
