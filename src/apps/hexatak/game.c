@@ -284,7 +284,7 @@ bool Cell_IsRoad(const Cell *cell) {
 }
 
 bool Board_HasConnection(const Board *board, const BoardSide a, const BoardSide b) {
-    bool visited[MAX_CELLS] = {0};
+    bool visited[MAX_CELLS] = {};
     i32 queue[MAX_CELLS];
     i32 head = 0;
     i32 tail = 0;
@@ -326,9 +326,9 @@ bool Board_HasConnection(const Board *board, const BoardSide a, const BoardSide 
     return false;
 }
 
-i32 Board_FindConnectionPath(const Board *board, const BoardSide a, const BoardSide b, i32 *path_out,
-                             const i32 max_path_len) {
-    bool visited[MAX_CELLS] = {0};
+i32 Board_FindConnectionPath(const Board *board, const BoardSide a, const BoardSide b, const i32 max_path_len,
+                             i32 path_out[static max_path_len]) {
+    bool visited[MAX_CELLS] = {};
     i32 parent[MAX_CELLS];
     for (i32 i = 0; i < MAX_CELLS; i++) {
         parent[i] = -1;
@@ -708,7 +708,7 @@ bool Levels_LoadFromStream(FILE *f, LevelDesc *levels, i32 max_levels) {
                 levels[current_idx].required_height_hexes[r_idx].required_height = req_height;
             } else if (strcmp(key, "stack") == 0) {
                 i32 q = 0, r = 0, count = 0;
-                char vals_str[256] = {0};
+                char vals_str[256] = {};
                 if (!Parsing_ParseStackHeader(val, &q, &r, &count, vals_str, sizeof(vals_str))) {
                     return Levels_Fail(levels, max_levels);
                 }

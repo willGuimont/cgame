@@ -95,7 +95,7 @@ static int test_entity_delete_rejects_null_id(void) {
     Entity entity;
     Entity_Init(&entity);
 
-    const bool removed = Entity_Delete(&entity, (EntityId) {0});
+    const bool removed = Entity_Delete(&entity, (EntityId) {});
     ASSERT(!removed);
     ASSERT(entity.entity_count == 0U);
     ASSERT(entity.free_count == 0U);

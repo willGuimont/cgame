@@ -129,7 +129,7 @@ void Arena_Clear(Arena *arena) { Arena_PopTo(arena, ARENA_BASE_POS); }
 #include <windows.h>
 
 u32 Platform_GetPageSize(void) {
-    SYSTEM_INFO sysinfo = {0};
+    SYSTEM_INFO sysinfo = {};
     GetSystemInfo(&sysinfo);
 
     return sysinfo.dwPageSize;

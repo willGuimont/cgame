@@ -111,4 +111,5 @@ bool Cell_IsOpenOnlyGate(const Cell *cell);
 i32 Cell_GetDisplayedRequiredValue(const Cell *cell);
 bool Cell_IsRoad(const Cell *cell);
 bool Board_HasConnection(const Board *board, BoardSide a, BoardSide b);
-i32 Board_FindConnectionPath(const Board *board, BoardSide a, BoardSide b, i32 *path_out, i32 max_path_len);
+i32 Board_FindConnectionPath(const Board *board, BoardSide a, BoardSide b, i32 max_path_len,
+                             i32 path_out[static max_path_len]);

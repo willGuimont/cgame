@@ -309,8 +309,8 @@ static int test_set_position_rejects_null_entity_id(void) {
     World world;
     make_world(&world, arena);
 
-    ASSERT(!World_SetEntityPosition(&world, (EntityId) {0}, (Vector3i) {0, 0, 0}));
-    ASSERT(!World_GetEntityPosition(&world, (EntityId) {0}, nullptr));
+    ASSERT(!World_SetEntityPosition(&world, (EntityId) {}, (Vector3i) {0, 0, 0}));
+    ASSERT(!World_GetEntityPosition(&world, (EntityId) {}, nullptr));
 
     World_Delete(&world);
     Arena_Destroy(arena);

@@ -111,7 +111,7 @@ static int test_hex_diagonals_pointy_top_order(void) {
 }
 
 static int test_hex_ring(void) {
-    Hex out[6] = {0};
+    Hex out[6] = {};
 
     ASSERT(Hex_RingCount(-1) == 0U);
     ASSERT(Hex_RingCount(0) == 1U);
@@ -131,7 +131,7 @@ static int test_hex_ring(void) {
 }
 
 static int test_hex_spiral(void) {
-    Hex out[7] = {0};
+    Hex out[7] = {};
 
     ASSERT(Hex_SpiralCount(-1) == 0U);
     ASSERT(Hex_SpiralCount(0) == 1U);
@@ -145,7 +145,7 @@ static int test_hex_spiral(void) {
 }
 
 static int test_hex_range_helpers_return_required_count_for_partial_buffers(void) {
-    Hex out[2] = {0};
+    Hex out[2] = {};
 
     ASSERT(Hex_RingCount(2) == 12U);
     ASSERT(Hex_Ring(Hex_Create(0, 0), 2, out, 2) == 2U);
@@ -160,7 +160,7 @@ static int test_hex_range_helpers_return_required_count_for_partial_buffers(void
 }
 
 static int test_hex_line_draw(void) {
-    Hex out[4] = {0};
+    Hex out[4] = {};
 
     ASSERT(Hex_LineDrawCount(Hex_Create(0, 0), Hex_Create(3, -3)) == 4U);
     ASSERT(Hex_LineDraw(Hex_Create(0, 0), Hex_Create(3, -3), out, 4) == 4U);
@@ -169,7 +169,7 @@ static int test_hex_line_draw(void) {
     ASSERT(Hex_Equals(out[2], Hex_Create(2, -2)));
     ASSERT(Hex_Equals(out[3], Hex_Create(3, -3)));
 
-    Hex partial[1] = {0};
+    Hex partial[1] = {};
     ASSERT(Hex_LineDraw(Hex_Create(0, 0), Hex_Create(3, -3), partial, 1) == 1U);
     ASSERT(Hex_Equals(partial[0], Hex_Create(0, 0)));
     return 0;

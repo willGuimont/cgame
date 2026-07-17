@@ -149,7 +149,7 @@ bool Solver_CountSolutionsWithStaticCells(const Board *start, const BoardSide si
     i32 node_count = 0;
     i32 queue_head = 0;
     bool expansion_truncated = false;
-    if (!Solver_PushNode(&nodes, &node_capacity, &visited, &node_count, start, 0, -1, (Move) {0})) {
+    if (!Solver_PushNode(&nodes, &node_capacity, &visited, &node_count, start, 0, -1, (Move) {})) {
         free(nodes);
         hmfree(visited);
         return false;
@@ -246,7 +246,7 @@ bool Solver_FindFirstSolutionWithStaticCells(const Board *start, const BoardSide
 
     i32 node_count = 0;
     i32 queue_head = 0;
-    if (!Solver_PushNode(&nodes, &node_capacity, &visited, &node_count, start, 0, -1, (Move) {0})) {
+    if (!Solver_PushNode(&nodes, &node_capacity, &visited, &node_count, start, 0, -1, (Move) {})) {
         free(nodes);
         hmfree(visited);
         return false;

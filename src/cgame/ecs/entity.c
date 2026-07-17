@@ -12,7 +12,7 @@ EntityId Entity_New(Entity *entity) {
         new_idx = entity->free_array[entity->free_count];
     } else {
         if (entity->next_entity >= (u32) MAX_ENTITIES) {
-            return (EntityId) {0};
+            return (EntityId) {};
         }
         new_idx = entity->next_entity++;
     }

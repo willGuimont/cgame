@@ -12,7 +12,7 @@ static void rb_free(RingBufferInt *rb) {
 }
 
 static int test_rb_initial_allocation_and_push(void) {
-    RingBufferInt rb = {0};
+    RingBufferInt rb = {};
 
     RING_BUFFER_PUSH(rb, 100);
 
@@ -28,7 +28,7 @@ static int test_rb_initial_allocation_and_push(void) {
 }
 
 static int test_rb_push_pop_fifo(void) {
-    RingBufferInt rb = {0};
+    RingBufferInt rb = {};
 
     RING_BUFFER_PUSH(rb, 10);
     RING_BUFFER_PUSH(rb, 20);
@@ -54,7 +54,7 @@ static int test_rb_push_pop_fifo(void) {
 }
 
 static int test_rb_circular_wrap(void) {
-    RingBufferInt rb = {0};
+    RingBufferInt rb = {};
 
     // Fill ring buffer to capacity 256
     for (int i = 0; i < 256; i++) {
@@ -97,7 +97,7 @@ static int test_rb_circular_wrap(void) {
 }
 
 static int test_rb_growth_preserves_order(void) {
-    RingBufferInt rb = {0};
+    RingBufferInt rb = {};
 
     for (int i = 0; i < 256; i++) {
         RING_BUFFER_PUSH(rb, i);
@@ -137,7 +137,7 @@ static int test_rb_growth_preserves_order(void) {
 }
 
 static int test_rb_pop_back_lifo(void) {
-    RingBufferInt rb = {0};
+    RingBufferInt rb = {};
 
     RING_BUFFER_PUSH(rb, 10);
     RING_BUFFER_PUSH(rb, 20);

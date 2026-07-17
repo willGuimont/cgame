@@ -2050,8 +2050,8 @@ static void App_Deinit(void *state) {
 
     UnloadFont(gs->font_ibm);
     UnloadFont(gs->font_roboto);
-    gs->font_ibm = (Font) {0};
-    gs->font_roboto = (Font) {0};
+    gs->font_ibm = (Font) {};
+    gs->font_roboto = (Font) {};
 
     free(gs->history.items);
     free(gs->redo.items);
@@ -2060,7 +2060,7 @@ static void App_Deinit(void *state) {
 i32 App_Run(void) {
     // Static for WASM build
     static GameState state;
-    state = (GameState) {0};
+    state = (GameState) {};
 
     const CGameLoopDesc desc = {
             .title = "Hexatak",

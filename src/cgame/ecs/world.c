@@ -40,7 +40,7 @@ static GridCell *World_AllocGridCell(World *world) {
 }
 
 static void World_FreeGridCell(World *world, GridCell *node) {
-    node->entity_id = (EntityId) {0};
+    node->entity_id = (EntityId) {};
     node->next = world->free_grid_cells;
     world->free_grid_cells = node;
 }
@@ -107,7 +107,7 @@ bool World_GridRemove(World *world, const Vector3i pos, const EntityId id) {
             head->next = next->next;
             World_FreeGridCell(world, next);
         } else {
-            head->entity_id = (EntityId) {0};
+            head->entity_id = (EntityId) {};
         }
         return true;
     }

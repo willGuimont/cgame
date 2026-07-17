@@ -176,7 +176,7 @@ void GameState_CheckWinCondition(GameState *gs) {
     if (has_conn) {
         if (!gs->level_won && !gs->win_animation_active) {
             gs->win_path_len =
-                    Board_FindConnectionPath(&gs->board, desc->side_a, desc->side_b, gs->win_path, MAX_CELLS);
+                    Board_FindConnectionPath(&gs->board, desc->side_a, desc->side_b, MAX_CELLS, gs->win_path);
             if (gs->win_path_len > 0) {
                 gs->win_animation_active = true;
                 gs->win_animation_timer = 0.0f;
