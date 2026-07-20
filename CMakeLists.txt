@@ -231,6 +231,7 @@ function(cgame_generate_web_index)
     get_property(apps GLOBAL PROPERTY CGAME_APP_TARGETS)
 
     set(CGAME_WEB_APP_CARDS "")
+    set(CGAME_WEB_APP_MANIFEST "")
     set(CGAME_WEB_INDEX_TEMPLATE "${CMAKE_SOURCE_DIR}/web/index.html.in")
     set(CGAME_WEB_INDEX_FAVICON "")
 
@@ -240,7 +241,7 @@ function(cgame_generate_web_index)
             set(CGAME_WEB_INDEX_FAVICON "${web_dir}/favicon.svg")
             break()
         endif ()
-    endforeach()
+    endforeach ()
 
     if (CGAME_WEB_INDEX_FAVICON)
         configure_file(
@@ -251,6 +252,8 @@ function(cgame_generate_web_index)
     endif ()
 
     foreach (app IN LISTS apps)
+        string(APPEND CGAME_WEB_APP_MANIFEST "${app}\n")
+
         get_property(exclude GLOBAL PROPERTY "CGAME_APP_${app}_EXCLUDE_FROM_INDEX")
         if (exclude)
             continue()
@@ -261,7 +264,7 @@ function(cgame_generate_web_index)
 
         if (NOT title)
             set(title "${app}")
-        endif()
+        endif ()
 
         string(APPEND CGAME_WEB_APP_CARDS
                 "        <a class=\"card\" href=\"${app}/\">\n"
@@ -272,13 +275,13 @@ function(cgame_generate_web_index)
             string(APPEND CGAME_WEB_APP_CARDS
                     "            <p>${description}</p>\n"
             )
-        endif()
+        endif ()
 
         string(APPEND CGAME_WEB_APP_CARDS
                 "            <code>${app}/</code>\n"
                 "        </a>\n"
         )
-    endforeach()
+    endforeach ()
 
     if (NOT EXISTS "${CGAME_WEB_INDEX_TEMPLATE}")
         message(FATAL_ERROR "Missing web index template: ${CGAME_WEB_INDEX_TEMPLATE}")
@@ -290,58 +293,68 @@ function(cgame_generate_web_index)
             @ONLY
     )
 
+    file(GENERATE
+            OUTPUT "${CMAKE_BINARY_DIR}/cgame_web_apps.txt"
+            CONTENT "${CGAME_WEB_APP_MANIFEST}"
+    )
+
     add_custom_target(web_index ALL
-            DEPENDS ${CMAKE_BINARY_DIR}/index.html
+            DEPENDS ${CMAKE_BINARY_DIR}/index.html ${CMAKE_BINARY_DIR}/cgame_web_apps.txt
     )
 endfunction()
+
+set(HEXATAK_CLASSIC_SOURCES
+        src/apps/hexatak_classic/main.c
+        src/apps/hexatak_classic/app.c
+        src/apps/hexatak_classic/app.h
+        src/apps/hexatak_classic/app_types.h
+        src/apps/hexatak_classic/app_state.h
+        src/apps/hexatak_classic/app_state.c
+        src/apps/hexatak_classic/app_render.h
+        src/apps/hexatak_classic/app_render.c
+        src/apps/hexatak_classic/game.h
+        src/apps/hexatak_classic/game.c
+        src/apps/hexatak_classic/solver.h
+        src/apps/hexatak_classic/solver.c
+        src/cgame/coords/hex.h
+)
+
+# Hexatak Classic application
+add_executable(hexatak_classic
+        ${HEXATAK_CLASSIC_SOURCES}
+        web/hexatak_classic/minshell.html
+)
+add_cgame_app(hexatak_classic hexatak_classic
+        TITLE "Hexatak Classic"
+        DESCRIPTION "Hex-grid puzzle about merging and stacking stones to build a road across the board."
+        WEB_DIR "web/hexatak_classic"
+)
+
+# Hexatak Classic itch.io application
+add_executable(hexatak_classic-itch
+        ${HEXATAK_CLASSIC_SOURCES}
+        web/hexatak_classic/itch.html
+)
+add_cgame_app(hexatak_classic-itch hexatak_classic
+        TITLE "Hexatak Classic Itch"
+        DESCRIPTION "Hex-grid puzzle about merging and stacking stones to build a road across the board (itch.io release target)."
+        WEB_DIR "web/hexatak_classic"
+        ASSET_DIR "assets/hexatak_classic"
+        SHELL_FILE "itch.html"
+        EXCLUDE_FROM_INDEX
+)
 
 # Hexatak application
 add_executable(hexatak
         src/apps/hexatak/main.c
         src/apps/hexatak/app.c
         src/apps/hexatak/app.h
-        src/apps/hexatak/app_types.h
-        src/apps/hexatak/app_state.h
-        src/apps/hexatak/app_state.c
-        src/apps/hexatak/app_render.h
-        src/apps/hexatak/app_render.c
-        src/apps/hexatak/game.h
-        src/apps/hexatak/game.c
-        src/apps/hexatak/solver.h
-        src/apps/hexatak/solver.c
-        src/cgame/coords/hex.h
         web/hexatak/minshell.html
 )
 add_cgame_app(hexatak hexatak
         TITLE "Hexatak"
-        DESCRIPTION "Hex-grid puzzle about merging and stacking stones to build a road across the board."
+        DESCRIPTION "New Hexatak target scaffold."
         WEB_DIR "web/hexatak"
-)
-
-# Hexatak itch.io application
-add_executable(hexatak-itch
-        src/apps/hexatak/main.c
-        src/apps/hexatak/app.c
-        src/apps/hexatak/app.h
-        src/apps/hexatak/app_types.h
-        src/apps/hexatak/app_state.h
-        src/apps/hexatak/app_state.c
-        src/apps/hexatak/app_render.h
-        src/apps/hexatak/app_render.c
-        src/apps/hexatak/game.h
-        src/apps/hexatak/game.c
-        src/apps/hexatak/solver.h
-        src/apps/hexatak/solver.c
-        src/cgame/coords/hex.h
-        web/hexatak/itch.html
-)
-add_cgame_app(hexatak-itch hexatak
-        TITLE "Hexatak Itch"
-        DESCRIPTION "Hex-grid puzzle about merging and stacking stones to build a road across the board (itch.io release target)."
-        WEB_DIR "web/hexatak"
-        ASSET_DIR "assets/hexatak"
-        SHELL_FILE "itch.html"
-        EXCLUDE_FROM_INDEX
 )
 
 # Sokoban application
@@ -363,12 +376,12 @@ add_custom_target(all_apps)
 
 if (CGAME_APP_TARGETS)
     add_dependencies(all_apps ${CGAME_APP_TARGETS})
-endif()
+endif ()
 
 if (CGAME_WEB)
     cgame_generate_web_index()
     add_dependencies(all_apps web_index)
-endif()
+endif ()
 
 # Testing
 if (BUILD_TESTING)

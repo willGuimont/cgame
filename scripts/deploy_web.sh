@@ -37,12 +37,22 @@ find "$WORKTREE_DIR" -mindepth 1 -not -path '*/.git*' -delete 2>/dev/null || tru
 cp "$BUILD_DIR"/index.html "$WORKTREE_DIR"/
 cp "$BUILD_DIR"/favicon.* "$WORKTREE_DIR"/ 2>/dev/null || true
 
-for app_index in "$BUILD_DIR"/*/index.html; do
-  app_dir="$(dirname "$app_index")"
-  app_name="$(basename "$app_dir")"
+if [[ ! -f "$BUILD_DIR/cgame_web_apps.txt" ]]; then
+  echo "Missing $BUILD_DIR/cgame_web_apps.txt"
+  echo "Run ./scripts/build_web.sh first."
+  exit 1
+fi
+
+while IFS= read -r app_name; do
+  [[ -n "$app_name" ]] || continue
+  app_dir="$BUILD_DIR/$app_name"
+  if [[ ! -f "$app_dir/index.html" ]]; then
+    echo "Missing web output for $app_name: $app_dir/index.html"
+    exit 1
+  fi
   rm -rf "$WORKTREE_DIR/$app_name"
   cp -R "$app_dir" "$WORKTREE_DIR/$app_name"
-done
+done < "$BUILD_DIR/cgame_web_apps.txt"
 
 echo "==> Committing and pushing..."
 

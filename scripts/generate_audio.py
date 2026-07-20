@@ -68,7 +68,7 @@ def undo_gen(t, duration):
 
 def main():
     sample_rate = 44100
-    base_dir = "/home/wigum/Projects/cgame/assets/hexatak/audio"
+    base_dir = "/home/wigum/Projects/cgame/assets/hexatak_classic/audio"
     
     write_wav(os.path.join(base_dir, "click.wav"), sample_rate, 0.05, click_gen)
     write_wav(os.path.join(base_dir, "move.wav"), sample_rate, 0.15, move_gen)

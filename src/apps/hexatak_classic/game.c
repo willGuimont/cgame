@@ -758,7 +758,7 @@ bool Levels_LoadAll(void) {
     if (!f) {
         // Fallback for local desktop debugging when running outside the output directory
 #ifdef ROOT_DIR
-        f = fopen(ROOT_DIR "/assets/hexatak/levels.txt", "r");
+        f = fopen(ROOT_DIR "/assets/hexatak_classic/levels.txt", "r");
 #endif
     }
 #endif

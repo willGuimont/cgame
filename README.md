@@ -10,25 +10,25 @@ The build system was mostly borrowed from [willGuimont/faisceau](https://github.
 another raylib project reimplementing algorithms.
 
 ```bash
-# Build the Hexatak desktop target in debug mode
-make build-debug APP=hexatak
-# Run the Hexatak desktop target in release mode
-make run-release APP=hexatak
-# Build the Hexatak web target
-make web-build-app APP=hexatak
+# Build the Hexatak Classic desktop target in debug mode
+make build-debug APP=hexatak_classic
+# Run the Hexatak Classic desktop target in release mode
+make run-release APP=hexatak_classic
+# Build the Hexatak Classic web target
+make web-build-app APP=hexatak_classic
 # Serve the web build locally (requires python)
 make web-serve
 # Deploy the web build (gh-pages)
 make web-deploy
 ```
 
-## Hexatak
+## Hexatak Classic
 
-![Hexatak thumbnail](docs/hexatak/thumbnail.png)
+![Hexatak thumbnail](docs/hexatak_classic/thumbnail.png)
 
 ### Description
 
-The game is available [here](https://willguimont.com/cgame/hexatak/).
+The game is available [here](https://willguimont.com/cgame/hexatak_classic/).
 
 This game was submitted to the [`raylib 6.x gamejam`](https://itch.io/jam/raylib-6x-gamejam).
 
@@ -78,17 +78,17 @@ Mouse:
 
 ### Screenshots
 
-![Hexatak thumbnail](docs/hexatak/thumbnail.png)
+![Hexatak thumbnail](docs/hexatak_classic/thumbnail.png)
 
-![Hexatak title screen](docs/hexatak/title_screen.png)
+![Hexatak title screen](docs/hexatak_classic/title_screen.png)
 
-![Hexatak in game 01](docs/hexatak/in_game_01.png)
+![Hexatak in game 01](docs/hexatak_classic/in_game_01.png)
 
-![Hexatak in game 02](docs/hexatak/in_game_02.png)
+![Hexatak in game 02](docs/hexatak_classic/in_game_02.png)
 
-![Hexatak in game 03](docs/hexatak/in_game_03.png)
+![Hexatak in game 03](docs/hexatak_classic/in_game_03.png)
 
-![Hexatak level editor](docs/hexatak/level_editor.png)
+![Hexatak level editor](docs/hexatak_classic/level_editor.png)
 
 ### Developers
 
@@ -96,6 +96,6 @@ Mouse:
 
 ### Links
 
-* Web build: https://willguimont.com/cgame/hexatak/
+* Web build: https://willguimont.com/cgame/hexatak_classic/
 * Source repository: https://github.com/willGuimont/cgame
 * itch.io Release: https://willguimont.itch.io/hexatak
